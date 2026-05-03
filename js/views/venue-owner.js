@@ -1187,7 +1187,8 @@
     box.innerHTML = html;
   };
 
-  window._venueOwnerEditExisting = async function(placeId) {
+  window._venueOwnerEditExisting = async function(placeId, opts) {
+    opts = opts || {};
     var v = await window.VenueDB.loadVenue(placeId);
     if (!v) return;
     // Defense-in-depth: public-access venues (beaches, praças, parques) são
@@ -1195,10 +1196,13 @@
     // botão "Reivindicar" em venues.js, mas alguém chamando esta função
     // direto (via console/URL handoff) ainda cairia aqui — bloqueia e avisa.
     // Donos existentes passam (edição de venue próprio é sempre permitida).
+    // v1.1.9-beta: opts.skipPublicGuard=true vindo do botão Editar bypassa
+    // o guard — Editar é correção comunitária, não reivindicação. Reivindicar
+    // continua sem opts (guard fires pra public).
     var cu = window.AppStore && window.AppStore.currentUser;
     var isOwnerAlready = !!(cu && cu.uid && v.ownerUid === cu.uid);
     var effectivePolicy = v.accessPolicy || 'public';
-    if (!isOwnerAlready && effectivePolicy === 'public') {
+    if (!opts.skipPublicGuard && !isOwnerAlready && effectivePolicy === 'public') {
       if (window.showAlertDialog) {
         window.showAlertDialog(
           'Local público — sem dono',

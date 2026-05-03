@@ -9,6 +9,17 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">✏️ v1.1.9-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Editar do venue agora abre o form COMPLETO + header mobile ficou compacto.</b> User: <i>"aqui ao clicar num local preferido/cadastrado nem dá pra ler o nome do local. o botão editar deveria abrir uma tela igual a de cadastrar local (onde possa cadastrar esportes, quadras, horários)."</i></p>' +
+      '<p><b>Fix #1 — Editar abre form completo:</b></p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Antes: clicava Editar → abria form INLINE limitado (só nome/endereço/horário/descrição) via <code>_venuesToggleEdit</code></li>' +
+        '<li>Agora: navega pra <code>#my-venues</code> e abre o MESMO form completo do Cadastrar (esportes, quadras, horários 7×24, contatos, fotos, etc.) via <code>_venueOwnerEditExisting</code></li>' +
+        '<li><code>opts.skipPublicGuard:true</code> bypassa o guard de venues públicos — Editar é correção comunitária, não reivindicação</li>' +
+      '</ul>' +
+      '<p><b>Fix #2 — Header mobile:</b> em ≤767px, labels textuais "Editar"/"Reivindicar" ficam escondidas via classe <code>.venue-detail-btn-label</code> + <code>display:none</code>. Só ✏️ e 🏢 ficam visíveis. Libera espaço pro nome do local não truncar mais.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📱 v1.1.8-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Botão "+ Cadastrar" agora compacto em mobile.</b> User: <i>"no celular esse cadastrar ficou péssimo. ficou enorme e só se ve ele (nem dá pra saber qual o lugar)."</i></p>' +
       '<p>Bug: <code>responsive.css</code> linha 159-162 força <code>width:100%</code> em <code>.view-container .btn-primary</code> em mobile (≤767px). O botão da v1.1.6-beta usava <code>class="btn btn-sm btn-primary"</code> e foi pego pela regra → ocupava todo o card → empurrava nome do local pra fora.</p>' +

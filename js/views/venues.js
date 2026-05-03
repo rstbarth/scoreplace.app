@@ -2541,11 +2541,19 @@
     // etc.).
     var canCommunityEdit = !!(cu && cu.uid && !v.ownerUid);
     var canEdit = isOwner || canCommunityEdit;
+    // v1.1.9-beta: Editar agora abre o form COMPLETO em #my-venues (mesmo
+    // form do Cadastrar — esportes, quadras, horários, etc.) em vez do
+    // form limitado inline. User: 'o botão editar deveria abrir uma tela
+    // igual a de cadastrar local. não entendi porque aparece uma tela
+    // muito limitada ao clicar em editar.'
+    // skipPublicGuard:true porque Editar é correção comunitária, não
+    // reivindicação — o guard de public-access só faz sentido pra Reivindicar.
+    // Mobile: textos curtos via responsive — só ✏️/🏢 caso a tela aperte.
     var editBtn = canEdit
-      ? '<button class="btn btn-sm" onclick=\'window._venuesToggleEdit("' + _safe(v.placeId) + '")\' style="background:#6366f1;color:#fff;border:none;font-weight:700;flex-shrink:0;">✏️ Editar</button>'
+      ? '<button onclick=\'window._venueOwnerEditExisting("' + _safe(v.placeId) + '", {skipPublicGuard:true}); window._venuesCloseDetail(); window.location.hash="#my-venues"\' style="background:#6366f1;color:#fff;border:none;font-weight:700;flex-shrink:0;font-size:0.78rem;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;">✏️ <span class="venue-detail-btn-label">Editar</span></button>'
       : '';
     var claimBtn = canClaim
-      ? '<button class="btn btn-sm" onclick=\'window._venueOwnerEditExisting("' + _safe(v.placeId) + '"); window._venuesCloseDetail(); window.location.hash="#my-venues"\' style="background:#10b981;color:#fff;border:none;font-weight:700;flex-shrink:0;">🏢 Reivindicar</button>'
+      ? '<button onclick=\'window._venueOwnerEditExisting("' + _safe(v.placeId) + '"); window._venuesCloseDetail(); window.location.hash="#my-venues"\' style="background:#10b981;color:#fff;border:none;font-weight:700;flex-shrink:0;font-size:0.78rem;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;">🏢 <span class="venue-detail-btn-label">Reivindicar</span></button>'
       : '';
     var headerBtns = editBtn + claimBtn;
     // Callback do voltar — fecha overlay + restaura back-header da página.
