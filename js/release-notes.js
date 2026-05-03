@@ -9,6 +9,27 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🐛 v1.0.91-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>BUG estrutural na Dupla Eliminatória — Lower Final não era gerada.</b> User: <i>"deveria haver uma lower final? acho que é isso e essa não aparece no chaveamento."</i></p>' +
+      '<p><b>Causa-raiz em <code>tournaments-draw.js</code>:</b> loop de geração do lower bracket usava <code>for (let ur = 1; ur < totalUpperRounds; ur++)</code> com <code>&lt;</code>. Para 8 times DE (totalUpperRounds=3), só rodava ur=1 e ur=2 — o merge round que pega o UR final loser e joga contra o LR winner (= a Lower Final) NUNCA era criado.</p>' +
+      '<p><b>Sintoma:</b></p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>UR final loser ficava órfão (não ia pra lugar nenhum)</li>' +
+        '<li>LR3 winner ia DIRETO pra Grande Final, sem enfrentar UR final loser</li>' +
+        '<li>Total de matches errado: 13 em vez de 14 pra 8 times</li>' +
+        '<li>Estrutura fundamentalmente errada — DE não funcionava como Double Elimination de verdade</li>' +
+      '</ul>' +
+      '<p><b>Fix:</b> trocar <code>&lt;</code> por <code>&lt;=</code>. Agora ur vai de 1 até totalUpperRounds inclusivo. No último iteração, cria o merge round que é a Lower Final (LR4 pra 8 times, LR6 pra 16 times, etc.). actualMergeCount=1 pra esse último round → não gera battle round depois (correto: LR final é o último).</p>' +
+      '<p><b>Counts corretos pós-fix:</b></p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>4 times DE: 3 UR + 2 LR + 1 GF = 6 matches</li>' +
+        '<li>8 times DE: 7 UR + 6 LR + 1 GF = 14 matches</li>' +
+        '<li>16 times DE: 15 UR + 14 LR + 1 GF = 30 matches</li>' +
+        '<li>32 times DE: 31 UR + 30 LR + 1 GF = 62 matches</li>' +
+      '</ul>' +
+      '<p><b>Bonus fix em <code>tournaments-utils.js</code>:</b> <code>_getTournamentProgress</code> adicionava placeholder de 3º lugar pra TODOS formatos elim com 2+ rounds. DE não tem match de 3º lugar (3º vem do Lower Final loser) — placeholder excluído pra DE. Antes inflava o total reportado.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🥈 v1.0.90-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Classificação dedicada para Dupla Eliminatória (Lower bracket + GF aware).</b> User: <i>"preenchido até a grande final ainda diz que falta um jogo. não está informando a classificação personalizada. na verdade não dá classificação alguma."</i></p>' +
       '<p><b>Causa-raiz:</b> <code>_updateProgressiveClassification</code> foi escrita pra Single Elim. Filtrava <code>m.bracket !== \'lower\' && m.bracket !== \'grand\'</code> — ignorava 100% do Lower bracket. Tratava upper-final winner como 1º (errado: em DE ele vai pra GF, pode ser 2º). Resultado: classificação vazia ou incorreta para qualquer DE.</p>' +

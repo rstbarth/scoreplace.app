@@ -1058,13 +1058,21 @@ window._buildDoubleElimBracket = function (t) {
     }
 
     // --- LOWER BRACKET ---
-    // Lower bracket has (totalUpperRounds - 1) * 2 - 1 rounds
-    // Structure: alternating "drop-down" rounds (receive upper losers) and "battle" rounds
+    // v1.0.91-beta: Lower bracket has 2*totalUpperRounds - 2 rounds
+    // (era 'totalUpperRounds-1)*2-1' que estava ERRADO — não criava a Lower
+    // Final). Estrutura: rounds alternando "merge" (recebem upper losers) e
+    // "battle" (LR winners enfrentam-se internamente). O ÚLTIMO merge round
+    // é a LOWER FINAL: LR(n) winner + UR(final) loser jogam pra ir pra GF.
+    // User: 'deveria haver uma lower final? acho que é isso e essa não
+    // aparece no chaveamento.'
     const lowerRounds = {};
     let lowerRoundNum = 1;
 
-    // For each upper round (1 to totalUpperRounds-1), losers drop to lower
-    for (let ur = 1; ur < totalUpperRounds; ur++) {
+    // For each upper round (1 to totalUpperRounds), losers drop to lower
+    // v1.0.91-beta: <= em vez de < — pra incluir o upper final loser na
+    // Lower Final. Antes (com <), o UR final loser ficava órfão e LR3
+    // winner ia direto pra GF (Lower Final inexistente).
+    for (let ur = 1; ur <= totalUpperRounds; ur++) {
         const upperLosersCount = upperRounds[ur].length;
 
         if (ur === 1) {
