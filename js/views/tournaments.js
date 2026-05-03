@@ -789,7 +789,13 @@ function renderTournaments(container, tournamentId = null) {
                     sortearBtn = `<button class="btn btn-warning hover-lift" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Próxima Rodada</button>`;
                 }
             } else {
-                sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-warning hover-lift" onclick="event.stopPropagation(); window.generateDrawFunction('${t.id}')">🎲 Sortear</button>` : '';
+                // v1.0.96-beta: status='closed' agora roteia via _handleSortearClick(false)
+                // → showUnifiedResolutionPanel → painel correto (P2 / grupos / final review).
+                // Antes chamava generateDrawFunction direto, que pulava painel de grupos
+                // quando user havia cancelado antes — sorteava com defaults silenciosos.
+                // User: 'quando coloquei para sortear depois de ter cancelado ele sorteou
+                // direto sem me perguntar novamente a formação dos grupos.'
+                sortearBtn = (t.status === 'closed' && !hasDraw) ? `<button class="btn btn-warning hover-lift" onclick="event.stopPropagation(); window._handleSortearClick('${t.id}', false)">🎲 Sortear</button>` : '';
                 sortearAberto = (t.status !== 'closed' && !hasDraw) ? `<button class="btn btn-warning hover-lift" onclick="${sortearOnClick}">🎲 Sortear</button>` : '';
             }
         }

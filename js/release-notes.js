@@ -9,6 +9,18 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🎲 v1.0.96-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Sortear após cancelar painel de Grupos: agora reabre o painel em vez de sortear silenciosamente com defaults.</b> User: <i>"quando coloquei para sortear depois de ter cancelado ele sorteou direto sem me perguntar novamente a formação dos grupos."</i></p>' +
+      '<p><b>Causa-raiz em <code>tournaments.js</code> linha 792:</b> botão Sortear tem 2 variantes (renderizadas por status):</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><code>sortearAberto</code> (status=open): chama <code>_handleSortearClick</code> → confirma fechar inscrições → roteia via <code>showUnifiedResolutionPanel</code> ✓</li>' +
+        '<li><code>sortearBtn</code> (status=closed): chamava <code>generateDrawFunction</code> DIRETO ❌</li>' +
+      '</ul>' +
+      '<p><b>Por que quebrava:</b> quando user clica Sortear pela 1ª vez (status=open), confirma fechar inscrições → status persistido como \'closed\' → painel de grupos abre. User cancela. <code>_cancelGroupsConfig</code> não restaura status. Próximo render → status=closed → <code>sortearBtn</code> renderizado → clica → <code>generateDrawFunction</code> usa <code>t.gruposCount || 4</code> e <code>t.gruposClassified || 2</code> como defaults silenciosos.</p>' +
+      '<p><b>Fix:</b> <code>sortearBtn</code> (status=closed) agora chama <code>_handleSortearClick(tId, false)</code> em vez de <code>generateDrawFunction</code>. <code>isAberto=false</code> pula o dialog (não precisa fechar — já tá fechado) e vai direto pra <code>_startDraw</code> → <code>showUnifiedResolutionPanel</code> → roteia pro painel correto (P2 / grupos / final review). Pra Single Elim sem issues, painel cai pro draw automaticamente. Pra Grupos sem config, painel de grupos abre.</p>' +
+      '<p>Liga manual draw mantido com <code>generateDrawFunction</code> direto (Liga não tem painel P2/grupos).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🚨 v1.0.95-beta HOTFIX <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>HOTFIX: render loop infinito travava o app — UI não respondia, impossível apagar torneio.</b> User: <i>"fica recarregando de forma que é impossivel apagar esse torneio que insiste em dizer que existe mais um jogo pronto para chamar"</i>.</p>' +
       '<p><b>Causa:</b> v1.0.93 chamava <code>syncImmediate</code> dentro do <code>renderDoubleElimBracket</code>. Loop:</p>' +
