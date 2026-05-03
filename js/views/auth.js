@@ -953,19 +953,22 @@ function handlePhoneLogin() {
   // Show loading
   showNotification(_t('auth.verifying'), _t('auth.sendingSms', {phone: phone}), 'info');
 
-  // Create invisible reCAPTCHA verifier
-  if (!window._phoneRecaptchaVerifier) {
-    window._phoneRecaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-      size: 'invisible',
-      callback: function() {
-        // reCAPTCHA solved — will proceed with phone sign-in
-      },
-      'expired-callback': function() {
-        showNotification(_t('auth.recaptchaExpired'), _t('auth.tryAgain'), 'warning');
-        _resetPhoneRecaptcha();
-      }
-    });
-  }
+  // v1.1.5-beta: SEMPRE reset+recreate o verifier antes de cada tentativa.
+  // Sentry SCOREPLACE-WEB-D: reuse causava 'reCAPTCHA has already been
+  // rendered in this element' quando user fez logoff → login de novo →
+  // verify() interno chama recaptcha.render() que falha pq elemento já
+  // tinha render anterior. Reset garante DOM limpo + nova instância.
+  _resetPhoneRecaptcha();
+  window._phoneRecaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+    size: 'invisible',
+    callback: function() {
+      // reCAPTCHA solved — will proceed with phone sign-in
+    },
+    'expired-callback': function() {
+      showNotification(_t('auth.recaptchaExpired'), _t('auth.tryAgain'), 'warning');
+      _resetPhoneRecaptcha();
+    }
+  });
 
   firebase.auth().signInWithPhoneNumber(phone, window._phoneRecaptchaVerifier)
     .then(function(confirmationResult) {

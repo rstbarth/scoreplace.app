@@ -9,6 +9,11 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🤖 v1.1.5-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Fix reCAPTCHA reuso em SMS login após logoff.</b> Sentry SCOREPLACE-WEB-D: <code>Error: reCAPTCHA has already been rendered in this element</code> quando user fazia logoff e tentava login SMS de novo. Causa: <code>window._phoneRecaptchaVerifier</code> persistia entre sessões; reuso disparava render() interno do Firebase no elemento que já tinha conteúdo do render anterior.</p>' +
+      '<p>Fix: SEMPRE reset+recreate o verifier antes de cada tentativa (em vez de checar truthy e reusar). <code>_resetPhoneRecaptcha()</code> limpa o container HTML + nullifica a referência. Custo: 1 instância nova de RecaptchaVerifier por SMS request — desprezível.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🧹 v1.1.4-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Removidos botões "🤖 Add Bot" e "🗑️ Apagar Torneio" da toolbar do organizador.</b> User: <i>"adicionar bots nunca é uma opção (alias podemos retirar isso novamente do programa e também o apagar torneio)."</i></p>' +
       '<p>Foram trazidos de volta na v1.0.59-beta especificamente pra ajudar nos testes da matriz de resolução. Testes terminados → removidos novamente. Painel de resolução pra times incompletos NÃO oferece "Adicionar Bots" como opção (só Reabrir, Lista de Espera, Excluir).</p>' +
