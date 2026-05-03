@@ -9,6 +9,17 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">⊕ v1.1.10-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Botão "+ Cadastrar" vira círculo "+" só em mobile.</b> User: <i>"no celular por conta do tamanho da tela o botao cadastrar poderia ser apenas um circulo com + dentro na cor e estilo que está (só sem a palavra cadastrar dentro do botao)."</i></p>' +
+      '<p>Mesma cor/borda da v1.1.8 (índigo translúcido pill). Só muda o formato em ≤767px:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Texto " Cadastrar" envolto em <code>&lt;span class="gv-register-label"&gt;</code> → <code>display:none</code> em mobile</li>' +
+        '<li>Botão recebe classe <code>.gv-register-btn</code> → 26×26px círculo (border-radius 50% + flex center)</li>' +
+        '<li>Desktop: continua "+ Cadastrar" normal</li>' +
+      '</ul>' +
+      '<p>Libera espaço pro nome do local não truncar mais nos cards de Sugestões do Google.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">✏️ v1.1.9-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Editar do venue agora abre o form COMPLETO + header mobile ficou compacto.</b> User: <i>"aqui ao clicar num local preferido/cadastrado nem dá pra ler o nome do local. o botão editar deveria abrir uma tela igual a de cadastrar local (onde possa cadastrar esportes, quadras, horários)."</i></p>' +
       '<p><b>Fix #1 — Editar abre form completo:</b></p>' +

@@ -498,14 +498,18 @@
     // Usa botão inline com estilo próprio que escapa da regra responsiva.
     // User: 'no celular esse cadastrar ficou péssimo. ficou enorme e só
     // se ve ele (nem dá pra saber qual o lugar).'
+    // v1.1.10-beta: em mobile (≤767px), CSS esconde .gv-register-label →
+    // botão vira só "+" circular pra economizar espaço. Desktop mostra
+    // "+ Cadastrar" normalmente. User: 'no celular por conta do tamanho
+    // da tela o botao cadastrar poderia ser apenas um circulo com + dentro'.
     var registerBtn = p.placeId
-      ? '<button onclick="event.stopPropagation();event.preventDefault();window._venuesRegisterFromGoogle(' +
+      ? '<button class="gv-register-btn" onclick="event.stopPropagation();event.preventDefault();window._venuesRegisterFromGoogle(' +
         '\'' + _safe(String(p.placeId).replace(/'/g, "\\'")) + '\',' +
         '\'' + _safe(String(p.name || '').replace(/'/g, "\\'")) + '\',' +
         '\'' + _safe(String(p.address || '').replace(/'/g, "\\'")) + '\',' +
         (p.lat != null ? Number(p.lat) : 'null') + ',' +
         (p.lng != null ? Number(p.lng) : 'null') +
-        ')" style="flex-shrink:0;white-space:nowrap;font-size:0.66rem;font-weight:700;padding:3px 9px;line-height:1.3;background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.45);color:#a5b4fc;border-radius:999px;cursor:pointer;" title="Cadastrar este local no scoreplace">+ Cadastrar</button>'
+        ')" style="flex-shrink:0;white-space:nowrap;font-size:0.66rem;font-weight:700;padding:3px 9px;line-height:1.3;background:rgba(99,102,241,0.18);border:1px solid rgba(99,102,241,0.45);color:#a5b4fc;border-radius:999px;cursor:pointer;" title="Cadastrar este local no scoreplace">+<span class="gv-register-label"> Cadastrar</span></button>'
       : '';
     return '<div onclick="window.open(\'' + _safe(mapsUrl) + '\', \'_blank\', \'noopener\')" style="display:flex;align-items:center;gap:10px;background:var(--bg-darker);border:1px solid var(--border-color);border-radius:12px;padding:12px 14px;cursor:pointer;">' +
       '<div style="flex:1;min-width:0;">' +
