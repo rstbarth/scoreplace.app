@@ -975,28 +975,25 @@ function renderDoubleElimBracket(t, canEnterResult) {
   // Auto-reparação para dupla eliminatória também
   _ensureFutureRounds(t);
 
-  // v1.0.93-beta: cleanup forçado no render — torneios velhos têm
-  // t.thirdPlaceMatch fantasma criado por bug pré-v1.0.92. Cleanup só
-  // disparava em _advanceWinner (no próximo placar lançado), mas se
-  // GF já tava filled antes da v1.0.92 deployar, nunca mais dispararia.
-  // User: 'tenho que apagar e recriar o torneio? nao aparece o 15o jogo'.
-  // Fix: cleanup no render + persistir no Firestore.
-  if (t.thirdPlaceMatch) {
+  // v1.0.95-beta HOTFIX: removido syncImmediate do render. User: 'fica
+  // recarregando de forma que é impossivel apagar esse torneio que insiste
+  // em dizer que existe mais um jogo pronto para chamar'.
+  // Loop infinito: render → syncImmediate → Firestore write → onSnapshot
+  // → store.tournaments replace → re-render → repeat. UI travava, usuário
+  // não conseguia clicar em "Apagar".
+  // Cleanup local apenas — sem persistir. Próxima ação legítima do user
+  // (placar, edição) dispara sync que persiste o estado limpo. Se torneio
+  // tá quebrado (GF preenchida, status='active'), user agora consegue
+  // apagar pelo menos.
+  // Guard: usa flag _cleanupApplied no objeto pra rodar 1x por sessão e
+  // não ficar deletando-recriando se outro caminho re-adiciona.
+  if (t.thirdPlaceMatch && !t._cleanupApplied) {
     delete t.thirdPlaceMatch;
-    if (window.AppStore && typeof window.AppStore.syncImmediate === 'function') {
-      try { window.AppStore.syncImmediate(t.id); } catch (_e) {}
-    }
+    t._cleanupApplied = true;
   }
-  // v1.0.93-beta: também tenta finalizar o torneio aqui caso o GF já
-  // esteja completo. _maybeFinishElimination antes só era chamado via
-  // _advanceWinner; sem ele rodar no render, o torneio fica em status
-  // 'active' eternamente.
-  if (typeof _maybeFinishElimination === 'function' && t.status !== 'finished') {
-    _maybeFinishElimination(t);
-    if (t.status === 'finished' && window.AppStore && typeof window.AppStore.syncImmediate === 'function') {
-      try { window.AppStore.syncImmediate(t.id); } catch (_e) {}
-    }
-  }
+  // v1.0.95: SEM auto-finalize no render. Se torneio quebrado precisa
+  // finalizar, user lança o último placar normalmente (que dispara
+  // _advanceWinner → _maybeFinishElimination com sync correto).
 
   // v1.0.92-beta: classificação progressiva precisa rodar pra DE também.
   // User: 'no caso de dupla eliminatória não há classificação personalizada.

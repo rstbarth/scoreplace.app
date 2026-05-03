@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🚨 v1.0.95-beta HOTFIX <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
+      '<p><b>HOTFIX: render loop infinito travava o app — UI não respondia, impossível apagar torneio.</b> User: <i>"fica recarregando de forma que é impossivel apagar esse torneio que insiste em dizer que existe mais um jogo pronto para chamar"</i>.</p>' +
+      '<p><b>Causa:</b> v1.0.93 chamava <code>syncImmediate</code> dentro do <code>renderDoubleElimBracket</code>. Loop:</p>' +
+      '<pre style="font-size:0.78rem;background:rgba(0,0,0,0.3);padding:8px;border-radius:6px;">render → delete t.thirdPlaceMatch + syncImmediate\n→ Firestore write → onSnapshot fires\n→ store.tournaments REPLACED com novo t (talvez ainda com thirdPlaceMatch antigo do server)\n→ _softRefreshView triggered → re-render\n→ if (t.thirdPlaceMatch) → loop</pre>' +
+      '<p><b>Fix:</b> removido <code>syncImmediate</code> do render. Apenas cleanup local com flag <code>_cleanupApplied</code> (rodando 1x por sessão). Próxima ação legítima do user (lançar placar, editar) dispara sync que persiste o estado limpo. Se torneio velho ainda mostra "1 jogo pronto pra chamar" mas não tem o 15º match (fantasma): pelo menos agora o app responde, user pode apagar e recriar.</p>' +
+      '<p><b>Removido também:</b> auto-finalize no render. _maybeFinishElimination só roda em _advanceWinner (placar lançado) — sem auto-finalize forçado.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📐 v1.0.94-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(2 de Maio, 2026)</span></div>' +
       '<p><b>Classificação DE no topo do bracket — consistente com Eliminatórias Simples.</b> User: <i>"coloque a classificação na mesma posição das eliminatórias simples (no topo do chaveamento se não me engano) para ficar consistente."</i></p>' +
       '<p>Em Single Elim a classificação fica no <b>topo</b> (após banner do campeão). Em DE estava no fim — inconsistente. Movido pra mesma posição: bloco <code>&lt;details&gt;</code> aparece no topo do bracket DE, antes do Chaveamento Superior.</p>' +
