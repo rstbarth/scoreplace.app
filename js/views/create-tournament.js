@@ -619,12 +619,9 @@ function setupCreateTournamentModal() {
                   <small class="text-muted" style="display:block;margin-top:6px;">A é o nível mais alto (avançado), D o mais iniciante. FUN = categoria iniciante.</small>
                 </div>
 
-                <!-- v1.2.0-beta: Categorias por Idade (paralelo a habilidade) -->
+                <!-- v1.2.0-beta: Categorias por Idade -->
                 <div style="margin-top:0.75rem;">
-                  <label class="form-label" style="margin-bottom:6px;display:flex;align-items:center;gap:8px;">
-                    <span>Categorias por Idade</span>
-                    <small style="color:var(--text-muted);font-weight:400;font-size:0.72rem;">(opcional, paralelo à habilidade)</small>
-                  </label>
+                  <label class="form-label" style="margin-bottom:6px;">Categorias por Idade</label>
                   <div style="display:flex; gap:8px; flex-wrap:wrap;" id="age-cat-buttons">
                     <button type="button" data-age="40+" onclick="window._toggleAgeCat('40+')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">40+</button>
                     <button type="button" data-age="50+" onclick="window._toggleAgeCat('50+')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">50+</button>
@@ -636,8 +633,8 @@ function setupCreateTournamentModal() {
                 </div>
 
                 <div id="category-preview" style="display:none; margin-top:0.75rem; padding:8px 12px; background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.2); border-radius:8px;">
-                  <div style="font-size:0.7rem; color:#a855f7; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">${_t('create.catPreview')}</div>
-                  <div id="category-preview-list" style="display:flex; flex-wrap:wrap; gap:4px; font-size:0.8rem;"></div>
+                  <div style="font-size:0.7rem; color:#a855f7; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">${_t('create.catPreview')}</div>
+                  <div id="category-preview-list" style="display:flex; flex-direction:column; gap:6px; font-size:0.8rem;"></div>
                 </div>
               </div>
 
@@ -1885,22 +1882,53 @@ function setupCreateTournamentModal() {
 
     var _dnPreview = (typeof window._displayCategoryName === 'function') ? window._displayCategoryName : function(c) { return c; };
 
-    var html = '';
-    if (combined.length > 0) {
-      html += combined.map(function(c) {
-        return '<span style="padding:3px 10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.25);border-radius:6px;color:#d8b4fe;font-weight:600;">' + _dnPreview(c) + '</span>';
-      }).join('');
-    }
-    if (ageCombined.length > 0) {
-      // v1.2.0-beta: pills âmbar para idade, separadas visualmente
-      if (combined.length > 0) {
-        html += '<span style="width:100%;height:1px;background:rgba(168,85,247,0.18);margin:6px 0;"></span>';
+    // v1.2.3-beta: agrupar por gênero — uma linha por Fem/Masc/Misto, com skill+age
+    // misturados na mesma linha. Misto Aleat./Obrig. colapsam para "Misto" via
+    // _displayCategoryName. Ordem fixa: Fem → Masc → Misto → outros.
+    var GENDER_PREFIX_ORDER = ['Fem', 'Masc', 'Misto', '_other'];
+    var buckets = { Fem: { skill: [], age: [] }, Masc: { skill: [], age: [] }, Misto: { skill: [], age: [] }, _other: { skill: [], age: [] } };
+
+    function getBucket(displayName) {
+      // Match prefix exact word: "Fem", "Masc", "Misto" — must be followed by space or end of string
+      for (var i = 0; i < 3; i++) {
+        var p = GENDER_PREFIX_ORDER[i];
+        if (displayName === p || displayName.indexOf(p + ' ') === 0) return p;
       }
-      html += ageCombined.map(function(c) {
-        return '<span style="padding:3px 10px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.30);border-radius:6px;color:#fbbf24;font-weight:600;">' + c + '</span>';
-      }).join('');
+      return '_other';
     }
-    list.innerHTML = html;
+
+    combined.forEach(function(c) {
+      var dn = _dnPreview(c);
+      buckets[getBucket(dn)].skill.push(dn);
+    });
+    ageCombined.forEach(function(c) {
+      var dn = _dnPreview(c);
+      buckets[getBucket(dn)].age.push(dn);
+    });
+
+    function dedup(arr) {
+      var seen = {}; var out = [];
+      arr.forEach(function(x) { if (!seen[x]) { seen[x] = 1; out.push(x); } });
+      return out;
+    }
+
+    var rows = [];
+    GENDER_PREFIX_ORDER.forEach(function(b) {
+      var skill = dedup(buckets[b].skill);
+      var age = dedup(buckets[b].age);
+      if (skill.length === 0 && age.length === 0) return;
+      var rowHtml = '<div style="display:flex; flex-wrap:wrap; gap:4px; align-items:center;">';
+      skill.forEach(function(c) {
+        rowHtml += '<span style="padding:3px 10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.25);border-radius:6px;color:#d8b4fe;font-weight:600;">' + c + '</span>';
+      });
+      age.forEach(function(c) {
+        rowHtml += '<span style="padding:3px 10px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.30);border-radius:6px;color:#fbbf24;font-weight:600;">' + c + '</span>';
+      });
+      rowHtml += '</div>';
+      rows.push(rowHtml);
+    });
+
+    list.innerHTML = rows.join('');
     preview.style.display = '';
   };
 

@@ -8,6 +8,13 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #a855f7;border-radius:12px;padding:14px 16px;background:rgba(168,85,247,0.10);">' +
+      '<div style="font-weight:800; color:#d8b4fe; font-size:1rem; margin-bottom:8px;">📋 v1.2.3-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Preview de categorias agrupado por gênero, com Misto sempre colapsado.</b> User: <i>"Quero apenas Misto como categoria nesse box. Nesse mesmo box podemos colocar os generos divididos em linhas (ficaria Fem A, Fem B, Fem C, Fem 40+, Fem 50+ na linha de baixo Masc A..."</i></p>' +
+      '<p>Box de "Categorias do Torneio" reorganizado: uma linha por gênero, ordem fixa Fem → Masc → Misto. Skill+age da mesma família ficam juntos na mesma linha (skill em roxo, age em âmbar pra distinção visual). Antes os pills viravam um wrap horizontal sem agrupamento — difícil de ler.</p>' +
+      '<p>Bug colateral: pills âmbar de idade não passavam pelo <code>_displayCategoryName</code>, então mostravam <i>Misto Obrig. 40+</i> ao invés de <i>Misto 40+</i>. Agora todas as pills (skill e age) passam pelo helper que colapsa Misto Aleat./Obrig. → Misto. A distinção Aleat./Obrig. continua existindo na config interna do torneio (formação dos times), só não polui a UI.</p>' +
+      '<p>Removido também o "(opcional, paralelo à habilidade)" do label de Categorias por Idade — toda a seção é opcional, ficou redundante.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🧹 v1.2.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Categorias finalizadas: A/B/C/D/FUN, Misto auto-excludente, sem campo de texto livre.</b> User: <i>"Troque open por FUN (categoria iniciante). O Misto, como por habilidade (qualquer deles, pode ser apenas Misto - São auto excludentes entre si). Vamos usar os toggles visuais para genero, habibildade e idade."</i></p>' +
