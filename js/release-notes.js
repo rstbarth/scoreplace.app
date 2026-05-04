@@ -8,6 +8,17 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #ef4444;border-radius:12px;padding:14px 16px;background:rgba(239,68,68,0.10);">' +
+      '<div style="font-weight:800; color:#f87171; font-size:1rem; margin-bottom:8px;">🐛 v1.3.8-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Bugs críticos do report Análise de Inscritos.</b> User: <i>"nada funciona aqui. cabeçalho quebrado, informações totalmente erradas (veja que perfil está completo, mas na idade dá 40+ e 50+ - o 40+ não pode disputar com o 50+ - vc não entendeu a logica da faixa de idade.) Na categoria D diz ter 0 inscritos, mas tem 1..."</i></p>' +
+      '<p>Três bugs corrigidos:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Gênero "Sem gênero" mesmo com perfil completo</b>: o perfil salva <code>gender</code> como <i>"masculino"</i>/<i>"feminino"</i>/<i>"outro"</i> (strings completas em PT do <code>&lt;select&gt;</code>), mas o <code>_genderLabel</code> do report só conhecia as chaves curtas <i>"masc"</i>/<i>"fem"</i> usadas em <code>t.genderCategories</code>. Resultado: lookup falhava, gênero virava null, inscrito caía em "Sem gênero". Map agora aceita ambos formatos.</li>' +
+        '<li><b>Faixas de idade são MUTUAMENTE EXCLUSIVAS, não cumulativas</b>: 52 anos com <code>[40+, 50+, 60+, 70+]</code> agora retorna SÓ <code>50+</code> — antes retornava <code>[40+, 50+]</code> (dupla contagem em todas as faixas qualificáveis). Algoritmo: ordena thresholds descendente, retorna o primeiro que cabe. Lógica correta de torneios: 40+ = jogadores 40-49 anos, 50+ = jogadores 50-59 anos, etc.</li>' +
+        '<li><b>"D 0 inscritos" / "50+ 0 inscritos" mesmo tendo 1 inscrito qualificado</b>: <code>_decomposeCat(\'D\', t)</code> retornava <code>{skill:null}</code> quando <code>t.skillCategories</code> estava vazio (modo derivado, torneio sem cat configurada). Sem skill identificado, count caía em zero. Adicionado fallback pra defaults <code>[\'A\',\'B\',\'C\',\'D\',\'FUN\']</code> e <code>[\'40+\',\'50+\',\'60+\',\'70+\']</code> quando torneio não tem config própria.</li>' +
+      '</ul>' +
+      '<p>Resultado esperado pra inscrito Masc/D/52a: Visão Geral mostra <i>Masc 1, D 1, 50+ 1</i> (sem 40+); Distribuição mostra <i>Masc D 1</i> e <i>Masc 50+ 1</i> com formato sugerido + tempo.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">📐 v1.3.7-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Modalidades do perfil consistentes com o resto do app + layout compacto da habilidade por modalidade.</b> User: <i>"percebo que as modalidades aqui não estão consistentes com o resto do programa. na criação/edição do torneio temos outras modalidades que aqui não aparecem. essa forma ficou bonito para registrar as habilidades por modalidade, mas está gastando muito espaço."</i></p>' +

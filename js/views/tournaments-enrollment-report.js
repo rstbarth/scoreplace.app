@@ -28,32 +28,61 @@
     return age >= 0 && age < 150 ? age : null;
   }
 
-  // Retorna todas as faixas etárias (40+, 50+, ...) que o participante atende.
+  // v1.3.8-beta: faixa etária é MUTUAMENTE EXCLUSIVA — bucket único.
+  // 52 anos com [40+, 50+, 60+, 70+] retorna ['50+'] (não 40+ também).
+  // Algoritmo: ordena por threshold descendente, pega o primeiro que cabe.
+  // Mantém retorno array (length 0 ou 1) pra preservar callsites existentes.
   function _ageBuckets(age, ageCats) {
     if (age == null || !ageCats || ageCats.length === 0) return [];
-    var out = [];
-    ageCats.forEach(function (cat) {
+    var thresholds = ageCats.map(function (cat) {
       var m = cat.match(/^(\d+)\+$/);
-      if (m && age >= parseInt(m[1])) out.push(cat);
-    });
-    return out;
+      return m ? { cat: cat, val: parseInt(m[1]) } : null;
+    }).filter(Boolean);
+    thresholds.sort(function (a, b) { return b.val - a.val; }); // desc
+    for (var i = 0; i < thresholds.length; i++) {
+      if (age >= thresholds[i].val) return [thresholds[i].cat];
+    }
+    return [];
   }
 
+  // v1.3.8-beta: aceita TANTO chaves curtas (fem/masc/misto_*) usadas em
+  // t.genderCategories quanto strings completas (feminino/masculino/outro)
+  // que o perfil salva via <select id="profile-edit-gender">. Antes só
+  // conhecia as curtas — masculino caía em null e gerava "Sem gênero 1".
   function _genderLabel(g) {
-    return ({
+    if (!g) return null;
+    var key = String(g).toLowerCase().trim();
+    var map = {
       fem: 'Fem',
+      feminino: 'Fem',
+      f: 'Fem',
       masc: 'Masc',
+      masculino: 'Masc',
+      m: 'Masc',
+      misto: 'Misto',
       misto_aleatorio: 'Misto',
       misto_obrigatorio: 'Misto',
-    })[g] || null;
+      // 'outro' / 'other' fica null — gênero não-binário não tem cat hoje
+    };
+    return map[key] || null;
   }
 
   // Decompõe "Fem A Duplas" em { gender:'Fem', skill:'A', gameType:'Duplas' }
   // Aceita também "Misto A", "Masc 40+", "A", etc.
+  //
+  // v1.3.8-beta: fallback pra defaults quando t.skillCategories ou
+  // t.ageCategories estão vazios (modo derivado). Antes 'D' não era
+  // reconhecido como skill quando torneio não tinha config — count caía
+  // em zero. Defaults: skills=['A','B','C','D','FUN'], ages=[40+/50+/60+/70+].
+  var _DEFAULT_SKILLS = ['A', 'B', 'C', 'D', 'FUN'];
+  var _DEFAULT_AGES = ['40+', '50+', '60+', '70+'];
+
   function _decomposeCat(cat, t) {
     if (!cat) return {};
-    var skillCats = (t.skillCategories || []).slice().sort(function (a, b) { return b.length - a.length; });
-    var ageCats = (t.ageCategories || []).slice();
+    var skillCatsRaw = (t && t.skillCategories && t.skillCategories.length > 0) ? t.skillCategories : _DEFAULT_SKILLS;
+    var ageCatsRaw = (t && t.ageCategories && t.ageCategories.length > 0) ? t.ageCategories : _DEFAULT_AGES;
+    var skillCats = skillCatsRaw.slice().sort(function (a, b) { return b.length - a.length; });
+    var ageCats = ageCatsRaw.slice();
     var gameTypes = ['Duplas', 'Simples'];
     var GENDER_PREFIXES = ['Fem', 'Masc', 'Misto Aleat.', 'Misto Obrig.', 'Misto'];
 
