@@ -3149,24 +3149,25 @@ window._renderProfileSkillBySport = function() {
     return;
   }
 
+  // v1.3.7-beta: layout compacto — cada modalidade ativa fica numa única
+  // linha minimalista sem card de fundo. Muito menos espaço vertical.
+  // Estrutura: "Beach Tennis · [A][B][C][D][FUN]" inline, com nome do sport
+  // em texto leve âmbar e 5 mini-pills de skill em indigo.
   var html = '';
   sports.forEach(function(sport) {
     var current = map[sport] || null;
     var safeS = String(sport).replace(/'/g, "\\'");
-    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.18);border-radius:8px;">';
-    html += '<span style="font-size:0.78rem;font-weight:700;color:#fbbf24;min-width:100px;flex:0 0 auto;">' + window._safeHtml(sport) + ':</span>';
-    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 0;">';
+    html += '<span style="font-size:0.74rem;font-weight:600;color:#fbbf24;min-width:90px;flex:0 0 auto;opacity:0.9;">' + window._safeHtml(sport) + '</span>';
+    html += '<div style="display:flex;gap:3px;flex-wrap:nowrap;">';
     window._SKILL_PILLS_PROFILE.forEach(function(skill) {
       var active = current === skill;
       var style = active
-        ? 'padding:4px 10px;border-radius:6px;font-size:0.74rem;cursor:pointer;border:2px solid #6366f1;background:rgba(99,102,241,0.22);color:#a5b4fc;font-weight:700;box-shadow:0 0 0 1px rgba(99,102,241,0.3);'
-        : 'padding:4px 10px;border-radius:6px;font-size:0.74rem;cursor:pointer;border:1.5px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);color:var(--text-muted);font-weight:500;';
+        ? 'padding:3px 8px;border-radius:5px;font-size:0.7rem;cursor:pointer;border:1.5px solid #6366f1;background:rgba(99,102,241,0.22);color:#a5b4fc;font-weight:700;line-height:1;'
+        : 'padding:3px 8px;border-radius:5px;font-size:0.7rem;cursor:pointer;border:1px solid rgba(255,255,255,0.15);background:transparent;color:var(--text-muted);font-weight:500;line-height:1;';
       html += '<button type="button" onclick="window._setProfileSkillForSport(\'' + safeS + '\',\'' + skill + '\')" style="' + style + '">' + skill + '</button>';
     });
     html += '</div>';
-    if (!current) {
-      html += '<span style="font-size:0.65rem;color:var(--text-muted);font-style:italic;">selecione</span>';
-    }
     html += '</div>';
   });
 
@@ -3684,13 +3685,15 @@ function setupProfileModal() {
             '</div>' +
             // Esportes Preferidos — pill buttons toggleáveis (v0.15.19).
             // v1.3.6-beta: ao selecionar uma modalidade, abre mini-picker de
-            // habilidade (A/B/C/D/FUN) específico daquela modalidade. User
-            // pode ser C em tênis e D em beach tennis. Schema novo:
-            // profile.skillBySport = { 'Beach Tennis': 'D', 'Pickleball': 'C' }
+            // habilidade (A/B/C/D/FUN) específico daquela modalidade.
+            // v1.3.7-beta: lista de 5 → 7 modalidades (alinhada com app
+            // canônico — venues.js SPORTS, _sportScoringDefaults). Layout
+            // compacto: cada modalidade ativa fica numa linha minimalista
+            // sem card de fundo, usando muito menos espaço vertical.
             '<div class="form-group" style="margin-bottom: 10px;">' +
               '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelSports') + '</label>' +
               '<div id="profile-sports-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">' +
-                ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel'].map(function(s) {
+                ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel', 'Vôlei de Praia', 'Futevôlei'].map(function(s) {
                   var safeS = String(s).replace(/'/g, "\\'");
                   return '<button type="button" data-sport="' + window._safeHtml(s) + '" onclick="window._toggleProfileSport(\'' + safeS + '\')" class="btn btn-sm" style="font-size:0.72rem;padding:6px 12px;border-radius:999px;white-space:nowrap;background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;">' + window._safeHtml(s) + '</button>';
                 }).join('') +
@@ -3699,7 +3702,7 @@ function setupProfileModal() {
               '<span style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.6; margin-top: 4px; display: block;">Selecione as modalidades que você joga. Sua habilidade abrirá pra cada uma.</span>' +
               // Skill por modalidade — renderizado dinamicamente conforme
               // modalidades são selecionadas. Vazio quando não há modalidade ativa.
-              '<div id="profile-skill-by-sport" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>' +
+              '<div id="profile-skill-by-sport" style="margin-top:8px;display:flex;flex-direction:column;gap:4px;"></div>' +
               '<input type="hidden" id="profile-edit-skill-by-sport" value="">' +
             '</div>' +
             // Telefone: País + Número

@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
+      '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">📐 v1.3.7-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Modalidades do perfil consistentes com o resto do app + layout compacto da habilidade por modalidade.</b> User: <i>"percebo que as modalidades aqui não estão consistentes com o resto do programa. na criação/edição do torneio temos outras modalidades que aqui não aparecem. essa forma ficou bonito para registrar as habilidades por modalidade, mas está gastando muito espaço."</i></p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Lista de modalidades alinhada</b>: 5 → 7 — adicionados <b>Vôlei de Praia</b> e <b>Futevôlei</b> (já existiam em <code>venues.js SPORTS</code> e <code>_sportScoringDefaults</code> desde v0.15.102, mas faltavam no perfil)</li>' +
+        '<li><b>Layout compacto da habilidade por modalidade</b>: cards âmbar empilhados foram substituídos por linhas minimalistas de uma só altura. Cada modalidade ativa fica numa única linha: <code>Beach Tennis · [A][B][C][D][FUN]</code> — nome em texto leve âmbar (font 0.74rem), pills minúsculas indigo (font 0.7rem, padding 3x8). Gasto vertical reduzido em ~70%</li>' +
+        '<li>Sem fundos, sem bordas, sem padding extra — só o essencial</li>' +
+      '</ul>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🎯 v1.3.6-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Categoria de habilidade individual por modalidade.</b> User: <i>"vamos individualizar a categoria por modalidade. uma pessoa pode ser C em tenis e D em beach Tennis por exemplo. Assim, quando o usuário selecionar uma modalidade deve abrir o campo da habilidade naquela modalidade para ser preenchido."</i></p>' +
       '<p>Schema novo: <code>profile.skillBySport = { "Beach Tennis": "D", "Pickleball": "C", "Tênis": "B" }</code>. User pode declarar nível diferente em cada modalidade — antes era um único <code>defaultCategory</code> global aplicado pra tudo.</p>' +
