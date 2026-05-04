@@ -267,6 +267,15 @@ function initRouter() {
           return;
         }
         break;
+      case 'help':
+        // v1.3.11-beta: ajuda como page-route. Antes era modal-overlay.
+        if (typeof window.renderHelpPage === 'function') {
+          window.renderHelpPage(viewContainer);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       case 'support':
         if (typeof window.renderSupportPage === 'function') {
           window.renderSupportPage(viewContainer);

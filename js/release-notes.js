@@ -8,6 +8,20 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #10b981;border-radius:12px;padding:14px 16px;background:rgba(16,185,129,0.10);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📚 v1.3.11-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Manual de Ajuda agora é page-route <code>#help</code> (auditoria parte 1).</b></p>' +
+      '<p>Aplicação direta da regra centralizada: conteúdo rico, scrollável, bookmarkável → vira rota. Antes era <code>modal-help</code> (modal-overlay full-screen). Agora <code>#help</code> com topbar visível, hamburger funcional, URL compartilhável.</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b><code>setupHelpModal</code> convertido de IIFE pra função regular</b> — permite rebuild quando o user navega pra fora de #help (router clear destrói o .modal) e volta. Auto-chamado uma vez no final do arquivo, preserva o build inicial</li>' +
+        '<li><b><code>renderHelpPage(container)</code></b> nova função que move o <code>.modal</code> pro view-container preservando todos os listeners (sections collapsible, lazy-load das notas, search filter)</li>' +
+        '<li><b>Router</b>: <code>case "help":</code> chama <code>renderHelpPage(viewContainer)</code></li>' +
+        '<li><b>Callsites atualizados</b>: botão "?" no topbar, atalho de teclado <kbd>?</kbd>, busca rápida (Ctrl+K) — todos navegam pra <code>#help</code></li>' +
+        '<li><b>Hint do help</b> atualizado pra apontar pro novo seletor</li>' +
+        '<li><b>Contexto de hint</b> "help" adicionado pra distinguir da página default</li>' +
+      '</ul>' +
+      '<p>Próximas tarefas da auditoria: <code>category-manager-overlay</code>, <code>casual-match-overlay</code> (borderline) — provavelmente também viram rota. <code>modal-quick-create</code>, <code>modal-login</code>, <code>modal-delete-account</code> ficam como overlay (transactional/auth/destrutivo).</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #f59e0b;border-radius:12px;padding:14px 16px;background:rgba(245,158,11,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">💡 v1.3.10-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Dicas (hints) contextualmente corretas — nunca mais hints de páginas invisíveis.</b> User: <i>"as dicas continuam estranhas... a pagina de detalhes do torneio não está na tela (deve estar atras da pagina de analise). Não faz sentido mostrar dicas tão fora de contexto. corrija isso no programa todo. isso nunca pode acontecer. as dicas devem ser muito contextualizadas (devem aparecer apenas na pagina que está visivel e na parte da pagina que esta visivel)."</i></p>' +

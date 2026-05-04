@@ -2,7 +2,11 @@
 // já que o script está no final do <body> e o DOM já estará parseado.
 
 // === Modal Ajuda / Manual ===
-(function setupHelpModal() {
+// v1.3.11-beta: convertido de IIFE pra função regular — permite rebuild
+// quando o user navega pra fora de #help (view-container clear destrói
+// o .modal) e volta. Auto-chamado uma vez no final do arquivo, preserva
+// o comportamento original (DOM existe na body imediatamente após load).
+function setupHelpModal() {
   if (document.getElementById('modal-help')) return;
 
   var _t = window._t || function(k) { return k; };
@@ -1256,7 +1260,53 @@
     sec.classList.add('open');
     sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
-})();
+}
+window.setupHelpModal = setupHelpModal;
+setupHelpModal();
+
+// v1.3.11-beta: page-route #help. Move o .modal já construído pelo
+// setupHelpModal pro view-container, com back-header padronizado.
+// Padrão centralizado igual a #profile, #support, #privacy, #terms.
+window.renderHelpPage = function (container) {
+  if (!container) return;
+  // Garantir que o DOM do modal existe (pode ter sido destruído quando user
+  // navegou pra outra rota — view-container.innerHTML='' destrói o .modal).
+  if (!document.getElementById('modal-help') && typeof window.setupHelpModal === 'function') {
+    window.setupHelpModal();
+  }
+  var modalEl = document.getElementById('modal-help');
+  var modalInner = modalEl ? modalEl.querySelector('.modal') : null;
+  if (!modalInner) {
+    if (modalEl) modalEl.remove();
+    if (typeof window.setupHelpModal === 'function') window.setupHelpModal();
+    modalEl = document.getElementById('modal-help');
+    modalInner = modalEl ? modalEl.querySelector('.modal') : null;
+  }
+  if (!modalInner) return;
+
+  // Remove o back-header interno (built no setupHelpModal com onClickOverride
+  // pra closeModal). Vamos colocar um novo apontando pra #dashboard.
+  var oldBack = modalInner.querySelector('.sticky-back-header');
+  if (oldBack) oldBack.remove();
+
+  var hdr = (typeof window._renderBackHeader === 'function')
+    ? window._renderBackHeader({
+        href: '#dashboard',
+        label: 'Voltar',
+        middleHtml: '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">❓ Central de Ajuda</span>',
+        belowHtml: '<input type="text" id="help-search-input" placeholder="Buscar no manual..." style="width:100%;box-sizing:border-box;margin-top:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border-color);background:var(--bg-darker);color:var(--text-color);font-size:0.85rem;outline:none;" oninput="window._filterHelpSections(this.value)">'
+      })
+    : '';
+
+  container.innerHTML = hdr;
+  container.appendChild(modalInner);
+  if (modalEl && modalEl.parentNode === document.body) modalEl.remove();
+
+  if (typeof window._reflowChrome === 'function') window._reflowChrome();
+};
+
+// Compat: openModal('modal-help') redireciona pra rota.
+window._openHelpPage = function () { window.location.hash = '#help'; };
 
 // === Modal Criação Rápida ===
 (function setupQuickCreateModal() {
@@ -1743,7 +1793,7 @@ console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Iniciali
       { icon: '🏠', label: 'Dashboard', action: "window.location.hash='#dashboard';window._closeQuickSearch();" },
       { icon: '🔍', label: 'Explorar Comunidade', action: "window.location.hash='#explore';window._closeQuickSearch();" },
       { icon: '🔔', label: 'Notificações', action: "window.location.hash='#notifications';window._closeQuickSearch();" },
-      { icon: '❓', label: 'Ajuda / Manual', action: "if(typeof openModal==='function')openModal('modal-help');window._closeQuickSearch();" }
+      { icon: '❓', label: 'Ajuda / Manual', action: "window.location.hash='#help';window._closeQuickSearch();" }
     ];
     actions.forEach(function(a) {
       html += '<div onclick="' + a.action + '" style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.06)\'" onmouseout="this.style.background=\'transparent\'">' +
@@ -1922,10 +1972,8 @@ console.log("scoreplace.app v" + (window.SCOREPLACE_VERSION || '?') + " Iniciali
         break;
       case '?':
         e.preventDefault();
-        var helpModal = document.getElementById('modal-help');
-        if (helpModal) {
-          helpModal.style.display = helpModal.style.display === 'none' ? 'flex' : 'none';
-        }
+        // v1.3.11-beta: ajuda agora é page-route — atalho '?' navega pra hash.
+        window.location.hash = '#help';
         break;
       case '/':
         // Focus quick search

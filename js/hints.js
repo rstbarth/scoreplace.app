@@ -39,7 +39,7 @@
     { id: 'hamburger', selector: '.hamburger-btn', text: 'Toque aqui para abrir o menu e navegar pelo app!', context: 'global', priority: 9, position: 'bottom' },
     { id: 'profile', selector: '#btn-login', text: 'Acesse seu perfil, veja estatísticas e configure notificações.', context: 'global', priority: 7, position: 'bottom', requiresLogin: true },
     { id: 'theme', selector: '#theme-toggle-btn', text: 'Experimente trocar o tema! Temos Noturno, Claro, Pôr do Sol e Oceano.', context: 'global', priority: 4, position: 'bottom' },
-    { id: 'help', selector: 'a[onclick*="modal-help"]', text: 'Dúvidas? Aqui tem o manual completo com todas as funcionalidades!', context: 'global', priority: 5, position: 'bottom' },
+    { id: 'help', selector: 'button[onclick*="\'#help\'"], a[href="#help"]', text: 'Dúvidas? Aqui tem o manual completo com todas as funcionalidades!', context: 'global', priority: 5, position: 'bottom' },
     { id: 'quick-search', selector: '.hamburger-btn', text: 'Dica: use Ctrl+K para buscar torneios e jogadores rapidamente!', context: 'global', priority: 3, position: 'bottom', requiresLogin: true },
     { id: 'notifications', selector: 'a[href="#notifications"]', text: 'Fique por dentro! Aqui você recebe avisos de torneios e convites.', context: 'global', priority: 5, position: 'bottom', requiresLogin: true },
     { id: 'explore-nav', selector: 'a[href="#explore"]', text: 'Descubra torneios públicos da comunidade e participe!', context: 'global', priority: 6, position: 'bottom' },
@@ -438,6 +438,7 @@
     // na pagina que está visivel".
     if (hash.indexOf('#profile') === 0) return 'profile';
     if (hash.indexOf('#analise/') === 0) return 'enrollment-report';
+    if (hash.indexOf('#help') === 0) return 'help';
     if (hash.indexOf('#support') === 0) return 'support';
     if (hash.indexOf('#privacy') === 0) return 'privacy';
     if (hash.indexOf('#terms') === 0) return 'terms';
