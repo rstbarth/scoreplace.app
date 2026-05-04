@@ -9,6 +9,10 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
+      '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">🙈 v1.3.18-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
+      '<p><b>Idade removida dos cards de pessoas no Explorar.</b> Cards de "Outros Usuários" e "Convites Pendentes" nunca mais mostram a idade. O subtítulo agora exibe apenas cidade (quando diferente do usuário) e modalidades preferidas.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
       '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">👤 v1.3.17-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
       '<p><b>Cards de pessoas no Explorar ficaram compactos e horizontais.</b> Cards de "Meus Amigos" e "Outros Usuários" eram verticais (avatar em cima, nome embaixo) — mesmos em grid de múltiplas colunas ficavam altos demais e exigiam muito scroll.</p>' +
       '<p>Novo padrão: horizontal como o card do organizador de torneio — avatar 34px à esquerda, nome bold (0.82rem) + subtítulo (cidade/esporte, 0.68rem) à direita, ✕ ou botão "Convidar" fixado no canto direito. Lista em coluna única (sem grid), gap 6px. Mais informação visível com menos scroll.</p>' +

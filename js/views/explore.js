@@ -153,7 +153,7 @@ function _userCardHtml(u, uid, actionHtml, isFriend) {
       : String(u.preferredSports);
     if (_sportsStr) infoChips.push(_sportsStr);
   }
-  if (u.age) infoChips.push(u.age + ' anos');
+  // age deliberately omitted — never show.
 
   var borderColor = isFriend ? 'var(--success-color)' : 'var(--border-color)';
   var bgTint = isFriend ? 'rgba(34, 197, 94, 0.06)' : 'transparent';

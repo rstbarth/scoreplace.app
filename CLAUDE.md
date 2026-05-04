@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `1.3.17-beta` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `1.3.18-beta` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **Convenção de versão (a partir de 30 Abr 2026):** `MAJOR.MINOR.PATCH-channel` no padrão semver. Em fase **beta**, incremento PATCH a cada deploy (`1.0.0-beta` → `1.0.1-beta` → `1.0.2-beta` → ...). MINOR sobe quando há feature significativa nova; MAJOR reservado pra v2.0 (mudanças incompatíveis). Estável: dropar o `-beta` (`1.0.0`).
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
@@ -58,6 +58,7 @@ Projeto criado em Março 2026 como **scoreplace.app**. Lançado em beta soft em 
 - **Live scoring fix (v1.3.15)**: ghost do drag da bola não vaza mais o markup HTML em texto. Causa: `_serveBallGhost.textContent = _sportBall` em `bracket-ui.js:5590` rendia HTML como texto literal pra Beach Tennis (que usa `<span style="filter:hue-rotate...">🎾</span>`). Trocado pra `innerHTML`. Regra: ghost element pra drag-drop sempre usa `innerHTML` quando conteúdo pode ser HTML.
 - **#my-venues overflow fix (v1.3.16)**: campos do formulário de cadastro de venue nunca mais extrapolam a tela no iPhone. Fix via bloco `<style>` scoped em `#venue-owner-form-wrap` aplicando `box-sizing:border-box` + `min-width:0` + `max-width:100%` em todos inputs/selects/textareas. Regra gravada: campos de formulário nunca podem ultrapassar a largura da tela.
 - **Cards de pessoas horizontais no Explorar (v1.3.17)**: "Meus Amigos" e "Outros Usuários" convertidos de vertical (avatar em cima + grid) para horizontal (avatar 34px esquerda, nome+subtítulo direita) — mesmo padrão do card de organizador de torneio. Lista em coluna única gap 6px.
+- **Idade removida dos cards de pessoas no Explorar (v1.3.18)**: subtítulo dos cards de usuário exibe apenas cidade (quando diferente do usuário) e modalidades preferidas — nunca idade.
 
 **v1.2.x-beta (Maio 2026) — Categorias por idade e habilidade**
 - **Idade (v1.2.0)**: novas categorias 40+/50+/60+/70+ — fase 1 (schema + UI). Bloco Categorias movido pra antes do Modo de Inscrição (v1.2.4) pra fluxo mais natural.
