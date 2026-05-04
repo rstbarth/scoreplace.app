@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #818cf8;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
+      '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🔄 v1.3.1-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Análise de Inscritos: botão sempre visível pro organizador + report reflete atualizações de perfil.</b> User: <i>"Essa função de relatório de inscritos deve estar entre os botoes ferramentas do organizador no card de detalhe do torneio. O relatório deve ser atualizado conforme os perfis são atualizados e não apenas quando a pessoa se inscreve."</i></p>' +
+      '<p>Dois fixes:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Botão sempre visível</b>: condição <code>_hasParticipants</code> removida. Mesmo com 0 inscritos, organizador pode abrir o modal pra conferir como as categorias configuradas vão se distribuir. Empty state inline: "Sem inscritos ainda. As estatísticas vão aparecer assim que alguém se inscrever ou for adicionado."</li>' +
+        '<li><b>Profile fresh, não snapshot</b>: o report agora prefere <code>profile.gender</code>, <code>profile.displayName</code> e <code>profile.email</code> (vindos de <code>users/{uid}</code> a cada abertura do modal) ao invés do snapshot do <code>participantObj</code> capturado no momento da inscrição. Quando user atualiza gênero ou nome no perfil, próxima abertura do report já reflete. <code>birthDate</code> sempre foi fresh (vive só no profile, não é capturado no enrollment).</li>' +
+      '</ul>' +
+      '<p>Categorias atribuídas pelo organizador (via 🏷️ Categorias) continuam vindo do <code>participantObj.categories[]</code> — são organizer-controlled, não dependem do perfil do user.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #818cf8;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">📊 v1.3.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Análise de Inscritos: relatório pro organizador entender como os inscritos se distribuem nas categorias e qual formato faz mais sentido por categoria.</b></p>' +
       '<p>Pedido literal do user: <i>"Esse relatorio deve mostrar ao organizador quem são os inscritos separados por genero, habilidade e faixa de idade e qual seria a forma de torneio para cada modalidade com tempo previsto para a realização do torneio. Esse relatório deve ainda indicar aqueles que por falta na informação do perfil não podem ser encaixados nessa ou naquela categoria."</i></p>' +

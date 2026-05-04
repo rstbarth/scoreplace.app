@@ -761,9 +761,11 @@ function renderTournaments(container, tournamentId = null) {
 
         const _hasTournCats = (t.combinedCategories && t.combinedCategories.length > 0) || (t.genderCategories && t.genderCategories.length > 0) || (t.skillCategories && t.skillCategories.length > 0) || (t.ageCategories && t.ageCategories.length > 0);
         const categoriasBtn = (_hasTournCats && isOrg) ? `<button class="btn btn-indigo hover-lift" onclick="event.stopPropagation(); window._openCategoryManager('${t.id}')">🏷️ Categorias</button>` : '';
-        // v1.3.0-beta: análise de inscritos — só renderiza com ≥ 1 participante
-        const _hasParticipants = Array.isArray(t.participants) && t.participants.length > 0;
-        const enrollmentReportBtn = (isOrg && _hasParticipants) ? `<button class="btn btn-indigo hover-lift" onclick="event.stopPropagation(); window._openEnrollmentReport('${t.id}')">📊 Análise</button>` : '';
+        // v1.3.1-beta: botão de análise sempre visível pro organizador, mesmo
+        // sem inscritos — modal trata empty state. User: 'Essa função de
+        // relatório de inscritos deve estar entre os botoes ferramentas do
+        // organizador no card de detalhe do torneio.'
+        const enrollmentReportBtn = isOrg ? `<button class="btn btn-indigo hover-lift" onclick="event.stopPropagation(); window._openEnrollmentReport('${t.id}')">📊 Análise</button>` : '';
 
         const isSuicoFormat = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss';
         const isLigaFormat = window._isLigaFormat(t);

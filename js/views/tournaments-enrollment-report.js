@@ -169,6 +169,13 @@
   }
 
   // ─── Build per-participant rows ──────────────────────────────────────
+  //
+  // v1.3.1-beta: profile (users/{uid}) é a fonte de verdade preferida pra
+  // gênero/nome/foto — só cai no participantObj quando o uid não resolve ou
+  // o profile fetch falhou. Antes o snapshot do enrollment vencia, o que
+  // dava report stale quando usuário atualizava perfil depois.
+  // BirthDate só vive no profile mesmo (não é capturado no participantObj),
+  // então é sempre fresh.
 
   function _buildRows(t, parts, profileMap) {
     var ageCats = (t.ageCategories || []).slice();
@@ -177,12 +184,20 @@
     return parts.map(function (p) {
       var uid = p && p.uid ? p.uid : null;
       var profile = uid ? profileMap[uid] : null;
-      var gender = (p && p.gender) || (profile && profile.gender) || null;
+      // Profile vence — mantém report fresh quando user atualiza perfil
+      // depois de se inscrever. Cai pra participantObj se profile não existe.
+      var gender = (profile && profile.gender) || (p && p.gender) || null;
+      var name = (profile && profile.displayName)
+        || p.displayName || p.name
+        || (typeof p === 'string' ? p : '(sem nome)');
+      var email = (profile && profile.email) || p.email || null;
       var birthDate = profile && profile.birthDate ? profile.birthDate : null;
       var age = _computeAge(birthDate);
       var ageBks = _ageBuckets(age, ageCats);
 
-      // Categorias atribuídas (skill+gender combos) via inscrição
+      // Categorias atribuídas (skill+gender combos) via inscrição —
+      // continua vindo do participantObj (organizer-controlled, não muda
+      // com perfil do user).
       var assigned = Array.isArray(p.categories) && p.categories.length > 0
         ? p.categories.slice()
         : (p.category ? [p.category] : []);
@@ -202,8 +217,8 @@
       if (!hasUid) missing.push('sem perfil scoreplace');
 
       return {
-        name: p.displayName || p.name || (typeof p === 'string' ? p : '(sem nome)'),
-        email: p.email || null,
+        name: name,
+        email: email,
         uid: uid,
         gender: gender,
         age: age,
@@ -428,6 +443,11 @@
   }
 
   function _renderIncomplete(rows) {
+    if (rows.length === 0) {
+      return '<div style="background:rgba(148,163,184,0.06); border:1px solid rgba(148,163,184,0.20); border-radius:12px; padding:14px 16px;">' +
+        '<p style="margin:0;font-size:0.78rem;color:var(--text-muted);">📭 Sem inscritos ainda. As estatísticas acima vão aparecer assim que alguém se inscrever ou for adicionado pelo organizador.</p>' +
+        '</div>';
+    }
     var incompleteRows = rows.filter(function (r) { return r.missing.length > 0; });
     if (incompleteRows.length === 0) {
       return '<div style="background:rgba(16,185,129,0.06); border:1px solid rgba(16,185,129,0.20); border-radius:12px; padding:14px 16px;">' +
@@ -512,13 +532,11 @@
       return;
     }
     var parts = Array.isArray(t.participants) ? t.participants : [];
-    if (parts.length === 0) {
-      if (typeof showNotification === 'function') showNotification('Sem inscritos', 'Nenhum inscrito ainda — adicione participantes ou aguarde inscrições.', 'info');
-      return;
-    }
 
     _showLoading(t);
 
+    // v1.3.1-beta: abre o modal mesmo com 0 inscritos — empty state inline
+    // mostra as categorias configuradas pra o organizador conferir o setup.
     var uids = parts.filter(function (p) { return p && p.uid; }).map(function (p) { return p.uid; });
     _fetchProfiles(uids).then(function (profileMap) {
       var rows = _buildRows(t, parts, profileMap);
