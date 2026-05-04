@@ -591,10 +591,19 @@ window._buildTimeEstimation = function(t) {
 };
 
 // Open category manager modal
+// v1.3.12-beta: Category Manager convertido pra page-route #categorias/<tId>.
+// Padrão centralizado: topbar visível, _renderBackHeader, hamburger funcional.
+// Compat: _openCategoryManager(tId) virou wrapper que navega pra hash.
 window._openCategoryManager = function(tId) {
+    window.location.hash = '#categorias/' + tId;
+};
+
+// Renderer canonical chamado pelo router. Contém toda a lógica de drag/drop,
+// detail view, mesclagem etc. Detail view (clicar num card) continua como
+// modal-overlay porque é transiente — perfeito caso de uso pra overlay.
+window.renderCategoryManagerPage = function(container, tId) {
+    if (!container) return;
     var modalId = 'cat-manager-modal';
-    var existing = document.getElementById(modalId);
-    if (existing) existing.remove();
 
     // ---- Main view: category overview ----
     var _renderModal = function() {
@@ -711,26 +720,29 @@ window._openCategoryManager = function(tId) {
                 '</div>';
         }
 
-        var modalHtml = '<div id="' + modalId + '" style="display:flex;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);z-index:10001;align-items:center;justify-content:center;padding:1rem;" onclick="event.stopPropagation();">' +
-            '<div style="background:var(--bg-card);width:95%;max-width:600px;border-radius:18px;border:1px solid var(--border-color);box-shadow:0 24px 48px rgba(0,0,0,0.5);animation:fadeIn 0.2s ease;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">' +
-            '<div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">' +
-            '<div style="display:flex;align-items:center;gap:10px;">' +
-            '<button class="btn btn-sm hover-lift" style="background:rgba(255,255,255,0.05);color:var(--text-bright);border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:20px;font-weight:500;font-size:0.78rem;cursor:pointer;" onclick="document.getElementById(\'' + modalId + '\').remove();"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg> Voltar</button>' +
-            '<h3 style="margin:0;font-size:1.05rem;color:var(--text-bright);">🏷️ Categorias</h3>' +
-            '</div>' +
-            '<button style="background:none;border:none;color:var(--text-muted);font-size:1.5rem;cursor:pointer;line-height:1;" onclick="document.getElementById(\'' + modalId + '\').remove();">&times;</button>' +
-            '</div>' +
-            '<div style="padding:1rem 1.5rem;overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;">' +
+        // v1.3.12-beta: cabeçalho padronizado via _renderBackHeader.
+        // Voltar navega de volta pro detalhe do torneio.
+        var hdr = (typeof window._renderBackHeader === 'function')
+            ? window._renderBackHeader({
+                href: '#tournaments/' + tId,
+                label: 'Voltar',
+                middleHtml: '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">🏷️ Categorias</span>'
+            })
+            : '';
+
+        // Conteúdo da página renderizado direto no view-container (sem
+        // modal-overlay wrapper). Mantém o id="cat-manager-modal" no nó
+        // interno pra preservar selectors usados pelo drag/drop.
+        var pageHtml = hdr +
+            '<div id="' + modalId + '" style="max-width:760px;margin:0 auto;padding:1rem;">' +
             '<div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:1rem;">' + _t('cat.dragInstructions') + '</div>' +
             '<div id="cat-mgr-cards">' + catRowsHtml + '</div>' +
             uncatHtml +
-            '</div>' +
-            '</div></div>';
+            '</div>';
 
-        var el = document.getElementById(modalId);
-        if (el) el.remove();
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        container.innerHTML = pageHtml;
         _attachCatManagerDragDrop(tId);
+        if (typeof window._reflowChrome === 'function') window._reflowChrome();
 
         // Attach click handlers for category detail view
         var catCardEls = document.querySelectorAll('.cat-mgr-card');

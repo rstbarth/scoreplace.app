@@ -267,6 +267,15 @@ function initRouter() {
           return;
         }
         break;
+      case 'categorias':
+        // v1.3.12-beta: Category Manager como page-route. Param é o tId.
+        if (typeof window.renderCategoryManagerPage === 'function' && cleanParam) {
+          window.renderCategoryManagerPage(viewContainer, cleanParam);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       case 'help':
         // v1.3.11-beta: ajuda como page-route. Antes era modal-overlay.
         if (typeof window.renderHelpPage === 'function') {

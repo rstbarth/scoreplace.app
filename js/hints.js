@@ -438,6 +438,7 @@
     // na pagina que está visivel".
     if (hash.indexOf('#profile') === 0) return 'profile';
     if (hash.indexOf('#analise/') === 0) return 'enrollment-report';
+    if (hash.indexOf('#categorias/') === 0) return 'category-manager';
     if (hash.indexOf('#help') === 0) return 'help';
     if (hash.indexOf('#support') === 0) return 'support';
     if (hash.indexOf('#privacy') === 0) return 'privacy';

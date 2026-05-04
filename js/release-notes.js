@@ -9,6 +9,21 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #10b981;border-radius:12px;padding:14px 16px;background:rgba(16,185,129,0.10);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🏷️ v1.3.12-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Category Manager convertido pra page-route <code>#categorias/&lt;tId&gt;</code> (auditoria parte 2).</b></p>' +
+      '<p>Conteúdo rico (cards, drag/drop, mesclagem) onde o organizador passa tempo gerenciando — ficou claro que devia ser rota com URL própria. Antes era full-screen modal-overlay com z-index 10001 cobrindo tudo.</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><code>_openCategoryManager(tId)</code> virou wrapper que faz <code>window.location.hash = "#categorias/" + tId</code> — todos os call-sites antigos preservados</li>' +
+        '<li><code>window.renderCategoryManagerPage(container, tId)</code> renderer canônico chamado pelo router</li>' +
+        '<li>Header padronizado via <code>_renderBackHeader</code> (Voltar → <code>#tournaments/&lt;id&gt;</code>, título "🏷️ Categorias")</li>' +
+        '<li>Conteúdo direto no view-container (max-width 760px, padding 1rem) — sem card flutuante centralizado</li>' +
+        '<li>Detail view (clique num cat card) continua como modal-overlay — é transiente, perfeito caso de uso pra overlay</li>' +
+        '<li>Drag/drop preserva todos os IDs internos (<code>cat-manager-modal</code>, <code>cat-mgr-cards</code>) — reuso completo da lógica existente</li>' +
+        '<li>Hint context <code>category-manager</code> adicionado</li>' +
+      '</ul>' +
+      '<p>Topbar visível, hamburger funciona, URL bookmarkable. Próxima na auditoria: <code>modal-create-tournament</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #10b981;border-radius:12px;padding:14px 16px;background:rgba(16,185,129,0.10);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📚 v1.3.11-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Manual de Ajuda agora é page-route <code>#help</code> (auditoria parte 1).</b></p>' +
       '<p>Aplicação direta da regra centralizada: conteúdo rico, scrollável, bookmarkável → vira rota. Antes era <code>modal-help</code> (modal-overlay full-screen). Agora <code>#help</code> com topbar visível, hamburger funcional, URL compartilhável.</p>' +
