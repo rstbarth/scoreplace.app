@@ -8,6 +8,13 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
+      '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">🎾 v1.3.15-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
+      '<p><b>Live scoring: ghost do drag da bola não vaza mais o markup.</b> User reportou via screenshot do iPhone que ao arrastar a bola no Beach Tennis aparecia em tela o texto literal <code>&lt;span style="filter:hue-rotate(-50deg)..."&gt;</code> atrás do cursor de drag.</p>' +
+      '<p>Causa: o ghost element criado em <code>touchmove</code> usava <code>textContent = _sportBall</code>, mas pra Beach Tennis o <code>_sportBall</code> é HTML (tennis ball verde com filtro CSS pra virar laranja, definido em <code>window._BEACH_TENNIS_ICON</code>) — <code>textContent</code> rendia o markup como texto literal. Outras modalidades (🎾 puro do Tênis, 🏓, 🥒, etc.) não eram afetadas porque são emoji puro sem markup.</p>' +
+      '<p>Fix: trocado <code>textContent</code> → <code>innerHTML</code> em <code>bracket-ui.js:5590</code>. Ghost agora renderiza só 🎾 com o filtro <code>hue-rotate(-50deg)</code> aplicado (bola laranja Beach Tennis), sem vazar tags como texto.</p>' +
+      '<p><b>Regra cristalizada:</b> ao construir ghost element pra drag-and-drop, sempre usar <code>innerHTML</code> quando o conteúdo pode ser HTML (não só emoji). <code>textContent</code> é seguro só pra strings plain.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #f59e0b;border-radius:12px;padding:14px 16px;background:rgba(245,158,11,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🎾 v1.3.14-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Live scoring: drag da bola não rouba mais o swap de quadra.</b> User: <i>"podemos arrastar a bolinha para mudar o sacador... podemos arrastar os lados da quadra... Por vezes quando tentei mudar a bolinha de lugar mudou o lado da quadra. Isso precisa funcionar melhor. se o usuário clicar na bolinha (ou perto dela), arrasta a bolinha e não o lado da quadra. para mudar o lado da quadra precisa clicar fora do card com a bolinha."</i></p>' +

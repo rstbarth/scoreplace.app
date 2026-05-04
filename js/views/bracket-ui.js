@@ -5587,7 +5587,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         if (!_serveBallGhost) {
           _serveBallGhost = document.createElement('div');
           _serveBallGhost.style.cssText = 'position:fixed;z-index:200000;font-size:1.5rem;pointer-events:none;filter:drop-shadow(0 0 8px rgba(255,200,0,0.8));';
-          _serveBallGhost.textContent = _sportBall;
+          _serveBallGhost.innerHTML = _sportBall;
           document.body.appendChild(_serveBallGhost);
         }
         _serveBallGhost.style.left = (t.clientX - 15) + 'px';
