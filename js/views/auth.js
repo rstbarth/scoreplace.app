@@ -3464,10 +3464,11 @@ function setupProfileModal() {
     // quebrado. cade logo, hamburger etc'. Memória: "all pages/modals/overlays:
     // back button left + title center + hamburger right".
     var _backHdrPlaceholder = '<div id="profile-back-hdr-slot"></div>';
+    // v1.3.4-beta: sem max-width / max-height inline — CSS força full-screen
     var modalHtml = '<div class="modal-overlay" id="modal-profile">' +
-      '<div class="modal" style="max-width: 520px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; width: calc(100% - 2rem);">' +
+      '<div class="modal" style="overflow-y: auto; overflow-x: hidden; box-sizing: border-box;">' +
         _backHdrPlaceholder +
-        '<div class="modal-body" style="padding: 1rem 1.25rem; overflow-x: hidden;">' +
+        '<div class="modal-body" style="padding: 1rem 1.25rem; overflow-x: hidden; max-width: 760px; margin: 0 auto; width: 100%; box-sizing: border-box;">' +
           // Avatar row
           // v1.0.23-beta: feedback do user — "esses ícones são ridículos.
           // vamos usar as iniciais dos nomes invés dessa porcaria". Removido

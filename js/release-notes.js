@@ -9,6 +9,11 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #818cf8;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
+      '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🖥️ v1.3.4-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Modal de Perfil agora ocupa tela inteira (full viewport).</b> User: <i>"o perfil parece estar abrindo numa subtela e não na tela toda com a largura total do navegador. arrume isso. nenhuma tela deveria abrir dessa forma."</i></p>' +
+      '<p>Antes o modal tinha <code>max-width: 520px</code> + <code>max-height: 90vh</code> e era um card flutuante centralizado com cantos arredondados — combinado com o back-header padronizado da v1.3.3, dava uma sensação de "subtela dentro da tela". CSS atualizado pra que <code>#modal-profile</code> ocupe full viewport igual a <code>#venues-detail-overlay</code> e <code>#enrollment-report-modal</code>: sem padding na overlay, sem max-width/max-height, sem rounded corners, sem border. Conteúdo do body ainda é centralizado em <code>max-width: 760px</code> pra leitura confortável em telas grandes, mas o chrome (overlay + back-header) ocupa a largura total.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #818cf8;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🔧 v1.3.3-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Cabeçalho do Modal de Perfil padronizado + cleanup do overlay de Análise.</b> User: <i>"o cabecalho no perfil está quebrado. cade logo, hamburger etc"</i></p>' +
       '<p>Dois fixes:</p>' +
