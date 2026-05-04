@@ -8,6 +8,19 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #818cf8;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
+      '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">📊 v1.3.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Análise de Inscritos: relatório pro organizador entender como os inscritos se distribuem nas categorias e qual formato faz mais sentido por categoria.</b></p>' +
+      '<p>Pedido literal do user: <i>"Esse relatorio deve mostrar ao organizador quem são os inscritos separados por genero, habilidade e faixa de idade e qual seria a forma de torneio para cada modalidade com tempo previsto para a realização do torneio. Esse relatório deve ainda indicar aqueles que por falta na informação do perfil não podem ser encaixados nessa ou naquela categoria."</i></p>' +
+      '<p>Botão <b>📊 Análise</b> aparece nas Ferramentas do Organizador quando há ≥1 inscrito. Modal cobre 3 seções:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Visão Geral</b>: total de inscritos, breakdown por gênero / habilidade / idade — pills com cor por dimensão.</li>' +
+        '<li><b>Distribuição por Categoria</b>: cada combinação configurada (Fem A, Masc B, Fem 40+, etc.) listada com contagem real, formato sugerido e tempo estimado de duração. Sugestões: 2 inscritos → "Final única (BO3)"; 3-4 → "Liga round-robin"; 5-7 → "Eliminatórias com BYEs ou Liga curta"; 8 → "Eliminatórias Simples"; 9-15 → "Elim com BYEs ou Grupos+Elim"; 16+ → "Elim Simples ou Grupos+Elim". Tempo usa <code>gameDuration</code> e <code>courtCount</code> do torneio (defaults 30min/quadra única).</li>' +
+        '<li><b>Perfis Incompletos</b>: lista quem ficou de fora de alguma categoria — falta gênero, falta data de nascimento (não tem como saber faixa etária), falta categoria de habilidade atribuída pelo organizador, ou inscrito que entrou via convite manual sem conta scoreplace.</li>' +
+      '</ul>' +
+      '<p>Implementação: <code>js/views/tournaments-enrollment-report.js</code> (~440 linhas). Lê <code>participantObj.gender</code> direto + faz N=#inscritos leituras paralelas em <code>users/{uid}</code> pra trazer <code>birthDate</code> (idade computada client-side com lógica mês/dia). Custo bounded — só dispara ao abrir modal manualmente.</p>' +
+      '<p><b>Próximas fases:</b> auto-assign por idade quando o perfil tem birthDate (hoje só roda pro gênero); UI de inscrição multi-categoria pro participante escolher se entra na de habilidade, na de idade, ou em ambas.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #a855f7;border-radius:12px;padding:14px 16px;background:rgba(168,85,247,0.10);">' +
       '<div style="font-weight:800; color:#d8b4fe; font-size:1rem; margin-bottom:8px;">↕️ v1.2.4-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Bloco "Categorias do Torneio" subiu — agora vem logo depois de Tipo de Jogo e antes de Modo de Inscrição.</b> User: <i>"agora parece que faz mais sentido colocar todo o bloco de categorias logo depois do tipo de jogo e antes do modo de inscrição."</i></p>' +

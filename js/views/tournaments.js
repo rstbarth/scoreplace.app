@@ -759,8 +759,11 @@ function renderTournaments(container, tournamentId = null) {
              ${allowsTeams ? `<button class="btn btn-purple hover-lift" onclick="event.stopPropagation(); window.addTeamFunction('${t.id}')">👥 + Time</button>` : ''}
         ` : '';
 
-        const _hasTournCats = (t.combinedCategories && t.combinedCategories.length > 0) || (t.genderCategories && t.genderCategories.length > 0) || (t.skillCategories && t.skillCategories.length > 0);
+        const _hasTournCats = (t.combinedCategories && t.combinedCategories.length > 0) || (t.genderCategories && t.genderCategories.length > 0) || (t.skillCategories && t.skillCategories.length > 0) || (t.ageCategories && t.ageCategories.length > 0);
         const categoriasBtn = (_hasTournCats && isOrg) ? `<button class="btn btn-indigo hover-lift" onclick="event.stopPropagation(); window._openCategoryManager('${t.id}')">🏷️ Categorias</button>` : '';
+        // v1.3.0-beta: análise de inscritos — só renderiza com ≥ 1 participante
+        const _hasParticipants = Array.isArray(t.participants) && t.participants.length > 0;
+        const enrollmentReportBtn = (isOrg && _hasParticipants) ? `<button class="btn btn-indigo hover-lift" onclick="event.stopPropagation(); window._openEnrollmentReport('${t.id}')">📊 Análise</button>` : '';
 
         const isSuicoFormat = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss';
         const isLigaFormat = window._isLigaFormat(t);
@@ -1334,6 +1337,7 @@ function renderTournaments(container, tournamentId = null) {
                 ${hasDraw ? `<button class="btn btn-tool-green hover-lift" onclick="event.stopPropagation(); window._exportTournamentCSV('${t.id}')">📊 ${_t('btn.export')}</button>` : ''}
                 ${isOrg ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window._saveAsTemplate('${t.id}')">💾 ${window._t ? window._t('btn.saveTemplate') : 'Salvar como Template'}</button>` : ''}
                 ${categoriasBtn}
+                ${enrollmentReportBtn}
                 ${toggleRegBtn}
                 ${sortearBtn}
                 ${sortearAberto}
