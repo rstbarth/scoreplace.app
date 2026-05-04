@@ -8,6 +8,22 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
+      '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🎯 v1.3.6-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Categoria de habilidade individual por modalidade.</b> User: <i>"vamos individualizar a categoria por modalidade. uma pessoa pode ser C em tenis e D em beach Tennis por exemplo. Assim, quando o usuário selecionar uma modalidade deve abrir o campo da habilidade naquela modalidade para ser preenchido."</i></p>' +
+      '<p>Schema novo: <code>profile.skillBySport = { "Beach Tennis": "D", "Pickleball": "C", "Tênis": "B" }</code>. User pode declarar nível diferente em cada modalidade — antes era um único <code>defaultCategory</code> global aplicado pra tudo.</p>' +
+      '<p>UI nova:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li>Campo "Categoria" standalone removido — passou pra dentro da seção Modalidades</li>' +
+        '<li>Quando uma modalidade é selecionada, abre embaixo um mini-picker de habilidade (A/B/C/D/FUN) específico daquela modalidade</li>' +
+        '<li>Cada modalidade ativa vira um cardzinho âmbar: <code>Beach Tennis: [A] [B] [C] [<b>D</b>] [FUN]</code></li>' +
+        '<li>Pill de skill ativa fica indigo (mesmo estilo das pills de habilidade do criar torneio)</li>' +
+        '<li>Clicar no skill ativo desmarca (volta pra "selecione")</li>' +
+      '</ul>' +
+      '<p>Backward-compat: perfis antigos com <code>defaultCategory: "D"</code> e modalidades preferidas têm o "D" auto-aplicado a cada modalidade na primeira abertura. Save continua escrevendo <code>defaultCategory</code> (= primeira skill) pra readers legacy não quebrarem.</p>' +
+      '<p>Análise de Inscritos atualizada: o report agora prioriza <code>profile.skillBySport[t.sport]</code> (habilidade naquela modalidade do torneio) ao invés do <code>defaultCategory</code> global. Bloco diagnóstico mostra o map por inscrito.</p>' +
+      '<p>i18n snapshot/restore preserva também o map de skillBySport ao trocar idioma com perfil aberto.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #10b981;border-radius:12px;padding:14px 16px;background:rgba(16,185,129,0.10);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🛣️ v1.3.5-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Perfil agora é uma rota (<code>#profile</code>), não modal-overlay.</b> User: <i>"a administração disso está centralizada no app justamente para vc não ficar tentando copiar o que já está feito e aprovado. encontre isso e aplique o que já está feito, centralizado e aprovado sem tentar recriar o que descrevi."</i></p>' +

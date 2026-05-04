@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.3.5-beta';
+window.SCOREPLACE_VERSION = '1.3.6-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -1824,6 +1824,10 @@ window.AppStore = {
         if (profile.gender) this.currentUser.gender = profile.gender;
         if (profile.preferredSports) this.currentUser.preferredSports = profile.preferredSports;
         if (profile.defaultCategory) this.currentUser.defaultCategory = profile.defaultCategory;
+        // v1.3.6-beta: skillBySport — habilidade por modalidade
+        if (profile.skillBySport && typeof profile.skillBySport === 'object') {
+          this.currentUser.skillBySport = profile.skillBySport;
+        }
         if (profile.displayName) this.currentUser.displayName = profile.displayName;
         if (profile.birthDate) this.currentUser.birthDate = profile.birthDate;
         if (profile.age) this.currentUser.age = profile.age;

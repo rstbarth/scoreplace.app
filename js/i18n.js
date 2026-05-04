@@ -102,6 +102,10 @@
     if (Array.isArray(window._profileLocations)) {
       snap.locations = window._profileLocations.slice();
     }
+    // v1.3.6-beta: skillBySport map
+    if (window._profileSkillBySport && typeof window._profileSkillBySport === 'object') {
+      snap.skillBySport = Object.assign({}, window._profileSkillBySport);
+    }
     // Visibilidade de presença (hidden input)
     var pv = document.getElementById('profile-presence-visibility');
     if (pv) snap.presenceVis = pv.value;
@@ -141,6 +145,13 @@
       // _renderProfileLocationsList é local-scope; re-abrir o modal já
       // popula via _populateProfileModalFields que lê window._profileLocations
       // — então só precisamos garantir que a window var esteja certa.
+    }
+    // v1.3.6-beta: restaurar skillBySport
+    if (snap.skillBySport) {
+      window._profileSkillBySport = Object.assign({}, snap.skillBySport);
+      if (typeof window._renderProfileSkillBySport === 'function') {
+        window._renderProfileSkillBySport();
+      }
     }
     if (snap.presenceVis && typeof window._setPresenceVisibility === 'function') {
       window._setPresenceVisibility(snap.presenceVis);

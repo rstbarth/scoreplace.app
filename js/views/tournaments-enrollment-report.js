@@ -214,9 +214,19 @@
       });
 
       // v1.3.2-beta: skill derivado do perfil — cai aqui se o org não
-      // atribuiu manualmente. profile.defaultCategory é o nível auto-declarado
-      // pelo user.
-      var profileSkill = (profile && profile.defaultCategory) ? String(profile.defaultCategory).trim() : null;
+      // atribuiu manualmente.
+      // v1.3.6-beta: prioriza profile.skillBySport[t.sport] (habilidade
+      // específica daquela modalidade). Fallback pra defaultCategory legacy.
+      var profileSkill = null;
+      if (profile && profile.skillBySport && typeof profile.skillBySport === 'object') {
+        var tSport = t && t.sport ? String(t.sport).trim() : null;
+        if (tSport && profile.skillBySport[tSport]) {
+          profileSkill = String(profile.skillBySport[tSport]).trim();
+        }
+      }
+      if (!profileSkill && profile && profile.defaultCategory) {
+        profileSkill = String(profile.defaultCategory).trim();
+      }
 
       // Skill efetivo: usa atribuição do org se houver, senão cai pro perfil
       var effectiveSkills = assignedSkills.length > 0
@@ -645,7 +655,11 @@
       html += '<div>participantObj: gender=<code>' + _esc((p && p.gender) || '—') + '</code> categories=<code>' + _esc(JSON.stringify((p && p.categories) || [])) + '</code></div>';
       var prof = r.uid ? profileMap[r.uid] : null;
       if (prof) {
+        var skillMapStr = (prof.skillBySport && typeof prof.skillBySport === 'object')
+          ? JSON.stringify(prof.skillBySport)
+          : '—';
         html += '<div>profile: gender=<code>' + _esc(prof.gender || '—') + '</code> birthDate=<code>' + _esc(prof.birthDate || '—') + '</code> defaultCategory=<code>' + _esc(prof.defaultCategory || '—') + '</code></div>';
+        html += '<div>profile.skillBySport: <code>' + _esc(skillMapStr) + '</code></div>';
       } else {
         html += '<div style="color:#f87171;">profile: NÃO carregado (uid não bate, doc não existe, ou rules block)</div>';
       }

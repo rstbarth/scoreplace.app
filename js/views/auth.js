@@ -1996,9 +1996,27 @@ async function simulateLoginSuccess(user) {
       if (Array.isArray(raw)) arr = raw.slice();
       else if (typeof raw === 'string' && raw.trim()) arr = raw.split(/[,;]/).map(function(s){return s.trim();}).filter(Boolean);
       window._profileSelectedSports = arr;
+
+      // v1.3.6-beta: skillBySport — carrega map de habilidade por modalidade.
+      // Backward-compat: se perfil antigo só tem defaultCategory + 1 sport,
+      // auto-aplica defaultCategory como skill desse sport.
+      var skillMap = {};
+      if (cu.skillBySport && typeof cu.skillBySport === 'object') {
+        Object.keys(cu.skillBySport).forEach(function(s) {
+          if (cu.skillBySport[s]) skillMap[s] = cu.skillBySport[s];
+        });
+      }
+      // Backward-compat: defaultCategory + 1 sport e nada em skillBySport pra esse sport
+      if (cu.defaultCategory && arr.length >= 1) {
+        arr.forEach(function(s) {
+          if (!skillMap[s]) skillMap[s] = cu.defaultCategory;
+        });
+      }
+      window._profileSkillBySport = skillMap;
+
       if (typeof window._applyProfileSportsUI === 'function') window._applyProfileSportsUI(arr);
+      if (typeof window._renderProfileSkillBySport === 'function') window._renderProfileSkillBySport();
     })();
-    _setVal('profile-edit-category', cu.defaultCategory || '');
     var phoneCountrySel = document.getElementById('profile-phone-country');
     var phoneInput = document.getElementById('profile-edit-phone');
     if (phoneCountrySel && cu.phoneCountry) phoneCountrySel.value = cu.phoneCountry;
@@ -3072,13 +3090,94 @@ window._displayDateToIso = function(str) {
 // refletem esse array via _applyProfileSportsUI, e o toggle atualiza o
 // array + re-renderiza o estilo. Hidden input #profile-edit-sports recebe
 // CSV pra compatibilidade com readers legacy que usam .split(',').
+//
+// v1.3.6-beta: skillBySport — quando uma modalidade é selecionada, abre
+// mini-picker de habilidade (A/B/C/D/FUN) específico daquela modalidade.
+// Fonte de verdade: window._profileSkillBySport = { 'Beach Tennis': 'D' }.
+// User pode ser C em tênis e D em beach tennis.
+window._SKILL_PILLS_PROFILE = ['A', 'B', 'C', 'D', 'FUN'];
+
 window._toggleProfileSport = function(sport) {
   if (!Array.isArray(window._profileSelectedSports)) window._profileSelectedSports = [];
+  if (!window._profileSkillBySport || typeof window._profileSkillBySport !== 'object') {
+    window._profileSkillBySport = {};
+  }
   var idx = window._profileSelectedSports.indexOf(sport);
-  if (idx >= 0) window._profileSelectedSports.splice(idx, 1);
-  else window._profileSelectedSports.push(sport);
+  if (idx >= 0) {
+    window._profileSelectedSports.splice(idx, 1);
+    delete window._profileSkillBySport[sport];
+  } else {
+    window._profileSelectedSports.push(sport);
+    // Não pré-popula skill — user escolhe. Se não escolher, fica null.
+    if (!window._profileSkillBySport[sport]) {
+      window._profileSkillBySport[sport] = null;
+    }
+  }
   if (typeof window._applyProfileSportsUI === 'function') {
     window._applyProfileSportsUI(window._profileSelectedSports);
+  }
+  if (typeof window._renderProfileSkillBySport === 'function') {
+    window._renderProfileSkillBySport();
+  }
+};
+
+window._setProfileSkillForSport = function(sport, skill) {
+  if (!window._profileSkillBySport || typeof window._profileSkillBySport !== 'object') {
+    window._profileSkillBySport = {};
+  }
+  // Toggle behavior: clicar no skill ativo deseleciona
+  if (window._profileSkillBySport[sport] === skill) {
+    window._profileSkillBySport[sport] = null;
+  } else {
+    window._profileSkillBySport[sport] = skill;
+  }
+  if (typeof window._renderProfileSkillBySport === 'function') {
+    window._renderProfileSkillBySport();
+  }
+};
+
+window._renderProfileSkillBySport = function() {
+  var container = document.getElementById('profile-skill-by-sport');
+  var hidden = document.getElementById('profile-edit-skill-by-sport');
+  if (!container) return;
+  var sports = Array.isArray(window._profileSelectedSports) ? window._profileSelectedSports : [];
+  var map = window._profileSkillBySport && typeof window._profileSkillBySport === 'object' ? window._profileSkillBySport : {};
+
+  if (sports.length === 0) {
+    container.innerHTML = '';
+    if (hidden) hidden.value = '';
+    return;
+  }
+
+  var html = '';
+  sports.forEach(function(sport) {
+    var current = map[sport] || null;
+    var safeS = String(sport).replace(/'/g, "\\'");
+    html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.18);border-radius:8px;">';
+    html += '<span style="font-size:0.78rem;font-weight:700;color:#fbbf24;min-width:100px;flex:0 0 auto;">' + window._safeHtml(sport) + ':</span>';
+    html += '<div style="display:flex;gap:4px;flex-wrap:wrap;">';
+    window._SKILL_PILLS_PROFILE.forEach(function(skill) {
+      var active = current === skill;
+      var style = active
+        ? 'padding:4px 10px;border-radius:6px;font-size:0.74rem;cursor:pointer;border:2px solid #6366f1;background:rgba(99,102,241,0.22);color:#a5b4fc;font-weight:700;box-shadow:0 0 0 1px rgba(99,102,241,0.3);'
+        : 'padding:4px 10px;border-radius:6px;font-size:0.74rem;cursor:pointer;border:1.5px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);color:var(--text-muted);font-weight:500;';
+      html += '<button type="button" onclick="window._setProfileSkillForSport(\'' + safeS + '\',\'' + skill + '\')" style="' + style + '">' + skill + '</button>';
+    });
+    html += '</div>';
+    if (!current) {
+      html += '<span style="font-size:0.65rem;color:var(--text-muted);font-style:italic;">selecione</span>';
+    }
+    html += '</div>';
+  });
+
+  container.innerHTML = html;
+  // Hidden input recebe JSON pra save flow
+  if (hidden) {
+    var clean = {};
+    Object.keys(map).forEach(function(k) {
+      if (sports.indexOf(k) !== -1 && map[k]) clean[k] = map[k];
+    });
+    hidden.value = JSON.stringify(clean);
   }
 };
 
@@ -3106,6 +3205,10 @@ window._applyProfileSportsUI = function(arr) {
   // Mantém hidden input sincronizado com CSV pra compat com readers legacy.
   var hidden = document.getElementById('profile-edit-sports');
   if (hidden) hidden.value = (Array.isArray(arr) ? arr : []).join(', ');
+  // Re-renderiza skill rows também
+  if (typeof window._renderProfileSkillBySport === 'function') {
+    window._renderProfileSkillBySport();
+  }
 };
 
 // ─── Auto-detect & fix stale participant names ─────────────────────────────���
@@ -3574,37 +3677,30 @@ function setupProfileModal() {
                 '<input type="text" inputmode="numeric" id="profile-edit-birthdate" class="form-control" placeholder="' + ((window._currentLang === 'en') ? 'mm/dd/yyyy' : 'dd/mm/aaaa') + '" maxlength="10" autocomplete="bday" style="width: 100%; box-sizing: border-box;" oninput="window._maskBirthdate(this)">' +
               '</div>' +
             '</div>' +
-            // Row: Cidade + Categoria (2 colunas)
-            '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">' +
-              '<div class="form-group" style="margin: 0;">' +
-                '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelCity') + '</label>' +
-                '<input type="text" id="profile-edit-city" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: São Paulo">' +
-              '</div>' +
-              '<div class="form-group" style="margin: 0;">' +
-                '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelCategory') + '</label>' +
-                '<input type="text" id="profile-edit-category" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: C, Iniciante">' +
-              '</div>' +
+            // Row: Cidade (1 coluna agora — categoria virou per-modalidade na v1.3.6-beta)
+            '<div class="form-group" style="margin-bottom: 10px;">' +
+              '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelCity') + '</label>' +
+              '<input type="text" id="profile-edit-city" class="form-control" style="width: 100%; box-sizing: border-box;" placeholder="Ex: São Paulo">' +
             '</div>' +
             // Esportes Preferidos — pill buttons toggleáveis (v0.15.19).
-            // Antes era input de texto livre com placeholder "Ex: Tênis, Padel";
-            // usuário precisava digitar os nomes corretamente. Agora são botões
-            // toggleáveis com as modalidades canônicas do app, garantindo
-            // consistência com filtros de discovery e sugestões de presença.
-            // Valor interno gravado como array; input hidden preserva CSV pra
-            // readers legacy (bracket-ui, explore, tournaments-organizer).
+            // v1.3.6-beta: ao selecionar uma modalidade, abre mini-picker de
+            // habilidade (A/B/C/D/FUN) específico daquela modalidade. User
+            // pode ser C em tênis e D em beach tennis. Schema novo:
+            // profile.skillBySport = { 'Beach Tennis': 'D', 'Pickleball': 'C' }
             '<div class="form-group" style="margin-bottom: 10px;">' +
               '<label class="form-label" style="font-size: 0.75rem;">' + _t('profile.labelSports') + '</label>' +
               '<div id="profile-sports-pills" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">' +
                 ['Beach Tennis', 'Pickleball', 'Tênis', 'Tênis de Mesa', 'Padel'].map(function(s) {
                   var safeS = String(s).replace(/'/g, "\\'");
-                  // v1.0.5-beta: pills nascem com style "desativado" inline para evitar
-                  // flash do default .btn (color:#fff sem bg) que parecia "ativado".
-                  // _applyProfileSportsUI sobrescreve quando há esporte selecionado.
                   return '<button type="button" data-sport="' + window._safeHtml(s) + '" onclick="window._toggleProfileSport(\'' + safeS + '\')" class="btn btn-sm" style="font-size:0.72rem;padding:6px 12px;border-radius:999px;white-space:nowrap;background:transparent;color:var(--text-muted);border:1.5px solid var(--border-color);font-weight:500;">' + window._safeHtml(s) + '</button>';
                 }).join('') +
               '</div>' +
               '<input type="hidden" id="profile-edit-sports" value="">' +
-              '<span style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.6; margin-top: 4px; display: block;">Selecione as modalidades que você joga. Usado pra sugerir torneios e parceiros.</span>' +
+              '<span style="font-size: 0.65rem; color: var(--text-muted); opacity: 0.6; margin-top: 4px; display: block;">Selecione as modalidades que você joga. Sua habilidade abrirá pra cada uma.</span>' +
+              // Skill por modalidade — renderizado dinamicamente conforme
+              // modalidades são selecionadas. Vazio quando não há modalidade ativa.
+              '<div id="profile-skill-by-sport" style="margin-top:10px;display:flex;flex-direction:column;gap:8px;"></div>' +
+              '<input type="hidden" id="profile-edit-skill-by-sport" value="">' +
             '</div>' +
             // Telefone: País + Número
             '<div class="form-group" style="margin-bottom: 10px;">' +
@@ -4387,7 +4483,25 @@ function setupProfileModal() {
       var sportsArr = Array.isArray(window._profileSelectedSports)
         ? window._profileSelectedSports.slice()
         : [];
-      var category = (_v('profile-edit-category') || '').trim();
+      // v1.3.6-beta: skillBySport — habilidade por modalidade.
+      // Filtra: só mantém entries de sports atualmente selecionados.
+      var skillBySport = {};
+      if (window._profileSkillBySport && typeof window._profileSkillBySport === 'object') {
+        Object.keys(window._profileSkillBySport).forEach(function(s) {
+          if (sportsArr.indexOf(s) !== -1 && window._profileSkillBySport[s]) {
+            skillBySport[s] = window._profileSkillBySport[s];
+          }
+        });
+      }
+      // Mantém defaultCategory legacy = primeira skill encontrada (compat com
+      // readers antigos como _suggestForCount, ranking, etc.). Quando user
+      // refinar pra ter skill diferente por modalidade, defaultCategory vai
+      // refletir o primeiro do array sportsArr — readers que precisam do
+      // skill exato por modalidade devem ler skillBySport[sport].
+      var category = '';
+      if (sportsArr.length > 0 && skillBySport[sportsArr[0]]) {
+        category = skillBySport[sportsArr[0]];
+      }
       var preferredCeps = (_v('profile-edit-ceps') || '').trim();
       var preferredLocations = Array.isArray(window._profileLocations)
         ? window._profileLocations.slice()
@@ -4479,6 +4593,11 @@ function setupProfileModal() {
       // Arrays: só envia se tem pelo menos 1 item
       if (sportsArr.length > 0) payload.preferredSports = sportsArr;
       if (preferredLocations.length > 0) payload.preferredLocations = preferredLocations;
+      // v1.3.6-beta: skillBySport — só envia se tem pelo menos 1 entrada.
+      // Sempre envia o campo (mesmo vazio) pra possibilitar reset quando user
+      // deseleciona todas as modalidades — Firestore merge preserva
+      // null/undefined, então usar {} explicitamente quando vazio.
+      payload.skillBySport = skillBySport;
 
       // Booleans / defaults: sempre envia (UI tem valor definido)
       payload.phoneCountry = phoneCountry;
