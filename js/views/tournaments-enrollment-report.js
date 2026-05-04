@@ -176,6 +176,12 @@
   // dava report stale quando usuário atualizava perfil depois.
   // BirthDate só vive no profile mesmo (não é capturado no participantObj),
   // então é sempre fresh.
+  //
+  // v1.3.2-beta: agora também lê profile.defaultCategory como skill derivado
+  // quando o organizador não atribuiu manualmente via 🏷️ Categorias. Antes
+  // só funcionava se o org tinha rodado a atribuição. Agora cai do auto:
+  // perfil.defaultCategory='D' + profile.gender='masc' = inscrito conta como
+  // 'Masc D' nas estatísticas.
 
   function _buildRows(t, parts, profileMap) {
     var ageCats = (t.ageCategories || []).slice();
@@ -195,23 +201,32 @@
       var age = _computeAge(birthDate);
       var ageBks = _ageBuckets(age, ageCats);
 
-      // Categorias atribuídas (skill+gender combos) via inscrição —
-      // continua vindo do participantObj (organizer-controlled, não muda
-      // com perfil do user).
+      // Categorias atribuídas pelo organizador (manual via 🏷️ Categorias)
       var assigned = Array.isArray(p.categories) && p.categories.length > 0
         ? p.categories.slice()
         : (p.category ? [p.category] : []);
 
-      // Quais skills estão presentes nas atribuições
+      // Quais skills estão presentes nas atribuições manuais
       var assignedSkills = [];
       assigned.forEach(function (c) {
         var d = _decomposeCat(c, t);
         if (d.skill && assignedSkills.indexOf(d.skill) === -1) assignedSkills.push(d.skill);
       });
 
+      // v1.3.2-beta: skill derivado do perfil — cai aqui se o org não
+      // atribuiu manualmente. profile.defaultCategory é o nível auto-declarado
+      // pelo user.
+      var profileSkill = (profile && profile.defaultCategory) ? String(profile.defaultCategory).trim() : null;
+
+      // Skill efetivo: usa atribuição do org se houver, senão cai pro perfil
+      var effectiveSkills = assignedSkills.length > 0
+        ? assignedSkills
+        : (profileSkill ? [profileSkill] : []);
+
       var missing = [];
       if (!gender) missing.push('gênero');
-      if (skillCats.length > 0 && assignedSkills.length === 0) missing.push('categoria de habilidade');
+      // skill considera tanto a atribuição quanto profile.defaultCategory
+      if (skillCats.length > 0 && effectiveSkills.length === 0) missing.push('categoria de habilidade');
       if (ageCats.length > 0 && age == null) missing.push('data de nascimento');
       var hasUid = !!uid;
       if (!hasUid) missing.push('sem perfil scoreplace');
@@ -225,6 +240,8 @@
         ageBuckets: ageBks,
         assigned: assigned,
         assignedSkills: assignedSkills,
+        profileSkill: profileSkill,        // skill auto-declarado no perfil
+        effectiveSkills: effectiveSkills,  // skill efetivo (assigned > profile)
         missing: missing,
         hasUid: hasUid,
       };
@@ -246,40 +263,40 @@
   }
 
   function _renderOverview(rows, t) {
-    // Counts
+    // v1.3.2-beta: pills sempre baseadas nos dados reais dos perfis, não
+    // só nas categorias configuradas. Mostra todas as habilidades/idades
+    // que realmente aparecem nos inscritos. Default ageBuckets = [40+, 50+,
+    // 60+, 70+] quando t.ageCategories vazio (pra mostrar idade dos perfis
+    // mesmo sem cat configurada).
     var totalEnrolled = rows.length;
     var byGender = { Fem: 0, Masc: 0, Misto: 0, sem: 0 };
     var bySkill = {};
-    (t.skillCategories || []).forEach(function (s) { bySkill[s] = 0; });
-    bySkill.sem = 0;
     var byAge = {};
-    (t.ageCategories || []).forEach(function (a) { byAge[a] = 0; });
-    byAge.sem = 0;
-    var hasAge = (t.ageCategories || []).length > 0;
-    var hasSkill = (t.skillCategories || []).length > 0;
+    var DEFAULT_AGE_CATS = ['40+', '50+', '60+', '70+'];
+    var ageCats = (t.ageCategories && t.ageCategories.length > 0) ? t.ageCategories : DEFAULT_AGE_CATS;
 
     rows.forEach(function (r) {
+      // Gender from profile (or fallback)
       var gLabel = _genderLabel(r.gender) || 'sem';
       if (byGender[gLabel] != null) byGender[gLabel]++; else byGender.sem++;
 
-      if (hasSkill) {
-        if (r.assignedSkills.length > 0) {
-          r.assignedSkills.forEach(function (s) {
-            if (bySkill[s] != null) bySkill[s]++;
-          });
-        } else {
-          bySkill.sem++;
-        }
+      // Skill: use effectiveSkills (assigned > profile.defaultCategory)
+      if (r.effectiveSkills && r.effectiveSkills.length > 0) {
+        r.effectiveSkills.forEach(function (s) {
+          bySkill[s] = (bySkill[s] || 0) + 1;
+        });
+      } else {
+        bySkill.sem = (bySkill.sem || 0) + 1;
       }
 
-      if (hasAge) {
-        if (r.ageBuckets.length > 0) {
-          r.ageBuckets.forEach(function (a) {
-            if (byAge[a] != null) byAge[a]++;
-          });
-        } else {
-          byAge.sem++;
-        }
+      // Age: bucket against default ageCats if t doesn't have any
+      var bks = (r.age != null) ? _ageBuckets(r.age, ageCats) : [];
+      if (bks.length > 0) {
+        bks.forEach(function (a) {
+          byAge[a] = (byAge[a] || 0) + 1;
+        });
+      } else {
+        byAge.sem = (byAge.sem || 0) + 1;
       }
     });
 
@@ -296,22 +313,38 @@
     if (byGender.sem > 0) html += _statPill('? Sem gênero', byGender.sem, '148,163,184');
     html += '</div></div>';
 
-    // Skill row (if applicable)
-    if (hasSkill) {
+    // Skill row — sempre mostra os skills que aparecem nos perfis
+    var skillKeys = Object.keys(bySkill).filter(function (k) { return k !== 'sem' && bySkill[k] > 0; });
+    // Ordena: priorizar t.skillCategories[] order, depois alfabético
+    var skillOrder = (t.skillCategories || []).slice();
+    skillKeys.sort(function (a, b) {
+      var ai = skillOrder.indexOf(a), bi = skillOrder.indexOf(b);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1;
+      if (bi !== -1) return 1;
+      return a.localeCompare(b);
+    });
+    if (skillKeys.length > 0 || bySkill.sem > 0) {
       html += '<div style="margin-bottom:8px;"><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Por habilidade</div>';
       html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
-      (t.skillCategories || []).forEach(function (s) {
+      skillKeys.forEach(function (s) {
         if (bySkill[s] > 0) html += _statPill(s, bySkill[s], '99,102,241');
       });
-      if (bySkill.sem > 0) html += _statPill('? Sem categoria', bySkill.sem, '148,163,184');
+      if (bySkill.sem > 0) html += _statPill('? Sem habilidade', bySkill.sem, '148,163,184');
       html += '</div></div>';
     }
 
-    // Age row (if applicable)
-    if (hasAge) {
+    // Age row — sempre mostra as idades que aparecem nos perfis
+    var ageKeys = Object.keys(byAge).filter(function (k) { return k !== 'sem' && byAge[k] > 0; });
+    // Ordena: pelo valor numérico (40+, 50+, ...)
+    ageKeys.sort(function (a, b) {
+      var na = parseInt(a) || 0, nb = parseInt(b) || 0;
+      return na - nb;
+    });
+    if (ageKeys.length > 0 || byAge.sem > 0) {
       html += '<div><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Por idade</div>';
       html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
-      (t.ageCategories || []).forEach(function (a) {
+      ageKeys.forEach(function (a) {
         if (byAge[a] > 0) html += _statPill(a, byAge[a], '245,158,11');
       });
       if (byAge.sem > 0) html += _statPill('? Sem data nasc.', byAge.sem, '148,163,184');
@@ -323,11 +356,51 @@
   }
 
   function _renderCategoryTable(rows, t) {
-    // Build category list: combinedCategories + age-cross-gender
+    // v1.3.2-beta: derivar categorias dos inscritos quando o organizador
+    // não configurou. Lógica: se t tem combinedCategories + ageCategories,
+    // usa. Senão, deriva do que aparece nos perfis (gender × skill,
+    // gender × age).
     var combined = (t.combinedCategories || []).slice();
     var ageCats = (t.ageCategories || []).slice();
     var genders = (t.genderCategories || []).slice();
     var genderLabels = { fem: 'Fem', masc: 'Masc', misto_aleatorio: 'Misto', misto_obrigatorio: 'Misto' };
+    var hasOrgConfig = combined.length > 0 || ageCats.length > 0 || genders.length > 0;
+
+    // Quando NÃO há configuração, derivar das presenças reais
+    var derivedSource = false;
+    if (!hasOrgConfig) {
+      derivedSource = true;
+      // Coletar gêneros únicos vistos nos perfis
+      var seenGenders = {};
+      var seenSkills = {};
+      var seenAges = {};
+      var DEFAULT_AGE_BUCKETS = ['40+', '50+', '60+', '70+'];
+      rows.forEach(function (r) {
+        var gLabel = _genderLabel(r.gender);
+        if (gLabel) seenGenders[gLabel] = 1;
+        (r.effectiveSkills || []).forEach(function (s) { seenSkills[s] = 1; });
+        if (r.age != null) {
+          _ageBuckets(r.age, DEFAULT_AGE_BUCKETS).forEach(function (a) { seenAges[a] = 1; });
+        }
+      });
+      // Sintetizar combined cats (gender × skill) e age cats
+      var gKeys = Object.keys(seenGenders);
+      var sKeys = Object.keys(seenSkills);
+      var aKeys = Object.keys(seenAges).sort(function (a, b) { return (parseInt(a) || 0) - (parseInt(b) || 0); });
+
+      if (gKeys.length > 0 && sKeys.length > 0) {
+        gKeys.forEach(function (g) {
+          sKeys.forEach(function (s) { combined.push(g + ' ' + s); });
+        });
+      } else if (gKeys.length > 0) {
+        combined = gKeys.slice();
+      } else if (sKeys.length > 0) {
+        combined = sKeys.slice();
+      }
+      ageCats = aKeys;
+      // Genders pra cross com age
+      genders = gKeys.slice(); // já em formato display ('Fem', 'Masc', 'Misto')
+    }
 
     // Age × gender
     var ageCombined = [];
@@ -336,7 +409,7 @@
         // Use unique gender labels (Misto Aleat./Obrig. → Misto)
         var seen = {};
         genders.forEach(function (g) {
-          var lbl = genderLabels[g] || g;
+          var lbl = genderLabels[g] || g; // se já tá em display label, mantém
           if (!seen[lbl]) { seen[lbl] = 1; }
         });
         Object.keys(seen).forEach(function (lbl) {
@@ -354,9 +427,13 @@
     function countFor(cat) {
       var d = _decomposeCat(cat, t);
       if (d.age) {
-        // Age-based cat: count rows whose ageBuckets includes d.age AND gender matches d.gender (if any)
+        // Age-based cat: count rows whose age fits d.age bucket AND gender matches d.gender (if any).
+        // Use bucket against DEFAULT cats too (so derived ageCats work even when t.ageCategories empty).
+        var DEFAULT_AGE = ['40+', '50+', '60+', '70+'];
+        var ageCheckCats = (t.ageCategories && t.ageCategories.length > 0) ? t.ageCategories : DEFAULT_AGE;
         return rows.filter(function (r) {
-          if (r.ageBuckets.indexOf(d.age) === -1) return false;
+          var bks = (r.age != null) ? _ageBuckets(r.age, ageCheckCats) : [];
+          if (bks.indexOf(d.age) === -1) return false;
           if (d.gender) {
             var rGen = _genderLabel(r.gender) || '';
             if (rGen !== d.gender) return false;
@@ -364,11 +441,27 @@
           return true;
         }).length;
       }
-      // Skill-based cat: count rows whose assigned[] includes this exact cat (after dn collapse)
+      // Skill-based cat: count rows whose effectiveSkills (assigned > profile.defaultCategory)
+      // include d.skill AND gender matches d.gender (if any).
+      // Fallback: legacy match against r.assigned[] (for cats without skill component).
+      if (d.skill) {
+        return rows.filter(function (r) {
+          if ((r.effectiveSkills || []).indexOf(d.skill) === -1) return false;
+          if (d.gender) {
+            var rGen2 = _genderLabel(r.gender) || '';
+            if (rGen2 !== d.gender) return false;
+          }
+          return true;
+        }).length;
+      }
+      // Legacy / gender-only cat: count by display match in assigned[] OR by gender alone
       var displayCat = dn(cat);
       return rows.filter(function (r) {
         var assignedDisplay = r.assigned.map(dn);
-        return assignedDisplay.indexOf(displayCat) !== -1;
+        if (assignedDisplay.indexOf(displayCat) !== -1) return true;
+        // Also match if cat is just a gender label and r.gender resolves to it
+        var rGen3 = _genderLabel(r.gender) || '';
+        return displayCat === rGen3;
       }).length;
     }
 
@@ -401,13 +494,16 @@
     if (uniqueCats.length === 0) {
       return '<div style="background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.18); border-radius:12px; padding:14px 16px; margin-bottom:14px;">' +
         '<p style="margin:0 0 8px;font-size:0.74rem;color:#818cf8;font-weight:700;text-transform:uppercase;letter-spacing:1px;">📋 Distribuição por Categoria</p>' +
-        '<p style="font-size:0.85rem;color:var(--text-muted);margin:0;">Sem categorias configuradas neste torneio.</p>' +
+        '<p style="font-size:0.85rem;color:var(--text-muted);margin:0;">Sem categorias configuradas e sem dados suficientes nos perfis dos inscritos pra derivar categorias automaticamente.</p>' +
         '</div>';
     }
 
     var html = '<div style="background:rgba(99,102,241,0.06); border:1px solid rgba(99,102,241,0.18); border-radius:12px; padding:14px 16px; margin-bottom:14px;">';
-    html += '<p style="margin:0 0 4px;font-size:0.74rem;color:#818cf8;font-weight:700;text-transform:uppercase;letter-spacing:1px;">📋 Distribuição por Categoria</p>';
-    html += '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 10px;">Cada linha = 1 categoria. Sugestão de formato e tempo são orientativos (defaults: 30min/partida, ' + Math.max(parseInt(t.courtCount) || 1, 1) + ' quadra' + ((Math.max(parseInt(t.courtCount) || 1, 1) > 1) ? 's' : '') + '). Inscritos podem aparecer em mais de uma categoria.</p>';
+    html += '<p style="margin:0 0 4px;font-size:0.74rem;color:#818cf8;font-weight:700;text-transform:uppercase;letter-spacing:1px;">📋 Distribuição por Categoria' + (derivedSource ? ' <span style="color:var(--text-muted);font-weight:500;text-transform:none;letter-spacing:0;font-size:0.66rem;">(sugeridas pelos perfis)</span>' : '') + '</p>';
+    var subtxt = derivedSource
+      ? 'Categorias derivadas automaticamente dos perfis dos inscritos (gênero × habilidade do perfil + idade computada da data de nascimento). Configure manualmente em ✏️ Editar → Categorias do Torneio se quiser fixar quais valem.'
+      : 'Cada linha = 1 categoria. Sugestão de formato e tempo são orientativos (defaults: 30min/partida, ' + Math.max(parseInt(t.courtCount) || 1, 1) + ' quadra' + ((Math.max(parseInt(t.courtCount) || 1, 1) > 1) ? 's' : '') + '). Inscritos podem aparecer em mais de uma categoria.';
+    html += '<p style="font-size:0.7rem;color:var(--text-muted);margin:0 0 10px;">' + subtxt + '</p>';
 
     // Render bucket-by-bucket
     GENDER_ORDER.forEach(function (b) {
@@ -492,7 +588,45 @@
     document.body.classList.add('enrollment-report-open');
   }
 
-  function _showReport(t, rows) {
+  function _renderDiagnostic(t, rows, profileMap, parts) {
+    // v1.3.2-beta: bloco diagnóstico pro organizador entender por que algum
+    // inscrito não tá sendo categorizado. Mostra dados crus do torneio +
+    // dados crus por inscrito (uid, profile fetched, gender resolvido,
+    // age, effectiveSkills, missing). Só visível quando expandido.
+    var html = '<details style="background:rgba(148,163,184,0.04);border:1px solid rgba(148,163,184,0.15);border-radius:10px;padding:8px 12px;margin-top:14px;font-size:0.72rem;color:var(--text-muted);">';
+    html += '<summary style="cursor:pointer;font-weight:600;user-select:none;">🔧 Diagnóstico (dados crus do torneio + perfis)</summary>';
+    html += '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;">';
+    html += '<div><b>Torneio.id:</b> <code>' + _esc(t.id) + '</code></div>';
+    html += '<div><b>genderCategories:</b> <code>' + _esc(JSON.stringify(t.genderCategories || [])) + '</code></div>';
+    html += '<div><b>skillCategories:</b> <code>' + _esc(JSON.stringify(t.skillCategories || [])) + '</code></div>';
+    html += '<div><b>ageCategories:</b> <code>' + _esc(JSON.stringify(t.ageCategories || [])) + '</code></div>';
+    html += '<div><b>combinedCategories:</b> <code>' + _esc(JSON.stringify(t.combinedCategories || [])) + '</code></div>';
+    var profileKeys = profileMap ? Object.keys(profileMap) : [];
+    html += '<div><b>Profiles fetched:</b> ' + profileKeys.length + ' / ' + parts.filter(function (p) { return p && p.uid; }).length + ' uids</div>';
+    html += '<hr style="border:none;border-top:1px solid rgba(148,163,184,0.15);margin:6px 0;">';
+    html += '<div style="font-weight:600;color:var(--text-bright);">Por inscrito:</div>';
+    rows.forEach(function (r, i) {
+      html += '<div style="padding:6px 8px;background:rgba(0,0,0,0.15);border-radius:6px;font-family:monospace;font-size:0.68rem;line-height:1.4;">';
+      html += '<div><b>#' + (i + 1) + ' ' + _esc(r.name) + '</b></div>';
+      html += '<div>uid: <code>' + _esc(r.uid || '(sem uid)') + '</code></div>';
+      var p = parts[i];
+      html += '<div>participantObj: gender=<code>' + _esc((p && p.gender) || '—') + '</code> categories=<code>' + _esc(JSON.stringify((p && p.categories) || [])) + '</code></div>';
+      var prof = r.uid ? profileMap[r.uid] : null;
+      if (prof) {
+        html += '<div>profile: gender=<code>' + _esc(prof.gender || '—') + '</code> birthDate=<code>' + _esc(prof.birthDate || '—') + '</code> defaultCategory=<code>' + _esc(prof.defaultCategory || '—') + '</code></div>';
+      } else {
+        html += '<div style="color:#f87171;">profile: NÃO carregado (uid não bate, doc não existe, ou rules block)</div>';
+      }
+      html += '<div>resolvido: gender=<code>' + _esc(r.gender || '—') + '</code> age=<code>' + _esc(r.age != null ? r.age : '—') + '</code> effectiveSkills=<code>' + _esc(JSON.stringify(r.effectiveSkills || [])) + '</code></div>';
+      html += '<div>missing: <code>' + _esc(JSON.stringify(r.missing)) + '</code></div>';
+      html += '</div>';
+    });
+    html += '</div>';
+    html += '</details>';
+    return html;
+  }
+
+  function _showReport(t, rows, profileMap, parts) {
     var overlay = document.getElementById('enrollment-report-modal');
     if (!overlay) {
       overlay = document.createElement('div');
@@ -518,6 +652,7 @@
       _renderOverview(rows, t) +
       _renderCategoryTable(rows, t) +
       _renderIncomplete(rows) +
+      _renderDiagnostic(t, rows, profileMap || {}, parts || []) +
       '</div>';
   }
 
@@ -540,12 +675,13 @@
     var uids = parts.filter(function (p) { return p && p.uid; }).map(function (p) { return p.uid; });
     _fetchProfiles(uids).then(function (profileMap) {
       var rows = _buildRows(t, parts, profileMap);
-      _showReport(t, rows);
+      console.log('[EnrollmentReport v1.3.2] profiles fetched:', Object.keys(profileMap).length, 'rows:', rows);
+      _showReport(t, rows, profileMap, parts);
     }).catch(function (err) {
       console.error('[EnrollmentReport] erro:', err);
       // Fallback: render with empty profileMap (only gender from participantObj)
       var rows = _buildRows(t, parts, {});
-      _showReport(t, rows);
+      _showReport(t, rows, {}, parts);
     });
   };
 

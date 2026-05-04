@@ -9,6 +9,17 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #818cf8;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
+      '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🔧 v1.3.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Análise de Inscritos: pills baseadas no perfil + categorias derivadas + bloco diagnóstico.</b> User: <i>"temos 1 inscrito com perfil completo, mas não parece estar funcionando. deveria ter masc 1, habilidade D 1, Masc 50+ 1 - que são os dados do perfil inscrito."</i></p>' +
+      '<p>Três fixes:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Skill do perfil agora vale</b>: o report lê <code>profile.defaultCategory</code> (campo "Categoria padrão" no perfil, ex.: A, B, C, D, FUN) como skill efetivo do inscrito quando o organizador não atribuiu manualmente via 🏷️ Categorias. Antes só contava se tinha atribuição manual; agora o perfil basta. Atribuição manual continua tendo prioridade.</li>' +
+        '<li><b>Pills da Visão Geral sempre mostram dados do perfil</b>: as pills "Por gênero", "Por habilidade" e "Por idade" agora aparecem com base no que está nos perfis dos inscritos, não só nas categorias configuradas pelo torneio. Ordem de skill prioriza <code>t.skillCategories</code>; ordem de idade é numérica (40+ → 50+ → 60+ → 70+).</li>' +
+        '<li><b>Categorias derivadas quando não há config</b>: se o organizador não configurou categorias por gênero/habilidade/idade, o report agora deriva automaticamente das informações dos perfis (ex.: 1 inscrito Masc/D/50+ vira "Masc D" e "Masc 50+" no painel de distribuição). Banner discreto avisa "(sugeridas pelos perfis)" pra deixar claro que foi derivado, com hint de configurar manualmente em ✏️ Editar.</li>' +
+      '</ul>' +
+      '<p><b>Bloco diagnóstico</b> colapsável adicionado no rodapé do modal: mostra <code>t.genderCategories</code>, <code>t.skillCategories</code>, <code>t.ageCategories</code> brutos + por inscrito o uid, snapshot do <code>participantObj</code>, dados do profile fetched, e os campos resolvidos. Útil pra identificar caminho-perdido ("profile não carregado", "profile.gender vazio", etc.) sem precisar abrir DevTools.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #818cf8;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🔄 v1.3.1-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Análise de Inscritos: botão sempre visível pro organizador + report reflete atualizações de perfil.</b> User: <i>"Essa função de relatório de inscritos deve estar entre os botoes ferramentas do organizador no card de detalhe do torneio. O relatório deve ser atualizado conforme os perfis são atualizados e não apenas quando a pessoa se inscreve."</i></p>' +
       '<p>Dois fixes:</p>' +
