@@ -1437,6 +1437,13 @@
     const defaultDrawBtn = document.querySelector('#draw-mode-buttons .draw-mode-btn[data-value="sorteio"]');
     if (defaultDrawBtn && typeof window._selectDrawMode === 'function') window._selectDrawMode(defaultDrawBtn);
 
+    // v1.2.1-beta: reset category pill visuals (gênero, idade, habilidade).
+    // form.reset() limpa hidden inputs mas não os data-active dos botões.
+    if (typeof window._applyGenderCatUI === 'function') window._applyGenderCatUI([]);
+    if (typeof window._applyAgeCatUI === 'function') window._applyAgeCatUI([]);
+    if (typeof window._loadSkillCategoriesFromArray === 'function') window._loadSkillCategoriesFromArray([]);
+    if (typeof window._updateCategoryPreview === 'function') window._updateCategoryPreview();
+
     if (typeof window._onFormatoChange === 'function') window._onFormatoChange();
     // If a venue prefill arrived from #venues "Criar torneio aqui", populate
     // the venue fields before we open the modal so the user sees it ready.
@@ -1514,6 +1521,11 @@
     if (title) title.innerText = _t('create.newFromTemplate');
     var pub = document.getElementById('tourn-public');
     if (pub) pub.checked = true;
+
+    // v1.2.1-beta: reset category pill visuals before applying template
+    if (typeof window._applyGenderCatUI === 'function') window._applyGenderCatUI([]);
+    if (typeof window._applyAgeCatUI === 'function') window._applyAgeCatUI([]);
+    if (typeof window._loadSkillCategoriesFromArray === 'function') window._loadSkillCategoriesFromArray([]);
 
     // Pre-fill from template
     if (typeof window._prefillFromTemplate === 'function') {
