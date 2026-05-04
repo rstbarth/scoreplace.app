@@ -97,13 +97,21 @@ function _isRealPhoto(url) {
   return url && url.indexOf('dicebear.com') === -1 && url.indexOf('placeholder') === -1;
 }
 
+// Returns only the first token of a display name / email, splitting on
+// space, dot, @, underscore or hyphen. Keeps the card compact in grid mode.
+function _shortName(raw) {
+  if (!raw) return raw;
+  var first = raw.split(/[\s.@_\-]/)[0];
+  return first || raw;
+}
+
 // Compact card for the "Meus Amigos" section only. Drops the extra action
 // button area in favor of a tiny ✕ at top-right for unfriending; shows just
 // photo + name + city (when different from mine) + preferred sport — no age.
 // Falls back to the larger _userCardHtml for other sections.
 function _friendCompactCardHtml(u, uid) {
   var cu = window.AppStore.currentUser || {};
-  var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
+  var name = _shortName(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
   var avatarSeed = encodeURIComponent(name || uid || 'User');
   var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
@@ -139,7 +147,7 @@ function _friendCompactCardHtml(u, uid) {
 }
 
 function _userCardHtml(u, uid, actionHtml, isFriend) {
-  var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
+  var name = _shortName(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
   var avatarSeed = encodeURIComponent(name || uid || 'User');
   var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
@@ -463,7 +471,7 @@ function _renderOtrosCards(resultsDiv, users) {
     '</div>';
   }
   function _renderCardGrid(groupUsers) {
-    var inner = '<div style="display:flex;flex-direction:column;gap:6px;">';
+    var inner = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;">';
     groupUsers.forEach(function(u) {
       var uid = u._docId || u.uid || u.email;
       inner += _userCardWithEncounterHtml(u, uid, _actionBtnFor(u));
@@ -513,7 +521,7 @@ function _renderOtrosCards(resultsDiv, users) {
 // Renders a user card that shows shared-tournament count + latest encounter date when applicable
 function _userCardWithEncounterHtml(u, uid, actionHtml) {
   var _t = window._t || function(k){return k;};
-  var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
+  var name = _shortName(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
   var avatarSeed = encodeURIComponent(name || uid || 'User');
   var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
@@ -649,7 +657,7 @@ function _renderSentRequests(myUid, sentIds) {
         '<div style="font-weight:700;font-size:0.88rem;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;">' + titleLabel + ' (' + dedupedGroups.length + ')</div>' +
       '</div>' +
       '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">Aguardando resposta. Clique em ✕ no card para cancelar.</div>' +
-      '<div style="display:flex;flex-direction:column;gap:6px;">';
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;">';
 
     dedupedGroups.forEach(function(group) {
       var u = group.profile;
@@ -728,7 +736,7 @@ function _renderMyFriends(myUid, friendIds) {
 
     var html = '<div style="margin-bottom: 1.5rem;">' +
       '<div style="font-weight: 600; font-size: 0.9rem; color: var(--success-color); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + (window._t || function(k){return k;})('explore.myFriends') + ' (' + profiles.length + ')</div>' +
-      '<div style="display:flex;flex-direction:column;gap:6px;">';
+      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;">';
 
     profiles.forEach(function(u) {
       var uid = u._docId;
@@ -995,7 +1003,7 @@ function _renderConhecidosCards(div, profiles) {
         sortToggleBtn('alpha', sortAlphaLabel) +
       '</div>' +
     '</div>' +
-    '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
+    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;">';
 
   profiles.forEach(function(u) {
     var uid = u._docId || u.email;

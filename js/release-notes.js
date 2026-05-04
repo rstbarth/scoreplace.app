@@ -9,6 +9,10 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
+      '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">🔲 v1.3.19-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
+      '<p><b>Cards de pessoas em grid 2/3/4 colunas + nomes curtos.</b> Todas as seções de pessoas no Explorar (Meus Amigos, Convites Pendentes, Outros Usuários, Conhecidos) agora usam grid responsivo: 2 colunas em mobile (~390px), 3 em tablet (~500px), 4 em telas largas (~650px+). Nomes são truncados no primeiro token (antes de espaço, ponto, @, _ ou -) para caber bem nas colunas.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
       '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">🙈 v1.3.18-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
       '<p><b>Idade removida dos cards de pessoas no Explorar.</b> Cards de "Outros Usuários" e "Convites Pendentes" nunca mais mostram a idade. O subtítulo agora exibe apenas cidade (quando diferente do usuário) e modalidades preferidas.</p>' +
     '</div>' +
