@@ -4,7 +4,7 @@
 
 Plataforma web de gestao de torneios esportivos e board games. App SPA (Single Page Application) em **vanilla JS puro** â sem frameworks. Hospedado no **GitHub Pages** com dominio customizado `scoreplace.app`.
 
-- **Versao atual:** `1.3.15-beta` (definida em `window.SCOREPLACE_VERSION` no store.js)
+- **Versao atual:** `1.3.16-beta` (definida em `window.SCOREPLACE_VERSION` no store.js)
 - **Convenção de versão (a partir de 30 Abr 2026):** `MAJOR.MINOR.PATCH-channel` no padrão semver. Em fase **beta**, incremento PATCH a cada deploy (`1.0.0-beta` → `1.0.1-beta` → `1.0.2-beta` → ...). MINOR sobe quando há feature significativa nova; MAJOR reservado pra v2.0 (mudanças incompatíveis). Estável: dropar o `-beta` (`1.0.0`).
 - **URL principal:** https://scoreplace.app
 - **GitHub repo:** `rstbarth/scoreplace.app`
@@ -56,6 +56,7 @@ Projeto criado em Março 2026 como **scoreplace.app**. Lançado em beta soft em 
 - **skillBySport — habilidade por modalidade (v1.3.6/7)**: usuário pode declarar nível diferente por esporte (ex: A em Beach Tennis, C em Tênis). 7 modalidades canônicas estabelecidas. Layout compacto na UI do perfil.
 - **Live scoring fix (v1.3.14)**: drag da bola na quadra não rouba mais o swap de quadra (race entre dois gestos no live placar).
 - **Live scoring fix (v1.3.15)**: ghost do drag da bola não vaza mais o markup HTML em texto. Causa: `_serveBallGhost.textContent = _sportBall` em `bracket-ui.js:5590` rendia HTML como texto literal pra Beach Tennis (que usa `<span style="filter:hue-rotate...">🎾</span>`). Trocado pra `innerHTML`. Regra: ghost element pra drag-drop sempre usa `innerHTML` quando conteúdo pode ser HTML.
+- **#my-venues overflow fix (v1.3.16)**: campos do formulário de cadastro de venue nunca mais extrapolam a tela no iPhone. Fix via bloco `<style>` scoped em `#venue-owner-form-wrap` aplicando `box-sizing:border-box` + `min-width:0` + `max-width:100%` em todos inputs/selects/textareas. Regra gravada: campos de formulário nunca podem ultrapassar a largura da tela.
 
 **v1.2.x-beta (Maio 2026) — Categorias por idade e habilidade**
 - **Idade (v1.2.0)**: novas categorias 40+/50+/60+/70+ — fase 1 (schema + UI). Bloco Categorias movido pra antes do Modo de Inscrição (v1.2.4) pra fluxo mais natural.

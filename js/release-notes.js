@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
+      '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">📐 v1.3.16-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
+      '<p><b>Cadastrar Local: campos nunca mais saem da tela no iPhone.</b> User reportou que os inputs do formulário de cadastro de venue (<code>#my-venues</code>) extrapolavam a borda da tela em mobile — campos de contato (2 colunas) e select de acesso ficavam cortados ou exigiam scroll horizontal.</p>' +
+      '<p>Causa raiz: grid de 2 colunas (<code>1fr 1fr</code>) sem <code>min-width:0</code> nos filhos — items de grid não podem encolher abaixo do tamanho intrínseco do <code>&lt;input&gt;</code>; além disso, alguns inputs não tinham <code>box-sizing:border-box</code>, então padding e borda somavam à largura de 100%.</p>' +
+      '<p>Fix: bloco <code>&lt;style&gt;</code> scoped injetado junto com o formulário, aplicando <code>box-sizing:border-box</code> + <code>min-width:0</code> + <code>max-width:100%</code> em todo input/select/textarea dentro do wrapper <code>#venue-owner-form-wrap</code>. Regra gravada: <i>campos de formulário nunca podem ultrapassar a largura da tela</i>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
       '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">🎾 v1.3.15-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
       '<p><b>Live scoring: ghost do drag da bola não vaza mais o markup.</b> User reportou via screenshot do iPhone que ao arrastar a bola no Beach Tennis aparecia em tela o texto literal <code>&lt;span style="filter:hue-rotate(-50deg)..."&gt;</code> atrás do cursor de drag.</p>' +
       '<p>Causa: o ghost element criado em <code>touchmove</code> usava <code>textContent = _sportBall</code>, mas pra Beach Tennis o <code>_sportBall</code> é HTML (tennis ball verde com filtro CSS pra virar laranja, definido em <code>window._BEACH_TENNIS_ICON</code>) — <code>textContent</code> rendia o markup como texto literal. Outras modalidades (🎾 puro do Tênis, 🏓, 🥒, etc.) não eram afetadas porque são emoji puro sem markup.</p>' +

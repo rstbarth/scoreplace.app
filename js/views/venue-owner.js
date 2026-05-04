@@ -424,7 +424,16 @@
       return;
     }
     container.innerHTML = back +
-      '<div style="max-width:820px;margin:0 auto;padding:0 4px;">' +
+      // v1.3.16-beta: regra de overflow zero — inputs/selects/textareas dentro
+      // do form NUNCA podem passar da largura do container. box-sizing:border-box
+      // + min-width:0 + max-width:100%. Aplicado também a img (Google logos
+      // colados às vezes vinham wider que o card) e ao próprio wrap.
+      '<style>' +
+        '#venue-owner-form-wrap, #venue-owner-form-wrap *{box-sizing:border-box;}' +
+        '#venue-owner-form-wrap input,#venue-owner-form-wrap select,#venue-owner-form-wrap textarea{min-width:0;max-width:100%;width:100%;}' +
+        '#venue-owner-form-wrap img,#venue-owner-form-wrap canvas,#venue-owner-form-wrap iframe{max-width:100%;height:auto;}' +
+      '</style>' +
+      '<div style="max-width:820px;margin:0 auto;padding:0 8px;box-sizing:border-box;overflow-x:hidden;">' +
         _ownerInnerHtml() +
       '</div>';
     // Mapa precisa de um tick pro container ter tamanho medido corretamente;
