@@ -27,8 +27,7 @@
 .modal-overlay .back-hdr-ham,
 #casual-match-overlay .back-hdr-ham,
 #modal-support-pix .back-hdr-ham,
-#qr-modal-overlay .back-hdr-ham,
-#enrollment-report-modal .back-hdr-ham { display: inline-flex !important; }
+#qr-modal-overlay .back-hdr-ham { display: inline-flex !important; }
 
 /* Back header inside overlays/card-modals: flows statically in flex column (NOT position:fixed).
    JS (_reflowChrome) pushes the sibling content down by dropdown height when hamburger opens. */
@@ -36,8 +35,7 @@
 #casual-match-overlay .sticky-back-header,
 #modal-support-pix .sticky-back-header,
 #qr-modal-overlay .sticky-back-header,
-#venues-detail-overlay .sticky-back-header,
-#enrollment-report-modal .sticky-back-header {
+#venues-detail-overlay .sticky-back-header {
   position: static !important;
   top: auto !important;
   left: auto !important;
@@ -50,8 +48,7 @@
 #casual-match-overlay .sticky-back-header + *,
 #modal-support-pix .sticky-back-header + *,
 #qr-modal-overlay .sticky-back-header + *,
-#venues-detail-overlay .sticky-back-header + *,
-#enrollment-report-modal .sticky-back-header + * {
+#venues-detail-overlay .sticky-back-header + * {
   margin-top: 0 !important;
 }
 /* Hide the page's own back-header while venue detail overlay is open — sem

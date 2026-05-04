@@ -8,6 +8,21 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #10b981;border-radius:12px;padding:14px 16px;background:rgba(16,185,129,0.10);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🛣️ v1.3.9-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Análise de Inscritos convertida pra page-route (#analise/&lt;tId&gt;).</b> User: <i>"o menu na analise não esta aparecendo corretamente quando clicamos no hamburber. aplique o cabecalho canonico aqui"</i></p>' +
+      '<p>Aplicado o mesmo padrão centralizado da v1.3.5 (perfil): a Análise sai do <code>position:fixed; inset:0</code> overlay e vira uma <b>rota real</b> com <code>renderEnrollmentReportPage(container, tId)</code>.</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Topbar permanece visível</b> (logo + nav + hamburger) — antes o overlay cobria tudo com z-index 10020 e quebrava o dropdown do hamburger</li>' +
+        '<li><b>Back-header padronizado</b> via <code>_renderBackHeader</code> — Voltar (esq, navega pra <code>#tournaments/&lt;id&gt;</code>), título "📊 Análise de Inscritos" (centro). Hamburger usa o do topbar (não-overlay context)</li>' +
+        '<li><b>Router</b> ganhou <code>case "analise":</code> que chama <code>renderEnrollmentReportPage(viewContainer, cleanParam)</code> com o tId do segundo segmento da hash</li>' +
+        '<li><b>Compat</b>: <code>_openEnrollmentReport(tId)</code> agora é wrapper que faz <code>window.location.hash = "#analise/" + tId</code> — todos os botões "📊 Análise" continuam funcionando sem mudança</li>' +
+        '<li><b>Guard</b>: a rota só renderiza pra organizador do torneio. Não-organizador é redirecionado pro <code>#tournaments/&lt;id&gt;</code></li>' +
+        '<li><b>CSS limpo</b>: removidas as regras especiais pra <code>#enrollment-report-modal</code> em components.css (back-header static, hamburger forçado, etc.) — não são mais necessárias</li>' +
+        '<li><b>Cleanup automático</b>: removidos hashchange listener e openModal hook que existiam pra limpar o overlay-fantasma — agora o router cuida do view-container nativamente</li>' +
+      '</ul>' +
+      '<p>Lição aplicada da memória: padrão centralizado (page-route + <code>_renderBackHeader</code>) sempre, nunca recriar via CSS hacks em modal-overlay.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #ef4444;border-radius:12px;padding:14px 16px;background:rgba(239,68,68,0.10);">' +
       '<div style="font-weight:800; color:#f87171; font-size:1rem; margin-bottom:8px;">🐛 v1.3.8-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Bugs críticos do report Análise de Inscritos.</b> User: <i>"nada funciona aqui. cabeçalho quebrado, informações totalmente erradas (veja que perfil está completo, mas na idade dá 40+ e 50+ - o 40+ não pode disputar com o 50+ - vc não entendeu a logica da faixa de idade.) Na categoria D diz ter 0 inscritos, mas tem 1..."</i></p>' +

@@ -258,6 +258,15 @@ function initRouter() {
           return;
         }
         break;
+      case 'analise':
+        // v1.3.9-beta: Análise de Inscritos como page-route. Param é o tId.
+        if (typeof window.renderEnrollmentReportPage === 'function' && cleanParam) {
+          window.renderEnrollmentReportPage(viewContainer, cleanParam);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       case 'support':
         if (typeof window.renderSupportPage === 'function') {
           window.renderSupportPage(viewContainer);

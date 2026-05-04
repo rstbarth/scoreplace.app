@@ -606,58 +606,18 @@
     return html;
   }
 
-  // v1.3.3-beta: cleanup centralizado pra garantir que o overlay nunca
-  // fica fantasma na tela. Antes só era limpo via botão Voltar — se o
-  // user navegasse via hashchange (URL muda) ou abrisse outro modal por
-  // cima, o overlay ficava no DOM cobrindo tudo com z-index alto.
+  // v1.3.9-beta: Análise de Inscritos é page-route (#analise/<tId>) — não
+  // mais modal-overlay full-screen. Topbar fica visível (logo + nav +
+  // hamburger). Padrão centralizado igual a #profile, #support, #privacy.
+  // Compat: _openEnrollmentReport agora navega pra hash. _closeEnrollmentReport
+  // navega pro #dashboard (preservando call-sites que esperam fechamento).
+
   function _closeReport() {
-    var overlay = document.getElementById('enrollment-report-modal');
-    if (overlay) overlay.remove();
-    document.body.classList.remove('enrollment-report-open');
-  }
-  // Expor pra outros módulos limparem se necessário (ex: ao abrir profile)
-  window._closeEnrollmentReport = _closeReport;
-
-  // Auto-close em mudança de rota — overlay não deve sobreviver à navegação
-  if (typeof window !== 'undefined' && !window._enrollmentReportHashListener) {
-    window._enrollmentReportHashListener = true;
-    window.addEventListener('hashchange', function () {
-      _closeReport();
-    });
-
-    // Auto-close quando qualquer modal-overlay nativo abre (perfil, login,
-    // criar torneio, etc.). Senão o report fica fantasma cobrindo tudo
-    // com z-index alto, e o user vê só o header dele em cima do modal novo.
-    if (typeof window.openModal === 'function' && !window._enrollmentReportOpenModalHook) {
-      window._enrollmentReportOpenModalHook = true;
-      var _origOpenModal = window.openModal;
-      window.openModal = function (modalId) {
-        if (modalId !== 'enrollment-report-modal') _closeReport();
-        return _origOpenModal.apply(this, arguments);
-      };
+    if (window.location.hash.indexOf('#analise/') === 0) {
+      window.location.hash = '#dashboard';
     }
   }
-
-  function _showLoading(t) {
-    var existing = document.getElementById('enrollment-report-modal');
-    if (existing) existing.remove();
-    var overlay = document.createElement('div');
-    overlay.id = 'enrollment-report-modal';
-    overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg-dark);z-index:10020;overflow-y:auto;';
-    var hdr = (typeof window._renderBackHeader === 'function')
-      ? window._renderBackHeader({
-        label: 'Voltar',
-        middleHtml: '<div style="flex:1;text-align:center;font-weight:700;color:var(--text-bright);font-size:0.9rem;">📊 Análise de Inscritos</div>',
-        onClickOverride: _closeReport,
-      })
-      : '';
-    overlay.innerHTML = hdr +
-      '<div style="max-width:760px;margin:0 auto;padding:1rem;">' +
-      '<div style="text-align:center;padding:48px 12px;color:var(--text-muted);font-size:0.85rem;">⏳ Carregando perfis dos inscritos…</div>' +
-      '</div>';
-    document.body.appendChild(overlay);
-    document.body.classList.add('enrollment-report-open');
-  }
+  window._closeEnrollmentReport = _closeReport;
 
   function _renderDiagnostic(t, rows, profileMap, parts) {
     // v1.3.2-beta: bloco diagnóstico pro organizador entender por que algum
@@ -701,27 +661,23 @@
     return html;
   }
 
-  function _showReport(t, rows, profileMap, parts) {
-    var overlay = document.getElementById('enrollment-report-modal');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'enrollment-report-modal';
-      overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg-dark);z-index:10020;overflow-y:auto;';
-      document.body.appendChild(overlay);
-      document.body.classList.add('enrollment-report-open');
-    }
+  // v1.3.9-beta: render no view-container — page-route #analise/<tId>.
+  // Topbar fica visível, _renderBackHeader cuida do cabeçalho com hamburger
+  // funcional. Padrão centralizado (vide CLAUDE.md "REGRA CRITICA v1.3.5").
+  function _renderPage(container, t, rows, profileMap, parts) {
+    if (!container) return;
     var hdr = (typeof window._renderBackHeader === 'function')
       ? window._renderBackHeader({
+        href: '#tournaments/' + t.id,
         label: 'Voltar',
-        middleHtml: '<div style="flex:1;text-align:center;font-weight:700;color:var(--text-bright);font-size:0.9rem;">📊 Análise de Inscritos</div>',
-        onClickOverride: _closeReport,
+        middleHtml: '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">📊 Análise de Inscritos</span>',
       })
       : '';
 
     var tName = _esc(t.name || 'Torneio');
     var subtitle = '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:14px;">' + tName + '</div>';
 
-    overlay.innerHTML = hdr +
+    container.innerHTML = hdr +
       '<div style="max-width:760px;margin:0 auto;padding:1rem;">' +
       subtitle +
       _renderOverview(rows, t) +
@@ -729,35 +685,67 @@
       _renderIncomplete(rows) +
       _renderDiagnostic(t, rows, profileMap || {}, parts || []) +
       '</div>';
+
+    if (typeof window._reflowChrome === 'function') window._reflowChrome();
   }
 
-  // ─── Public entry point ──────────────────────────────────────────────
+  function _renderLoading(container, t) {
+    if (!container) return;
+    var hdr = (typeof window._renderBackHeader === 'function')
+      ? window._renderBackHeader({
+        href: '#tournaments/' + (t && t.id ? t.id : ''),
+        label: 'Voltar',
+        middleHtml: '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">📊 Análise de Inscritos</span>',
+      })
+      : '';
+    container.innerHTML = hdr +
+      '<div style="max-width:760px;margin:0 auto;padding:1rem;">' +
+      '<div style="text-align:center;padding:48px 12px;color:var(--text-muted);font-size:0.85rem;">⏳ Carregando perfis dos inscritos…</div>' +
+      '</div>';
+    if (typeof window._reflowChrome === 'function') window._reflowChrome();
+  }
 
-  window._openEnrollmentReport = function (tId) {
+  // ─── Public renderer ─ chamado pelo router ──────────────────────────
+  // Padrão centralizado: igual a renderProfilePage / renderSupportPage etc.
+  window.renderEnrollmentReportPage = function (container, tId) {
     var t = window.AppStore && window.AppStore.tournaments
       ? window.AppStore.tournaments.find(function (x) { return x.id === tId; })
       : null;
     if (!t) {
       if (typeof showNotification === 'function') showNotification('Erro', 'Torneio não encontrado.', 'error');
+      window.location.replace('#dashboard');
       return;
     }
     var parts = Array.isArray(t.participants) ? t.participants : [];
 
-    _showLoading(t);
+    // Verifica se user é organizador — relatório é restrito.
+    if (!window.AppStore || !window.AppStore.isOrganizer || !window.AppStore.isOrganizer(t)) {
+      window.location.replace('#tournaments/' + tId);
+      return;
+    }
 
-    // v1.3.1-beta: abre o modal mesmo com 0 inscritos — empty state inline
-    // mostra as categorias configuradas pra o organizador conferir o setup.
+    _renderLoading(container, t);
+
     var uids = parts.filter(function (p) { return p && p.uid; }).map(function (p) { return p.uid; });
     _fetchProfiles(uids).then(function (profileMap) {
+      // Re-checa se ainda na rota — user pode ter navegado fora durante o fetch
+      if (window.location.hash !== '#analise/' + tId) return;
       var rows = _buildRows(t, parts, profileMap);
-      console.log('[EnrollmentReport v1.3.2] profiles fetched:', Object.keys(profileMap).length, 'rows:', rows);
-      _showReport(t, rows, profileMap, parts);
+      console.log('[EnrollmentReport v1.3.9] profiles fetched:', Object.keys(profileMap).length, 'rows:', rows);
+      _renderPage(container, t, rows, profileMap, parts);
     }).catch(function (err) {
       console.error('[EnrollmentReport] erro:', err);
-      // Fallback: render with empty profileMap (only gender from participantObj)
+      if (window.location.hash !== '#analise/' + tId) return;
       var rows = _buildRows(t, parts, {});
-      _showReport(t, rows, {}, parts);
+      _renderPage(container, t, rows, {}, parts);
     });
+  };
+
+  // Compat: preserva _openEnrollmentReport pra todos os call-sites antigos —
+  // navega pra hash #analise/<tId> que dispara renderEnrollmentReportPage.
+  window._openEnrollmentReport = function (tId) {
+    if (!tId) return;
+    window.location.hash = '#analise/' + tId;
   };
 
 })();
