@@ -607,24 +607,16 @@ function setupCreateTournamentModal() {
                 </div>
                 <div>
                   <label class="form-label" style="margin-bottom:6px;">${_t('create.skillCatLabel')}</label>
-                  <!-- v1.2.1-beta: toggle pills A, B, C, D, Open (substitui campo de texto livre).
-                       Padrão das categorias: pills > input livre. Indigo pra distinguir
-                       visualmente do roxo do gênero e do âmbar da idade. Backward-compat:
-                       valores customizados (1ª, 2ª, PRO) vão pro <details>"+ outras categorias". -->
+                  <!-- v1.2.2-beta: pills A, B, C, D, FUN. Indigo, multi-select. -->
                   <div style="display:flex; gap:8px; flex-wrap:wrap;" id="skill-cat-buttons">
                     <button type="button" data-skill="A" data-active="0" onclick="window._toggleSkillCat('A')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">A</button>
                     <button type="button" data-skill="B" data-active="0" onclick="window._toggleSkillCat('B')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">B</button>
                     <button type="button" data-skill="C" data-active="0" onclick="window._toggleSkillCat('C')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">C</button>
                     <button type="button" data-skill="D" data-active="0" onclick="window._toggleSkillCat('D')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">D</button>
-                    <button type="button" data-skill="Open" data-active="0" onclick="window._toggleSkillCat('Open')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">Open</button>
+                    <button type="button" data-skill="FUN" data-active="0" onclick="window._toggleSkillCat('FUN')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">FUN</button>
                   </div>
                   <input type="hidden" id="tourn-skill-categories" value="">
-                  <details id="skill-custom-details" style="margin-top:6px;">
-                    <summary style="cursor:pointer; font-size:0.74rem; color:var(--text-muted); user-select:none;">+ outras categorias custom (1ª, 2ª, PRO, etc.)</summary>
-                    <input type="text" class="form-control" id="tourn-skill-custom" placeholder="Ex: 1ª, 2ª, PRO" oninput="window._syncSkillFromCustom()" style="margin-top:6px;font-size:0.85rem;">
-                    <small class="text-muted" style="display:block;margin-top:4px;font-size:0.72rem;">Separe por vírgula. Útil pra nomenclaturas regionais ou customizadas.</small>
-                  </details>
-                  <small class="text-muted" style="display:block;margin-top:6px;">A é o nível mais alto (avançado), D o mais iniciante. Open = sem restrição de nível.</small>
+                  <small class="text-muted" style="display:block;margin-top:6px;">A é o nível mais alto (avançado), D o mais iniciante. FUN = categoria iniciante.</small>
                 </div>
 
                 <!-- v1.2.0-beta: Categorias por Idade (paralelo a habilidade) -->
@@ -1709,6 +1701,15 @@ function setupCreateTournamentModal() {
     if (idx !== -1) {
       current.splice(idx, 1);
     } else {
+      // v1.2.2-beta: Misto Aleatório e Misto Obrigatório são auto-excludentes —
+      // tournament só pode usar uma das estratégias de formação de times mistos.
+      if (cat === 'misto_aleatorio') {
+        var i = current.indexOf('misto_obrigatorio');
+        if (i !== -1) current.splice(i, 1);
+      } else if (cat === 'misto_obrigatorio') {
+        var j = current.indexOf('misto_aleatorio');
+        if (j !== -1) current.splice(j, 1);
+      }
       current.push(cat);
     }
     hidden.value = current.join(',');
@@ -1748,12 +1749,10 @@ function setupCreateTournamentModal() {
     });
   };
 
-  // v1.2.1-beta: pills de habilidade — substituem o campo de texto livre.
-  // Pills canônicas: A, B, C, D, Open. Custom (1ª, PRO, etc.) vão pro <details>
-  // de "+ outras categorias". User: 'a funcionalidade está legal aqui, mas
-  // acho que vai ficar melhor se usarmos toggles inclusive para as categorias
-  // de habilidade.'
-  var SKILL_PILLS = ['A', 'B', 'C', 'D', 'Open'];
+  // v1.2.2-beta: pills de habilidade A, B, C, D, FUN — único caminho de entrada
+  // (sem campo de texto livre — beta phase, não há legacy data pra suportar).
+  // FUN = categoria iniciante. Indigo pra distinguir do roxo (gênero) e âmbar (idade).
+  var SKILL_PILLS = ['A', 'B', 'C', 'D', 'FUN'];
 
   window._toggleSkillCat = function(level) {
     var btn = document.querySelector('#skill-cat-buttons [data-skill="' + level + '"]');
@@ -1773,53 +1772,27 @@ function setupCreateTournamentModal() {
     });
   };
 
-  // Recompute hidden field from pills + custom values, dedup, canonical order
+  // Recompute hidden field from pills (canonical order)
   window._syncSkillCategories = function() {
     var pills = [];
     SKILL_PILLS.forEach(function(p) {
       var btn = document.querySelector('#skill-cat-buttons [data-skill="' + p + '"]');
       if (btn && btn.getAttribute('data-active') === '1') pills.push(p);
     });
-    var customEl = document.getElementById('tourn-skill-custom');
-    var custom = customEl ? (customEl.value || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
-    // Dedup: custom values matching pills already counted
-    var seen = {};
-    pills.forEach(function(p) { seen[p] = 1; });
-    var combined = pills.slice();
-    custom.forEach(function(c) {
-      if (!seen[c]) { combined.push(c); seen[c] = 1; }
-    });
     var hidden = document.getElementById('tourn-skill-categories');
-    if (hidden) hidden.value = combined.join(', ');
+    if (hidden) hidden.value = pills.join(', ');
     window._updateCategoryPreview();
   };
 
-  // Called by oninput in custom field — just delegates
-  window._syncSkillFromCustom = function() {
-    window._syncSkillCategories();
-  };
-
-  // LOAD path: split skillCategories[] into pill values + custom, populate UI
+  // LOAD path: array of pill values → populate UI
   window._loadSkillCategoriesFromArray = function(values) {
     if (!Array.isArray(values)) values = [];
-    var pillVals = values.filter(function(v) { return SKILL_PILLS.indexOf(v) !== -1; });
-    var customVals = values.filter(function(v) { return SKILL_PILLS.indexOf(v) === -1; });
-    // Toggle pills based on what's in pillVals
     SKILL_PILLS.forEach(function(p) {
       var btn = document.querySelector('#skill-cat-buttons [data-skill="' + p + '"]');
-      if (btn) btn.setAttribute('data-active', pillVals.indexOf(p) !== -1 ? '1' : '0');
+      if (btn) btn.setAttribute('data-active', values.indexOf(p) !== -1 ? '1' : '0');
     });
-    // Populate custom field
-    var customEl = document.getElementById('tourn-skill-custom');
-    if (customEl) customEl.value = customVals.join(', ');
-    // Auto-expand <details> if there are custom values
-    if (customVals.length > 0) {
-      var det = document.getElementById('skill-custom-details');
-      if (det) det.setAttribute('open', 'open');
-    }
-    // Update hidden input + UI
     var hidden = document.getElementById('tourn-skill-categories');
-    if (hidden) hidden.value = values.join(', ');
+    if (hidden) hidden.value = values.filter(function(v) { return SKILL_PILLS.indexOf(v) !== -1; }).join(', ');
     window._applySkillCatUI();
   };
 

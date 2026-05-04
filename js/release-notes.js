@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
+      '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🧹 v1.2.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Categorias finalizadas: A/B/C/D/FUN, Misto auto-excludente, sem campo de texto livre.</b> User: <i>"Troque open por FUN (categoria iniciante). O Misto, como por habilidade (qualquer deles, pode ser apenas Misto - São auto excludentes entre si). Vamos usar os toggles visuais para genero, habibildade e idade."</i></p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Open → FUN</b> — pill de iniciante. A é o nível mais alto, FUN o de entrada.</li>' +
+        '<li><b>Misto Aleatório ⊕ Misto Obrigatório</b> são mutuamente exclusivos — clicar num desliga o outro automaticamente. Faz sentido: torneio só pode usar uma estratégia de formação de times mistos por vez.</li>' +
+        '<li><b>Removido o "+ outras categorias custom"</b> — não há dados legados a preservar (beta phase confirmada pelo dono: <i>"não existem torneios verdadeiros no sistema ainda. não existem outras categorias além das que estamos trabalhando agora"</i>). Schema enxuto: pills são única fonte de verdade.</li>' +
+      '</ul>' +
+      '<p>Resultado: 3 dimensões com toggle visual consistente — gênero (roxo, multi mas Mistos excludem-se), habilidade (indigo, multi), idade (âmbar, multi). Sem campos de texto. Tudo é click.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🎯 v1.2.1-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Categorias por habilidade viram toggles A/B/C/D/Open — campo de texto livre vira fallback colapsável.</b> User: <i>"a funcionalidade está legal aqui, mas acho que vai ficar melhor se usarmos toggles inclusive para as categorias de habilidade."</i></p>' +
       '<p>Pills indigo distintas das pills roxas de gênero e amber de idade. Multi-select clássico (igual gênero+idade). Mesmo padrão visual e técnico — fechando consistência da seção Categorias.</p>' +
