@@ -9,6 +9,11 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
+      '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">👤 v1.3.17-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
+      '<p><b>Cards de pessoas no Explorar ficaram compactos e horizontais.</b> Cards de "Meus Amigos" e "Outros Usuários" eram verticais (avatar em cima, nome embaixo) — mesmos em grid de múltiplas colunas ficavam altos demais e exigiam muito scroll.</p>' +
+      '<p>Novo padrão: horizontal como o card do organizador de torneio — avatar 34px à esquerda, nome bold (0.82rem) + subtítulo (cidade/esporte, 0.68rem) à direita, ✕ ou botão "Convidar" fixado no canto direito. Lista em coluna única (sem grid), gap 6px. Mais informação visível com menos scroll.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
       '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">📐 v1.3.16-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
       '<p><b>Cadastrar Local: campos nunca mais saem da tela no iPhone.</b> User reportou que os inputs do formulário de cadastro de venue (<code>#my-venues</code>) extrapolavam a borda da tela em mobile — campos de contato (2 colunas) e select de acesso ficavam cortados ou exigiam scroll horizontal.</p>' +
       '<p>Causa raiz: grid de 2 colunas (<code>1fr 1fr</code>) sem <code>min-width:0</code> nos filhos — items de grid não podem encolher abaixo do tamanho intrínseco do <code>&lt;input&gt;</code>; além disso, alguns inputs não tinham <code>box-sizing:border-box</code>, então padding e borda somavam à largura de 100%.</p>' +

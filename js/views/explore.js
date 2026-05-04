@@ -126,17 +126,15 @@ function _friendCompactCardHtml(u, uid) {
 
   var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
 
-  return '<div class="card hover-lift" style="position:relative;padding:10px 8px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;background:rgba(34,197,94,0.06);border:1px solid var(--success-color);border-radius:12px;min-width:0;">' +
-    // Discrete ✕ at top-right to unfriend — no background oval; just the
-    // glyph. Darkens on hover for feedback.
+  return '<div class="card hover-lift" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(34,197,94,0.06);border:1px solid var(--success-color);border-radius:10px;min-width:0;">' +
+    '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--success-color);flex-shrink:0;">' +
+    '<div style="flex:1;min-width:0;">' +
+      '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</div>' +
+      (subtitle ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(subtitle) + '</div>' : '') +
+    '</div>' +
     '<button type="button" title="Desfazer amizade" onclick="event.stopPropagation(); _removeFriend(\'' + safeUid + '\')" ' +
       'onmouseover="this.style.opacity=\'1\'" onmouseout="this.style.opacity=\'0.5\'" ' +
-      'style="position:absolute;top:4px;right:6px;width:18px;height:18px;border:none;background:transparent;color:var(--text-muted);font-size:0.82rem;font-weight:400;cursor:pointer;line-height:1;padding:0;opacity:0.5;">✕</button>' +
-    '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--success-color);margin-top:4px;">' +
-    '<div style="width:100%;min-width:0;">' +
-      '<div style="font-weight:600;color:var(--text-bright);font-size:0.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</div>' +
-      (subtitle ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(subtitle) + '</div>' : '') +
-    '</div>' +
+      'style="border:none;background:transparent;color:var(--text-muted);font-size:0.88rem;cursor:pointer;line-height:1;padding:2px 4px;opacity:0.5;flex-shrink:0;">✕</button>' +
   '</div>';
 }
 
@@ -160,13 +158,13 @@ function _userCardHtml(u, uid, actionHtml, isFriend) {
   var borderColor = isFriend ? 'var(--success-color)' : 'var(--border-color)';
   var bgTint = isFriend ? 'rgba(34, 197, 94, 0.06)' : 'transparent';
 
-  return '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: ' + bgTint + '; border: 1px solid ' + borderColor + '; border-radius: 12px; min-width: 0;">' +
-    '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid ' + borderColor + ';">' +
-    '<div style="width: 100%; min-width: 0;">' +
-      '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; white-space: normal;">' + window._safeHtml(name) + '</div>' +
-      (infoChips.length > 0 ? '<div style="font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">' + infoChips.join(' · ') + '</div>' : '') +
+  return '<div class="card" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:' + bgTint + ';border:1px solid ' + borderColor + ';border-radius:10px;min-width:0;">' +
+    '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';flex-shrink:0;">' +
+    '<div style="flex:1;min-width:0;">' +
+      '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</div>' +
+      (infoChips.length > 0 ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + infoChips.join(' · ') + '</div>' : '') +
     '</div>' +
-    '<div style="margin-top: auto; width: 100%;">' + actionHtml + '</div>' +
+    '<div style="flex-shrink:0;">' + actionHtml + '</div>' +
   '</div>';
 }
 
@@ -430,14 +428,14 @@ function _renderOtrosCards(resultsDiv, users) {
     var useWarning = u._hasShared;
     var btnClass = useWarning ? 'btn btn-warning btn-sm hover-lift' : 'btn btn-primary btn-sm hover-lift';
     if (isSent) {
-      return '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
+      return '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequest(\'' + safeUid + '\')" title="' + _t('explore.cancelInviteTitle') + '">✉️ ✕</button>';
     } else if (isReceived) {
       return '<div style="display: flex; gap: 4px; justify-content: center;">' +
         '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Aceitando...\'); _acceptFriend(\'' + safeUid + '\')">' + _t('explore.accept') + '</button>' +
         '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Rejeitando...\'); _rejectFriend(\'' + safeUid + '\')">' + _t('explore.reject') + '</button>' +
       '</div>';
     }
-    return '<button class="' + btnClass + '" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Enviando...\'); _sendFriendRequest(\'' + safeUid + '\')">' + _t('explore.invite') + '</button>';
+    return '<button class="' + btnClass + '" onclick="event.stopPropagation(); window._spinButton(this, \'Enviando...\'); _sendFriendRequest(\'' + safeUid + '\')">' + _t('explore.invite') + '</button>';
   }
 
   var _lang = (window._lang === 'en' ? 'en-US' : 'pt-BR');
@@ -465,7 +463,7 @@ function _renderOtrosCards(resultsDiv, users) {
     '</div>';
   }
   function _renderCardGrid(groupUsers) {
-    var inner = '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
+    var inner = '<div style="display:flex;flex-direction:column;gap:6px;">';
     groupUsers.forEach(function(u) {
       var uid = u._docId || u.uid || u.email;
       inner += _userCardWithEncounterHtml(u, uid, _actionBtnFor(u));
@@ -535,13 +533,13 @@ function _userCardWithEncounterHtml(u, uid, actionHtml) {
 
   // Date is shown as a group header above a batch of cards (see _renderOtrosCards),
   // so we don't repeat it on each individual card.
-  return '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: ' + bgTint + '; border: 1px solid ' + borderColor + '; border-radius: 12px; min-width: 0;">' +
-    '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid ' + avatarBorder + ';">' +
-    '<div style="width: 100%; min-width: 0;">' +
-      '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; line-height: 1.2; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; white-space: normal;">' + window._safeHtml(name) + '</div>' +
+  return '<div class="card" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:' + bgTint + ';border:1px solid ' + borderColor + ';border-radius:10px;min-width:0;">' +
+    '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ' + avatarBorder + ';flex-shrink:0;">' +
+    '<div style="flex:1;min-width:0;">' +
+      '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</div>' +
       sharedLine +
     '</div>' +
-    '<div style="margin-top: auto; width: 100%;">' + actionHtml + '</div>' +
+    '<div style="flex-shrink:0;">' + actionHtml + '</div>' +
   '</div>';
 }
 
@@ -651,7 +649,7 @@ function _renderSentRequests(myUid, sentIds) {
         '<div style="font-weight:700;font-size:0.88rem;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;">' + titleLabel + ' (' + dedupedGroups.length + ')</div>' +
       '</div>' +
       '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">Aguardando resposta. Clique em ✕ no card para cancelar.</div>' +
-      '<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px;">';
+      '<div style="display:flex;flex-direction:column;gap:6px;">';
 
     dedupedGroups.forEach(function(group) {
       var u = group.profile;
@@ -660,7 +658,7 @@ function _renderSentRequests(myUid, sentIds) {
       // Cancel passa todos os uids do grupo (legacy + atual) pra cancelar
       // ambos de uma vez. Evita user clicar ✕ e ainda aparecer outro card.
       var allUidsArg = group.uids.map(function(u){ return "'" + u.replace(/'/g, "\\'").replace(/\\/g, "\\\\") + "'"; }).join(',');
-      var cancelBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequestMulti([' + allUidsArg + '])" title="' + _t('explore.cancelInviteTitle') + '">✉️ ' + _t('explore.inviteSent') + ' ✕</button>';
+      var cancelBtn = '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequestMulti([' + allUidsArg + '])" title="' + _t('explore.cancelInviteTitle') + '">✉️ ✕</button>';
       html += _userCardHtml(u, uid, cancelBtn, false);
     });
 
@@ -730,8 +728,7 @@ function _renderMyFriends(myUid, friendIds) {
 
     var html = '<div style="margin-bottom: 1.5rem;">' +
       '<div style="font-weight: 600; font-size: 0.9rem; color: var(--success-color); margin-bottom: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px;">' + (window._t || function(k){return k;})('explore.myFriends') + ' (' + profiles.length + ')</div>' +
-      // Tighter grid for compact friend cards (more per row, less scrolling).
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;">';
+      '<div style="display:flex;flex-direction:column;gap:6px;">';
 
     profiles.forEach(function(u) {
       var uid = u._docId;
