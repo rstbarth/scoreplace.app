@@ -9,6 +9,10 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
+      '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">👤 v1.3.20-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
+      '<p><b>Cards de pessoas: nome em 2 linhas, amber nos convites, 1 card por linha nas seções com botões.</b> Primeiro e último nome aparecem em linhas separadas (ex: "Rodrigo" na 1ª linha, "Barth" na 2ª). Cards de convites enviados e recebidos usam borda e fundo amber (como está nos amigos que é verde). Apenas "Meus Amigos" mantém o grid 2/3/4 colunas — as demais seções (Convites Pendentes, Outros Usuários, Conhecidos) voltaram a ser coluna única, pra os botões Aceitar/Rejeitar/Convidar não ficarem espremidos.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #22d3ee;border-radius:12px;padding:14px 16px;background:rgba(34,211,238,0.10);">' +
       '<div style="font-weight:800; color:#67e8f9; font-size:1rem; margin-bottom:8px;">🔲 v1.3.19-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(4 de Maio, 2026)</span></div>' +
       '<p><b>Cards de pessoas em grid 2/3/4 colunas + nomes curtos.</b> Todas as seções de pessoas no Explorar (Meus Amigos, Convites Pendentes, Outros Usuários, Conhecidos) agora usam grid responsivo: 2 colunas em mobile (~390px), 3 em tablet (~500px), 4 em telas largas (~650px+). Nomes são truncados no primeiro token (antes de espaço, ponto, @, _ ou -) para caber bem nas colunas.</p>' +
     '</div>' +

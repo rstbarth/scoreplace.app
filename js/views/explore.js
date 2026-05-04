@@ -97,12 +97,24 @@ function _isRealPhoto(url) {
   return url && url.indexOf('dicebear.com') === -1 && url.indexOf('placeholder') === -1;
 }
 
-// Returns only the first token of a display name / email, splitting on
-// space, dot, @, underscore or hyphen. Keeps the card compact in grid mode.
-function _shortName(raw) {
-  if (!raw) return raw;
-  var first = raw.split(/[\s.@_\-]/)[0];
-  return first || raw;
+// Returns {line1, line2} for a name: line1 = first token, line2 = last token.
+// Splits on spaces for display names; falls back to . @ _ - for usernames.
+function _nameLines(raw) {
+  if (!raw) return { line1: '', line2: '' };
+  var tokens = raw.trim().split(/\s+/).filter(function(t) { return t.length > 0; });
+  if (tokens.length <= 1) {
+    tokens = raw.trim().split(/[.@_\-]/).filter(function(t) { return t.length > 0; });
+  }
+  if (tokens.length <= 1) return { line1: tokens[0] || raw, line2: '' };
+  return { line1: tokens[0], line2: tokens[tokens.length - 1] };
+}
+
+// Builds the 2-line name HTML block used inside all person cards.
+function _nameHtml(line1, line2) {
+  var s1 = 'font-weight:700;color:var(--text-bright);font-size:0.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  var s2 = 'font-weight:600;color:var(--text-bright);font-size:0.78rem;line-height:1.15;opacity:0.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  return '<div style="' + s1 + '">' + window._safeHtml(line1) + '</div>' +
+    (line2 ? '<div style="' + s2 + '">' + window._safeHtml(line2) + '</div>' : '');
 }
 
 // Compact card for the "Meus Amigos" section only. Drops the extra action
@@ -111,8 +123,8 @@ function _shortName(raw) {
 // Falls back to the larger _userCardHtml for other sections.
 function _friendCompactCardHtml(u, uid) {
   var cu = window.AppStore.currentUser || {};
-  var name = _shortName(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
-  var avatarSeed = encodeURIComponent(name || uid || 'User');
+  var _nl = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
+  var avatarSeed = encodeURIComponent((_nl.line1 + (_nl.line2 ? ' ' + _nl.line2 : '')) || uid || 'User');
   var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
   var fallbackPhoto = initialsUrl;
@@ -137,7 +149,7 @@ function _friendCompactCardHtml(u, uid) {
   return '<div class="card hover-lift" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(34,197,94,0.06);border:1px solid var(--success-color);border-radius:10px;min-width:0;">' +
     '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--success-color);flex-shrink:0;">' +
     '<div style="flex:1;min-width:0;">' +
-      '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</div>' +
+      _nameHtml(_nl.line1, _nl.line2) +
       (subtitle ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(subtitle) + '</div>' : '') +
     '</div>' +
     '<button type="button" title="Desfazer amizade" onclick="event.stopPropagation(); _removeFriend(\'' + safeUid + '\')" ' +
@@ -146,9 +158,9 @@ function _friendCompactCardHtml(u, uid) {
   '</div>';
 }
 
-function _userCardHtml(u, uid, actionHtml, isFriend) {
-  var name = _shortName(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
-  var avatarSeed = encodeURIComponent(name || uid || 'User');
+function _userCardHtml(u, uid, actionHtml, variant) {
+  var _nl = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
+  var avatarSeed = encodeURIComponent((_nl.line1 + (_nl.line2 ? ' ' + _nl.line2 : '')) || uid || 'User');
   var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
   var fallbackPhoto = initialsUrl;
@@ -163,13 +175,13 @@ function _userCardHtml(u, uid, actionHtml, isFriend) {
   }
   // age deliberately omitted — never show.
 
-  var borderColor = isFriend ? 'var(--success-color)' : 'var(--border-color)';
-  var bgTint = isFriend ? 'rgba(34, 197, 94, 0.06)' : 'transparent';
+  var borderColor = variant === 'friend' ? 'var(--success-color)' : variant === 'pending' ? 'rgba(245,158,11,0.45)' : 'var(--border-color)';
+  var bgTint = variant === 'friend' ? 'rgba(34,197,94,0.06)' : variant === 'pending' ? 'rgba(245,158,11,0.06)' : 'transparent';
 
   return '<div class="card" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:' + bgTint + ';border:1px solid ' + borderColor + ';border-radius:10px;min-width:0;">' +
     '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';flex-shrink:0;">' +
     '<div style="flex:1;min-width:0;">' +
-      '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</div>' +
+      _nameHtml(_nl.line1, _nl.line2) +
       (infoChips.length > 0 ? '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + infoChips.join(' · ') + '</div>' : '') +
     '</div>' +
     '<div style="flex-shrink:0;">' + actionHtml + '</div>' +
@@ -471,7 +483,7 @@ function _renderOtrosCards(resultsDiv, users) {
     '</div>';
   }
   function _renderCardGrid(groupUsers) {
-    var inner = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;">';
+    var inner = '<div style="display:flex;flex-direction:column;gap:6px;">';
     groupUsers.forEach(function(u) {
       var uid = u._docId || u.uid || u.email;
       inner += _userCardWithEncounterHtml(u, uid, _actionBtnFor(u));
@@ -521,8 +533,8 @@ function _renderOtrosCards(resultsDiv, users) {
 // Renders a user card that shows shared-tournament count + latest encounter date when applicable
 function _userCardWithEncounterHtml(u, uid, actionHtml) {
   var _t = window._t || function(k){return k;};
-  var name = _shortName(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
-  var avatarSeed = encodeURIComponent(name || uid || 'User');
+  var _nl = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
+  var avatarSeed = encodeURIComponent((_nl.line1 + (_nl.line2 ? ' ' + _nl.line2 : '')) || uid || 'User');
   var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
   var fallbackPhoto = initialsUrl;
@@ -544,7 +556,7 @@ function _userCardWithEncounterHtml(u, uid, actionHtml) {
   return '<div class="card" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:' + bgTint + ';border:1px solid ' + borderColor + ';border-radius:10px;min-width:0;">' +
     '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ' + avatarBorder + ';flex-shrink:0;">' +
     '<div style="flex:1;min-width:0;">' +
-      '<div style="font-weight:700;color:var(--text-bright);font-size:0.82rem;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</div>' +
+      _nameHtml(_nl.line1, _nl.line2) +
       sharedLine +
     '</div>' +
     '<div style="flex-shrink:0;">' + actionHtml + '</div>' +
@@ -575,19 +587,19 @@ function _renderPendingRequests(myUid, receivedIds) {
 
     profiles.forEach(function(u) {
       var uid = u._docId;
-      var name = u.displayName || 'Usuário';
-      var initialsUrlP = 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(name || uid || 'User') + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+      var _nlP = _nameLines(u.displayName || 'Usuário');
+      var initialsUrlP = 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent((_nlP.line1 + (_nlP.line2 ? ' ' + _nlP.line2 : '')) || uid || 'User') + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
       var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrlP;
       var fallbackPhoto2 = initialsUrlP;
 
       var safeUidPending = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      html += '<div class="card" style="padding: 0.75rem 1rem; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; border-left: 3px solid #f59e0b;">' +
-        '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto2 + '\'" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">' +
-        '<div style="flex: 1; min-width: 0;">' +
-          '<span style="font-weight: 600; color: var(--text-bright); font-size: 0.9rem;">' + window._safeHtml(name) + '</span>' +
-          '<div style="font-size: 0.75rem; color: var(--text-muted);">' + (window._t || function(k){return k;})('explore.wantsToBeFriend') + '</div>' +
+      html += '<div class="card" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.45);border-radius:10px;min-width:0;">' +
+        '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto2 + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid rgba(245,158,11,0.45);flex-shrink:0;">' +
+        '<div style="flex:1;min-width:0;">' +
+          _nameHtml(_nlP.line1, _nlP.line2) +
+          '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;">' + (window._t || function(k){return k;})('explore.wantsToBeFriend') + '</div>' +
         '</div>' +
-        '<div style="display: flex; gap: 6px; flex-shrink: 0;">' +
+        '<div style="display:flex;gap:6px;flex-shrink:0;">' +
           '<button class="btn btn-success btn-sm" onclick="window._spinButton(this, \'Aceitando...\'); _acceptFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.accept') + '</button>' +
           '<button class="btn btn-danger btn-sm" onclick="window._spinButton(this, \'Rejeitando...\'); _rejectFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.reject') + '</button>' +
         '</div>' +
@@ -657,7 +669,7 @@ function _renderSentRequests(myUid, sentIds) {
         '<div style="font-weight:700;font-size:0.88rem;color:#f59e0b;text-transform:uppercase;letter-spacing:0.5px;">' + titleLabel + ' (' + dedupedGroups.length + ')</div>' +
       '</div>' +
       '<div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px;">Aguardando resposta. Clique em ✕ no card para cancelar.</div>' +
-      '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;">';
+      '<div style="display:flex;flex-direction:column;gap:6px;">';
 
     dedupedGroups.forEach(function(group) {
       var u = group.profile;
@@ -667,7 +679,7 @@ function _renderSentRequests(myUid, sentIds) {
       // ambos de uma vez. Evita user clicar ✕ e ainda aparecer outro card.
       var allUidsArg = group.uids.map(function(u){ return "'" + u.replace(/'/g, "\\'").replace(/\\/g, "\\\\") + "'"; }).join(',');
       var cancelBtn = '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequestMulti([' + allUidsArg + '])" title="' + _t('explore.cancelInviteTitle') + '">✉️ ✕</button>';
-      html += _userCardHtml(u, uid, cancelBtn, false);
+      html += _userCardHtml(u, uid, cancelBtn, 'pending');
     });
 
     html += '</div></div>';
@@ -1003,7 +1015,7 @@ function _renderConhecidosCards(div, profiles) {
         sortToggleBtn('alpha', sortAlphaLabel) +
       '</div>' +
     '</div>' +
-    '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:8px;">';
+    '<div style="display:flex;flex-direction:column;gap:6px;">';
 
   profiles.forEach(function(u) {
     var uid = u._docId || u.email;
@@ -1017,9 +1029,9 @@ function _renderConhecidosCards(div, profiles) {
     var safeUidConhecido = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
     var actionBtn = '';
     if (isSent) {
-      actionBtn = '<button class="btn btn-ghost btn-sm" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequest(\'' + safeUidConhecido + '\')" title="' + _tLocal('explore.cancelInviteTitle') + '">✉️ ' + _tLocal('explore.inviteSent') + ' ✕</button>';
+      actionBtn = '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequest(\'' + safeUidConhecido + '\')" title="' + _tLocal('explore.cancelInviteTitle') + '">✉️ ' + _tLocal('explore.inviteSent') + ' ✕</button>';
     } else if (isReceived) {
-      actionBtn = '<div style="display: flex; gap: 4px; justify-content: center;">' +
+      actionBtn = '<div style="display:flex;gap:4px;">' +
         '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Aceitando...\'); _acceptFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.accept') + '</button>' +
         '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Rejeitando...\'); _rejectFriend(\'' + safeUidConhecido + '\')">' + _tLocal('explore.reject') + '</button>' +
       '</div>';
@@ -1027,15 +1039,15 @@ function _renderConhecidosCards(div, profiles) {
       // Check if user accepts friend requests
       var canInvite = u.acceptFriendRequests !== false;
       if (canInvite) {
-        actionBtn = '<button class="btn btn-warning btn-sm hover-lift" style="width: 100%;" onclick="event.stopPropagation(); window._spinButton(this, \'Enviando...\'); _sendFriendRequest(\'' + safeUidConhecido + '\')">' + _tLocal('explore.invite') + '</button>';
+        actionBtn = '<button class="btn btn-warning btn-sm hover-lift" onclick="event.stopPropagation(); window._spinButton(this, \'Enviando...\'); _sendFriendRequest(\'' + safeUidConhecido + '\')">' + _tLocal('explore.invite') + '</button>';
       } else {
         actionBtn = '';
       }
     }
 
-    // Custom card for conhecidos (amber/yellow tint)
-    var name = u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário');
-    var avatarSeed = encodeURIComponent(name || uid || 'User');
+    // Horizontal card for conhecidos (amber/yellow tint)
+    var _nlC = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
+    var avatarSeed = encodeURIComponent((_nlC.line1 + (_nlC.line2 ? ' ' + _nlC.line2 : '')) || uid || 'User');
     var initialsUrlC = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
     var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrlC;
     var fallbackPhotoC = initialsUrlC;
@@ -1051,14 +1063,13 @@ function _renderConhecidosCards(div, profiles) {
       }
     }
 
-    html += '<div class="card" style="padding: 0.75rem; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; background: rgba(245, 158, 11, 0.06); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; min-width: 0;">' +
-      '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhotoC + '\'" style="width: 52px; height: 52px; border-radius: 50%; object-fit: cover; border: 2.5px solid rgba(245, 158, 11, 0.4);">' +
-      '<div style="width: 100%; min-width: 0; overflow: hidden;">' +
-        '<div style="font-weight: 600; color: var(--text-bright); font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' + window._safeHtml(name) + '</div>' +
-        '<div style="font-size: 0.65rem; color: #f59e0b; margin-top: 2px;">' + sharedText + '</div>' +
-        (dateLabel ? '<div style="font-size: 0.62rem; color: var(--text-muted); margin-top: 2px;">' + dateLabel + '</div>' : '') +
+    html += '<div class="card" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.3);border-radius:10px;min-width:0;">' +
+      '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhotoC + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid rgba(245,158,11,0.4);flex-shrink:0;">' +
+      '<div style="flex:1;min-width:0;">' +
+        _nameHtml(_nlC.line1, _nlC.line2) +
+        '<div style="font-size:0.65rem;color:#f59e0b;margin-top:2px;">' + sharedText + (dateLabel ? ' · ' + dateLabel : '') + '</div>' +
       '</div>' +
-      (actionBtn ? '<div style="margin-top: auto; width: 100%;">' + actionBtn + '</div>' : '') +
+      (actionBtn ? '<div style="flex-shrink:0;">' + actionBtn + '</div>' : '') +
     '</div>';
   });
 
