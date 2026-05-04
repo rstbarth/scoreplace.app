@@ -860,7 +860,39 @@ A auditoria XSS da v0.4.3 aplicou escaping em ~30 onclick handlers. Nos casos co
 ## Padrao de Codigo
 
 ### Roteamento
-Hash-based SPA routing em `router.js`. Rotas: `#dashboard`, `#tournaments`, `#pre-draw`, `#bracket`, `#participants`, `#rules`, `#explore`, `#notifications`. Cada view e uma funcao `render[ViewName](container)` exportada globalmente.
+Hash-based SPA routing em `router.js`. Rotas: `#dashboard`, `#tournaments`, `#pre-draw`, `#bracket`, `#participants`, `#rules`, `#explore`, `#notifications`, `#profile`, `#support`, `#privacy`, `#terms`, `#invite`. Cada view e uma funcao `render[ViewName](container)` exportada globalmente.
+
+#### REGRA CRITICA (v1.3.5-beta) — SEMPRE usar o padrao centralizado de page-route
+**NUNCA recriar o cabecalho padrao via hacks CSS em `.modal-overlay`.**
+Quando precisar de uma tela com topbar visivel + back-header + conteudo full-width
+scrollavel, usar EXATAMENTE o mesmo padrao de `#support`, `#privacy`, `#terms`,
+`#invite`, `#profile`:
+
+1. Definir `window.renderXxxPage(container)` que chama `_renderBackHeader({href, label, middleHtml, rightHtml})` e seta `container.innerHTML = hdr + bodyHtml`.
+2. Adicionar `case 'xxx':` em `js/router.js` chamando `window.renderXxxPage(viewContainer)`.
+3. Converter qualquer `_openXxxModal()` legado em wrapper que faz `window.location.hash = '#xxx'`.
+4. Criar `window._closeXxxPage()` se houver call-sites externos de fechamento.
+5. Topbar (logo + nav + hamburger) FICA VISIVEL — modal-overlay cobre topbar, page-route nao.
+
+**Exemplos canonicos pra copiar:**
+- `window.renderSupportPage` em `js/store.js` (~linha 1198)
+- `window.renderInvitePage` em `js/views/tournaments-sharing.js`
+- `window.renderProfilePage` em `js/views/auth.js` (a partir da v1.3.5-beta)
+
+**Anti-padrao (sinais de alerta):** se voce esta fazendo qualquer um destes pra
+uma tela que deveria seguir o padrao standard, **PARE** e procure exemplos de
+`renderXxxPage`:
+- `top: 60px !important` em modal-overlay
+- Adicionar id de modal a multiplos seletores CSS de back-header
+- Injetar `_renderBackHeader` HTML dentro de `.modal-overlay > .modal`
+- `position: fixed; inset: 0; z-index: 10020` pra "fazer modal full-screen"
+- Hooks em `openModal()` pra coordenar fechamento com hashchange
+
+**User (Maio 2026):** _"a administração disso está centralizada no app justamente para vc não ficar tentando copiar o que já está feito e aprovado. encontre isso e aplique o que já está feito, centralizado e aprovado sem tentar recriar o que descrevi."_ — _"isso precisa ser lembrado e nunca esquecido."_
+
+**Modal-overlay continua valido para:** dialogos rapidos (login, share QR, GSM
+config), prompts (alertDialog, confirmDialog), e overlays full-screen onde voce
+QUER esconder a topbar (ex: `#venues-detail-overlay`, `#enrollment-report-modal`).
 
 ### Estado Global
 `window.AppStore` em `store.js` com metodos:
