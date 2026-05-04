@@ -610,6 +610,23 @@ function setupCreateTournamentModal() {
                   <input type="text" class="form-control" id="tourn-skill-categories" placeholder="${_t('create.skillCatPlaceholder')}" oninput="window._updateCategoryPreview()">
                   <small class="text-muted" style="display:block;margin-top:4px;">${_t('create.skillCatHint')}</small>
                 </div>
+
+                <!-- v1.2.0-beta: Categorias por Idade (paralelo a habilidade) -->
+                <div style="margin-top:0.75rem;">
+                  <label class="form-label" style="margin-bottom:6px;display:flex;align-items:center;gap:8px;">
+                    <span>Categorias por Idade</span>
+                    <small style="color:var(--text-muted);font-weight:400;font-size:0.72rem;">(opcional, paralelo à habilidade)</small>
+                  </label>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap;" id="age-cat-buttons">
+                    <button type="button" data-age="40+" onclick="window._toggleAgeCat('40+')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">40+</button>
+                    <button type="button" data-age="50+" onclick="window._toggleAgeCat('50+')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">50+</button>
+                    <button type="button" data-age="60+" onclick="window._toggleAgeCat('60+')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">60+</button>
+                    <button type="button" data-age="70+" onclick="window._toggleAgeCat('70+')" style="padding:6px 14px; border-radius:8px; font-size:0.8rem; cursor:pointer; transition:all 0.15s; white-space:nowrap; border:2px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.06); color:var(--text-main); font-weight:500;">70+</button>
+                  </div>
+                  <input type="hidden" id="tourn-age-categories" value="">
+                  <small class="text-muted" style="display:block;margin-top:6px;">Sub-bracket por faixa etária. Inscritos podem competir na categoria de habilidade, na de idade, ou em ambas. Sub-bracket também é separado por gênero.</small>
+                </div>
+
                 <div id="category-preview" style="display:none; margin-top:0.75rem; padding:8px 12px; background:rgba(168,85,247,0.08); border:1px solid rgba(168,85,247,0.2); border-radius:8px;">
                   <div style="font-size:0.7rem; color:#a855f7; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:4px;">${_t('create.catPreview')}</div>
                   <div id="category-preview-list" style="display:flex; flex-wrap:wrap; gap:4px; font-size:0.8rem;"></div>
@@ -1683,6 +1700,38 @@ function setupCreateTournamentModal() {
     window._updateCategoryPreview();
   };
 
+  // v1.2.0-beta: pills de idade — mesmo padrão das pills de gênero.
+  // User: 'precisamos da possibilidade da categoria por idade em paralelo
+  // a categoria por habilidade. as categorias por idade geralmente são
+  // 40+, 50+, 60+ e 70+.'
+  window._toggleAgeCat = function(cat) {
+    var hidden = document.getElementById('tourn-age-categories');
+    var current = hidden.value ? hidden.value.split(',').filter(Boolean) : [];
+    var idx = current.indexOf(cat);
+    if (idx !== -1) {
+      current.splice(idx, 1);
+    } else {
+      current.push(cat);
+    }
+    hidden.value = current.join(',');
+    window._applyAgeCatUI(current);
+    window._updateCategoryPreview();
+  };
+
+  window._applyAgeCatUI = function(values) {
+    if (!values) {
+      var h = document.getElementById('tourn-age-categories');
+      values = h && h.value ? h.value.split(',').filter(Boolean) : [];
+    }
+    var onStyle = 'padding:6px 14px;border-radius:8px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #f59e0b;background:rgba(245,158,11,0.22);color:#fbbf24;font-weight:700;box-shadow:0 0 0 1px rgba(245,158,11,0.3);';
+    var offStyle = 'padding:6px 14px;border-radius:8px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;';
+    var btns = document.querySelectorAll('#age-cat-buttons button[data-age]');
+    btns.forEach(function(btn) {
+      var age = btn.getAttribute('data-age');
+      btn.setAttribute('style', values.indexOf(age) !== -1 ? onStyle : offStyle);
+    });
+  };
+
   window._applyGenderCatUI = function(values) {
     if (!values) {
       var h = document.getElementById('tourn-gender-categories');
@@ -1701,6 +1750,10 @@ function setupCreateTournamentModal() {
     var genderVals = (document.getElementById('tourn-gender-categories').value || '').split(',').filter(Boolean);
     var skillText = (document.getElementById('tourn-skill-categories').value || '').trim();
     var skillCats = skillText ? skillText.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
+
+    // v1.2.0-beta: ler ageCategories
+    var ageText = (document.getElementById('tourn-age-categories') || {}).value || '';
+    var ageCats = ageText ? ageText.split(',').filter(Boolean) : [];
 
     // Game type dimension
     var gameTypesVal = (document.getElementById('tourn-game-types') || {}).value || '';
@@ -1738,15 +1791,52 @@ function setupCreateTournamentModal() {
       combined = baseCats;
     }
 
-    if (combined.length === 0) {
+    // v1.2.0-beta: gerar pills de idade (cruzadas com gênero quando há gênero + cruzadas com gameType)
+    // Idade roda em PARALELO com habilidade — não cruza skill × age. Mas cruza com gênero e gameType.
+    var ageBaseCats = [];
+    if (ageCats.length > 0) {
+      if (genderVals.length > 0) {
+        genderVals.forEach(function(g) {
+          ageCats.forEach(function(a) {
+            ageBaseCats.push((genderLabels[g] || g) + ' ' + a);
+          });
+        });
+      } else {
+        ageCats.forEach(function(a) { ageBaseCats.push(a); });
+      }
+    }
+    var ageCombined = [];
+    if (gameTypes.length === 2 && ageBaseCats.length > 0) {
+      ageBaseCats.forEach(function(c) {
+        gameTypes.forEach(function(gt) { ageCombined.push(c + ' ' + gt); });
+      });
+    } else {
+      ageCombined = ageBaseCats;
+    }
+
+    if (combined.length === 0 && ageCombined.length === 0) {
       preview.style.display = 'none';
       return;
     }
 
     var _dnPreview = (typeof window._displayCategoryName === 'function') ? window._displayCategoryName : function(c) { return c; };
-    list.innerHTML = combined.map(function(c) {
-      return '<span style="padding:3px 10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.25);border-radius:6px;color:#d8b4fe;font-weight:600;">' + _dnPreview(c) + '</span>';
-    }).join('');
+
+    var html = '';
+    if (combined.length > 0) {
+      html += combined.map(function(c) {
+        return '<span style="padding:3px 10px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.25);border-radius:6px;color:#d8b4fe;font-weight:600;">' + _dnPreview(c) + '</span>';
+      }).join('');
+    }
+    if (ageCombined.length > 0) {
+      // v1.2.0-beta: pills âmbar para idade, separadas visualmente
+      if (combined.length > 0) {
+        html += '<span style="width:100%;height:1px;background:rgba(168,85,247,0.18);margin:6px 0;"></span>';
+      }
+      html += ageCombined.map(function(c) {
+        return '<span style="padding:3px 10px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.30);border-radius:6px;color:#fbbf24;font-weight:600;">' + c + '</span>';
+      }).join('');
+    }
+    list.innerHTML = html;
     preview.style.display = '';
   };
 
@@ -1782,7 +1872,10 @@ function setupCreateTournamentModal() {
       combined = baseCats;
     }
 
-    return { genderCategories: genderVals, skillCategories: skillCats, combinedCategories: combined };
+    // v1.2.0-beta: ler ageCategories também
+    var ageCats = (document.getElementById('tourn-age-categories') || {}).value || '';
+    ageCats = ageCats ? ageCats.split(',').filter(Boolean) : [];
+    return { genderCategories: genderVals, skillCategories: skillCats, ageCategories: ageCats, combinedCategories: combined };
   };
 
   window._onInscricaoChange = function () {
@@ -3152,13 +3245,19 @@ function setupCreateTournamentModal() {
       });
     }
 
-    // Categorias (gênero + habilidade)
+    // Categorias (gênero + habilidade + idade)
     if (t.genderCategories && t.genderCategories.length > 0) {
       document.getElementById('tourn-gender-categories').value = t.genderCategories.join(',');
       window._applyGenderCatUI(t.genderCategories);
     }
     if (t.skillCategories && t.skillCategories.length > 0) {
       document.getElementById('tourn-skill-categories').value = t.skillCategories.join(', ');
+    }
+    // v1.2.0-beta: load age categories
+    if (t.ageCategories && t.ageCategories.length > 0) {
+      var _ageHidden = document.getElementById('tourn-age-categories');
+      if (_ageHidden) _ageHidden.value = t.ageCategories.join(',');
+      if (typeof window._applyAgeCatUI === 'function') window._applyAgeCatUI(t.ageCategories);
     }
     window._updateCategoryPreview();
 
@@ -3453,6 +3552,7 @@ function setupCreateTournamentModal() {
         var catData = window._getTournamentCategories ? window._getTournamentCategories() : {};
         tourData.genderCategories = catData.genderCategories || [];
         tourData.skillCategories = catData.skillCategories || [];
+        tourData.ageCategories = catData.ageCategories || []; // v1.2.0
         tourData.combinedCategories = catData.combinedCategories || [];
 
         if (editId) {

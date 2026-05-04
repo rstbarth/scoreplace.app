@@ -8,6 +8,17 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #f59e0b;border-radius:12px;padding:14px 16px;background:rgba(245,158,11,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🎂 v1.2.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Categorias por idade chegam em paralelo às categorias por habilidade — Fase 1 (schema + UI).</b> User: <i>"além das que já estão previstas, precisamos da possibilidade da categoria por idade em paralelo a categoria por habilidade. as categorias por idade geralmente são 40+, 50+, 60+ e 70+. O organizador pode ativar esse modo de categorias por idade no torneio e caso também haja a categoria por habilidade, os participantes podem se inscrever numa, noutra ou mesmo nas duas. assim como a categoria por habilidade, a categoria por idade também é separada por gênero."</i></p>' +
+      '<p>Pills 40+, 50+, 60+, 70+ no formulário de Criar Torneio (cor âmbar, distintas das pills roxas de gênero+habilidade). Múltipla seleção. <b>Em paralelo à habilidade — não cruza:</b> idade × gênero × gameType, mas nunca skill × age. Modelo: jogador escolhe se inscrever na categoria por habilidade, na categoria por idade, ou em <b>ambas</b> simultaneamente. Sub-bracket separado por faixa etária × gênero (pessoa de 65 anos joga 60+ e 50+ se quiser).</p>' +
+      '<p>Preview ao vivo mostra duas seções de pills:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><span style="padding:2px 8px;background:rgba(168,85,247,0.15);border:1px solid rgba(168,85,247,0.25);border-radius:4px;color:#d8b4fe;font-weight:600;">Fem A · Masc B · Misto Aleat. Duplas</span> (roxo) — gênero × habilidade × tipo de jogo</li>' +
+        '<li><span style="padding:2px 8px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.30);border-radius:4px;color:#fbbf24;font-weight:600;">Fem 40+ · Masc 50+ · Masc 60+ Duplas</span> (âmbar) — gênero × idade × tipo de jogo</li>' +
+      '</ul>' +
+      '<p>Schema novo: <code>t.ageCategories[]</code> persistido no Firestore. Salva, carrega na edição, fica preservado no clone do torneio. <b>Fase 2 (em desenvolvimento):</b> relatório "Análise de Inscritos" pro organizador — quantas pessoas em cada gênero × habilidade × idade, formato sugerido por categoria com tempo estimado de duração, e quem está com perfil incompleto pra justificar onde encaixar. <b>Fase 3:</b> auto-assign por idade (se perfil tem <code>birthDate</code>) e UI de inscrição multi-categoria.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #fbbf24;border-radius:12px;padding:14px 16px;background:rgba(251,191,36,0.10);">' +
       '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">📝 v1.1.11-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Nome do venue agora em linha separada — header com Voltar/Editar/Reivindicar limpo, nome com largura cheia.</b> User: <i>"aqui o nome do lugar poderia estar na linha de baixo (do voltar, editar e reinvindicar) assim esses botoes ficam mais claros e com uma linha inteira para o nome do lugar fica legal."</i></p>' +
