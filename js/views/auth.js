@@ -2032,63 +2032,123 @@ async function simulateLoginSuccess(user) {
     if (typeof window._applyProfileThemeUI === 'function') window._applyProfileThemeUI(curTheme);
   };
 
-  window._openMyProfileModal = async function() {
+  // v1.3.5-beta: perfil agora é uma rota (#profile), não modal-overlay.
+  // Padrão centralizado igual a #support, #privacy, #invite, #terms — usa
+  // _renderBackHeader, topbar fica visível, hamburger empurra conteúdo
+  // scrollável. Compat: _openMyProfileModal e _showProfileModal redirecionam
+  // pra hash #profile pra preservar todos os call-sites antigos.
+  window._openMyProfileModal = function () {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (!cu) { if (typeof openModal === 'function') openModal('modal-login'); return; }
+    window.location.hash = '#profile';
+  };
+  window._showProfileModal = window._openMyProfileModal;
 
-    // v0.16.5 fix: AWAIT a fresh loadUserProfile BEFORE populating the form.
-    // v0.17.7: indicador visual de loading enquanto profile não carrega.
-    // Antes o modal abria com campos vazios (race entre simulateLoginSuccess
-    // e merge do profile) e o user ficava esperando "demorou demais" sem
-    // feedback. Agora banner âmbar no topo "Carregando seu perfil…" some
-    // assim que cu._profileLoaded vira true (via v0.17.3 flag).
-    if (typeof openModal === 'function') openModal('modal-profile');
-    setTimeout(function() { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
-    setTimeout(function() { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
+  // v1.3.5-beta: helper centralizado pra fechar a página de perfil. Funciona
+  // tanto pro novo flow (rota #profile → navega pro dashboard) quanto pro
+  // legacy (modal-overlay → tira .active).
+  window._closeProfilePage = function () {
+    if (window.location.hash === '#profile') {
+      window.location.hash = '#dashboard';
+      return;
+    }
+    var modal = document.getElementById('modal-profile');
+    if (modal) modal.classList.remove('active');
+  };
 
-    // Populate immediately from whatever we have — no blank flash — then
-    // refresh from Firestore.
-    window._populateProfileModalFields();
+  // ─── renderProfilePage: rota #profile ────────────────────────────────
+  // Move o .modal (criado por setupProfileModal) pro view-container,
+  // adicionando o back-header padronizado. Topbar permanece visível.
+  // Setup async do profile (loadUserProfile + populate) acontece aqui.
+  window.renderProfilePage = async function (container) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu) {
+      // Sem login — manda pro dashboard (que abre modal-login se preciso).
+      window.location.replace('#dashboard');
+      return;
+    }
+    if (!container) return;
 
-    // v0.17.7: se profile não carregou ainda, mostra banner de loading no topo
-    // do modal pra dar feedback visual durante o gap async.
+    // Garantir que setupProfileModal já criou a estrutura DOM.
+    if (!document.getElementById('modal-profile') && typeof window.setupProfileModal === 'function') {
+      window.setupProfileModal();
+    }
+
+    // Pegar o .modal (form completo) — pode estar no wrapper #modal-profile
+    // (primeira render) OU já no view-container (re-render via i18n).
+    var modalEl = document.getElementById('modal-profile');
+    var modalInner = modalEl ? modalEl.querySelector('.modal') : null;
+    if (!modalInner) {
+      // Wrapper foi destruído ou .modal sumiu — rebuilda do zero.
+      if (modalEl) modalEl.remove();
+      if (typeof window.setupProfileModal === 'function') window.setupProfileModal();
+      modalEl = document.getElementById('modal-profile');
+      modalInner = modalEl ? modalEl.querySelector('.modal') : null;
+    }
+    if (!modalInner) return;
+
+    // Back-header padronizado: Voltar (esquerda) + título (centro) + Salvar (direita).
+    // Hamburger fica oculto neste contexto (não-overlay) — topbar acima já tem o seu.
+    var _t = window._t || function (k) { return k; };
+    var saveBtnHtml = '<button type="button" class="btn btn-primary btn-sm" onclick="window._spinButton(this, \'Salvando...\'); if(typeof saveUserProfile===\'function\')saveUserProfile()" style="flex-shrink:0;">' + _t('btn.save') + '</button>';
+    var hdr = (typeof window._renderBackHeader === 'function')
+      ? window._renderBackHeader({
+        href: '#dashboard',
+        label: 'Voltar',
+        middleHtml: '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _t('profile.myProfile') + '</span>',
+        rightHtml: saveBtnHtml,
+      })
+      : '';
+
+    container.innerHTML = hdr;
+    // Mover o .modal pra dentro do container (preserva listeners + state).
+    container.appendChild(modalInner);
+    // Wrapper #modal-profile fica vazio na body — limpar pra evitar
+    // confusão de listeners antigos referenciando-o.
+    if (modalEl && modalEl.parentNode === document.body) modalEl.remove();
+
+    // Setup specifics (search, map) — chamados pelo modal antigo via setTimeout.
+    setTimeout(function () { if (typeof _setupProfileSearch === 'function') _setupProfileSearch(); }, 100);
+    setTimeout(function () { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
+
+    // Populate now (snappy, no blank flash) então refresh from Firestore.
+    if (typeof window._populateProfileModalFields === 'function') {
+      window._populateProfileModalFields();
+    }
+
+    // Banner âmbar de loading enquanto profile faz refresh do Firestore.
     var _loadingBanner = null;
     if (!cu._profileLoaded) {
-      var modalEl = document.getElementById('modal-profile');
-      var modalContent = modalEl ? modalEl.querySelector('.modal-content') : null;
-      if (modalContent) {
-        _loadingBanner = document.createElement('div');
-        _loadingBanner.id = 'profile-loading-banner';
-        _loadingBanner.style.cssText = 'background:linear-gradient(90deg,rgba(251,191,36,0.18),rgba(251,191,36,0.08));border:1px solid rgba(251,191,36,0.35);border-radius:10px;padding:8px 14px;margin:10px 14px 0;display:flex;align-items:center;gap:10px;font-size:0.82rem;color:#fbbf24;font-weight:600;';
-        _loadingBanner.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(251,191,36,0.35);border-top-color:#fbbf24;border-radius:50%;animation:spin 0.8s linear infinite;"></span><span>Carregando seu perfil…</span>';
-        // Inserir como primeiro filho do modalContent
-        modalContent.insertBefore(_loadingBanner, modalContent.firstChild);
-        // Adiciona keyframes de spin se não existir
-        if (!document.getElementById('_profile-loading-spin-style')) {
-          var style = document.createElement('style');
-          style.id = '_profile-loading-spin-style';
-          style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
-          document.head.appendChild(style);
-        }
+      _loadingBanner = document.createElement('div');
+      _loadingBanner.id = 'profile-loading-banner';
+      _loadingBanner.style.cssText = 'background:linear-gradient(90deg,rgba(251,191,36,0.18),rgba(251,191,36,0.08));border:1px solid rgba(251,191,36,0.35);border-radius:10px;padding:8px 14px;margin:10px 14px 0;display:flex;align-items:center;gap:10px;font-size:0.82rem;color:#fbbf24;font-weight:600;';
+      _loadingBanner.innerHTML = '<span style="display:inline-block;width:14px;height:14px;border:2px solid rgba(251,191,36,0.35);border-top-color:#fbbf24;border-radius:50%;animation:spin 0.8s linear infinite;"></span><span>Carregando seu perfil…</span>';
+      modalInner.insertBefore(_loadingBanner, modalInner.firstChild);
+      if (!document.getElementById('_profile-loading-spin-style')) {
+        var style = document.createElement('style');
+        style.id = '_profile-loading-spin-style';
+        style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
       }
     }
 
     if (window.AppStore && typeof window.AppStore.loadUserProfile === 'function' && cu.uid) {
       try {
         await window.AppStore.loadUserProfile(cu.uid);
-        // Re-populate only if modal is still open (user may have closed it).
-        var modal = document.getElementById('modal-profile');
-        if (modal && modal.classList.contains('active')) {
+        // Re-populate só se ainda na rota #profile.
+        if (window.location.hash === '#profile') {
           window._populateProfileModalFields();
         }
       } catch (e) { console.warn('Profile refresh on open failed:', e); }
     }
-    // Remove loading banner se ainda existe
+    // Remove loading banner.
     if (_loadingBanner && _loadingBanner.parentNode) {
       _loadingBanner.parentNode.removeChild(_loadingBanner);
     }
     var _stuckBanner = document.getElementById('profile-loading-banner');
     if (_stuckBanner && _stuckBanner.parentNode) _stuckBanner.parentNode.removeChild(_stuckBanner);
+
+    if (typeof window._reflowChrome === 'function') window._reflowChrome();
   };
 
   // Update notification badge (immediate + periodic refresh every 30s)
@@ -3459,15 +3519,11 @@ function setupProfileModal() {
       return '<option value="' + c.code + '">' + c.flag + ' +' + c.code + '</option>';
     }).join('');
 
-    // v1.3.3-beta: cabeçalho padronizado — _renderBackHeader (Voltar + título
-    // centralizado + Salvar + hamburger). User: 'o cabecalho no perfil está
-    // quebrado. cade logo, hamburger etc'. Memória: "all pages/modals/overlays:
-    // back button left + title center + hamburger right".
-    var _backHdrPlaceholder = '<div id="profile-back-hdr-slot"></div>';
-    // v1.3.4-beta: sem max-width / max-height inline — CSS força full-screen
+    // v1.3.5-beta: setupProfileModal continua criando a estrutura DOM (chamada
+    // 1x no boot via main.js + i18n re-render). renderProfilePage move o
+    // .modal pro view-container e adiciona o back-header padronizado lá.
     var modalHtml = '<div class="modal-overlay" id="modal-profile">' +
       '<div class="modal" style="overflow-y: auto; overflow-x: hidden; box-sizing: border-box;">' +
-        _backHdrPlaceholder +
         '<div class="modal-body" style="padding: 1rem 1.25rem; overflow-x: hidden; max-width: 760px; margin: 0 auto; width: 100%; box-sizing: border-box;">' +
           // Avatar row
           // v1.0.23-beta: feedback do user — "esses ícones são ridículos.
@@ -3665,21 +3721,6 @@ function setupProfileModal() {
       '</div>' +
     '</div>';
     document.body.appendChild(createInteractiveElement(modalHtml));
-
-    // v1.3.3-beta: substituir placeholder pelo back-header padronizado
-    var _profileBackSlot = document.getElementById('profile-back-hdr-slot');
-    if (_profileBackSlot && typeof window._renderBackHeader === 'function') {
-      var _profileSaveBtn = '<button type="button" class="btn btn-primary btn-sm" onclick="window._spinButton(this, \'Salvando...\'); if(typeof saveUserProfile===\'function\')saveUserProfile()" style="flex-shrink:0;">' + _t('btn.save') + '</button>';
-      _profileBackSlot.outerHTML = window._renderBackHeader({
-        label: 'Voltar',
-        middleHtml: '<div style="flex:1;text-align:center;font-weight:700;color:var(--text-bright);font-size:1rem;">' + _t('profile.myProfile') + '</div>',
-        rightHtml: _profileSaveBtn,
-        onClickOverride: function () {
-          var m = document.getElementById('modal-profile');
-          if (m) m.classList.remove('active');
-        },
-      });
-    }
 
     // Setup phone mask
     var phoneInput = document.getElementById('profile-edit-phone');
@@ -4639,7 +4680,14 @@ function setupProfileModal() {
         if (nameSpan) nameSpan.textContent = firstName;
       }
 
-      document.getElementById('modal-profile').classList.remove('active');
+      // v1.3.5-beta: usar helper centralizado que trata tanto rota #profile
+      // quanto modal-overlay legacy.
+      if (typeof window._closeProfilePage === 'function') {
+        window._closeProfilePage();
+      } else {
+        var _modalEl = document.getElementById('modal-profile');
+        if (_modalEl) _modalEl.classList.remove('active');
+      }
       // v1.0.12-beta: defensivo — se modal-login ficou com .active escondido
       // atrás do modal-profile (bug do close não disparar pós-Google login),
       // fecha aqui pra evitar que ele apareça quando o profile fecha. Bug

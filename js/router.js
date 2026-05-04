@@ -250,6 +250,14 @@ function initRouter() {
           return;
         }
         break;
+      case 'profile':
+        if (typeof window.renderProfilePage === 'function') {
+          window.renderProfilePage(viewContainer);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       case 'support':
         if (typeof window.renderSupportPage === 'function') {
           window.renderSupportPage(viewContainer);

@@ -521,25 +521,24 @@ body.hamburger-open .topbar {
   transform: scale(1);
 }
 
-/* v1.3.4-beta: modal-profile ocupa tela inteira, não card flutuante.
-   User: 'o perfil parece estar abrindo numa subtela e não na tela toda
-   com a largura total do navegador. arrume isso. nenhuma tela deveria
-   abrir dessa forma.' Mesmo padrão do #venues-detail-overlay e
-   #enrollment-report-modal — full-bleed, sem rounded card centralizado. */
-#modal-profile {
-  align-items: stretch !important;
-  justify-content: stretch !important;
-  padding: 0 !important;
-  background-color: var(--bg-dark);
-  backdrop-filter: none;
-}
-#modal-profile .modal {
+/* v1.3.5-beta: perfil agora é rota (#profile) usando renderProfilePage,
+   não mais modal-overlay. CSS específico de #modal-profile foi removido
+   — o padrão centralizado é o mesmo de #support, #privacy, #invite:
+   topbar fica visível, _renderBackHeader cuida do cabeçalho.
+   Quando renderProfilePage move o .modal pra dentro de #view-container,
+   ele precisa renderizar como página normal (não card flutuante). */
+#view-container > .modal {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
-  max-height: 100vh !important;
-  height: 100vh;
-  border-radius: 0 !important;
-  border: none !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+  transform: none !important;
+  box-shadow: none !important;
+  display: block !important;
   margin: 0 !important;
 }
 

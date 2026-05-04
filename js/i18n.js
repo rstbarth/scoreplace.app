@@ -154,39 +154,42 @@
       try { localStorage.setItem('scoreplace_lang', lang); } catch (e) {}
       document.documentElement.setAttribute('lang', lang === 'pt' ? 'pt-BR' : lang);
 
-      // v0.17.88: ao trocar idioma com modal-profile aberto:
-      // 1. Snapshot do form (preserva edições não-salvas)
-      // 2. NÃO chama initRouter — initRouter dispara _dismissAllOverlays e
-      //    re-renderiza a view inteira. v0.17.87 rebuildava o modal mas
-      //    perdia o snapshot porque populate vinha de currentUser/Firestore.
-      // 3. Rebuild do modal in-place (HTML com novas traduções)
-      // 4. Restaura snapshot — preserva o que o usuário tinha digitado.
-      // Quando o user fechar o modal, render seguinte da view subjacente
-      // já vai usar window._lang novo (string vinda de _t() na próxima vez).
+      // v1.3.5-beta: perfil agora é rota #profile (não modal-overlay).
+      // Detecção atualizada: modal-active OU rota=#profile.
+      // Snapshot+restore preservam edições não-salvas durante troca de lang.
       var profileModal = document.getElementById('modal-profile');
-      var profileWasOpen = profileModal && profileModal.classList.contains('active');
+      var profileWasOpen = (profileModal && profileModal.classList.contains('active'))
+        || (window.location.hash === '#profile');
 
       if (profileWasOpen) {
         var snap = _snapshotProfileForm();
-        // Remove modal antigo
-        if (profileModal.parentNode) profileModal.parentNode.removeChild(profileModal);
+        // Remove qualquer instância antiga (em body OU em view-container)
+        if (profileModal && profileModal.parentNode) profileModal.parentNode.removeChild(profileModal);
+        // Limpa qualquer .modal residual no view-container (do route render anterior)
+        var viewContainer = document.getElementById('view-container');
+        if (viewContainer) {
+          var staleModal = viewContainer.querySelector('.modal');
+          if (staleModal) staleModal.remove();
+        }
         // Rebuild com nova lang
         if (typeof window.setupProfileModal === 'function') {
           window.setupProfileModal();
         }
-        // Abre o modal DIRETAMENTE (sem _openMyProfileModal) — esse último
-        // faz populate-from-Firestore async que sobrescreveria as edições
-        // do usuário que estamos restaurando. Só queremos: ativar o modal +
-        // popular com snapshot do que ele tinha digitado.
-        var newModal = document.getElementById('modal-profile');
-        if (newModal) newModal.classList.add('active');
-        // Restaura snapshot: preserva o que o usuário tinha editado mas
-        // ainda não tinha salvo. Usuário pode continuar editando.
+        // Re-render da página #profile (move .modal pro view-container).
+        if (window.location.hash === '#profile' && typeof window.renderProfilePage === 'function' && viewContainer) {
+          window.renderProfilePage(viewContainer);
+        } else {
+          // Profile estava como modal-overlay (legacy/outro contexto) —
+          // ativa modal direto, sem reload async.
+          var newModal = document.getElementById('modal-profile');
+          if (newModal) newModal.classList.add('active');
+        }
+        // Restaura snapshot: preserva edições do usuário.
         _restoreProfileForm(snap);
-        return; // NÃO chama initRouter — modal permanece como state ativo
+        return; // NÃO chama initRouter — page já foi re-renderizada
       }
 
-      // Fora do modal: comportamento normal — re-render da view.
+      // Fora do perfil: comportamento normal — re-render da view.
       if (typeof window.initRouter === 'function') {
         window.initRouter();
       }

@@ -8,6 +8,22 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #10b981;border-radius:12px;padding:14px 16px;background:rgba(16,185,129,0.10);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🛣️ v1.3.5-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil agora é uma rota (<code>#profile</code>), não modal-overlay.</b> User: <i>"a administração disso está centralizada no app justamente para vc não ficar tentando copiar o que já está feito e aprovado. encontre isso e aplique o que já está feito, centralizado e aprovado sem tentar recriar o que descrevi."</i></p>' +
+      '<p>Substituí toda a estrutura de "modal-overlay" do perfil pelo padrão centralizado de <i>page route</i> — mesmo de <code>#support</code>, <code>#privacy</code>, <code>#terms</code>, <code>#invite</code>:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Topbar permanece visível</b> (logo + app name + nav) com hamburger funcional empurrando o conteúdo scrollável quando aberto</li>' +
+        '<li><b>Back-header padronizado</b> via <code>_renderBackHeader</code> com Voltar (esquerda, hash → #dashboard), título "Meu Perfil" (centro), botão Salvar (direita)</li>' +
+        '<li><b><code>renderProfilePage(container)</code></b> nova função em auth.js: garante setupProfileModal foi chamado, MOVE o <code>.modal</code> pro view-container preservando todos os listeners, e adiciona o back-header padronizado em cima</li>' +
+        '<li><b>Router</b>: novo <code>case "profile":</code> chama <code>renderProfilePage(viewContainer)</code></li>' +
+        '<li><b>Compat</b>: <code>_openMyProfileModal()</code> e <code>_showProfileModal()</code> agora são wrappers que fazem <code>window.location.hash = "#profile"</code> — todos os call-sites antigos continuam funcionando sem mudança</li>' +
+        '<li><b>Helper centralizado</b> <code>_closeProfilePage()</code> trata tanto a rota nova (navega pro #dashboard) quanto o modal-overlay legacy (remove .active)</li>' +
+        '<li><b>i18n</b>: re-render do perfil ao trocar idioma agora detecta tanto <code>.active</code> quanto <code>hash === "#profile"</code>, preservando snapshot de edições não-salvas como antes</li>' +
+        '<li><b>CSS</b>: removidas as gambiarras das v1.3.3/v1.3.4 (top:60px, max-width forçado, etc.). Agora <code>#view-container > .modal</code> renderiza como página normal (sem card flutuante)</li>' +
+      '</ul>' +
+      '<p>Lição importante pro futuro (anotada em memória): quando há padrão centralizado já aprovado (<i>page routes via _renderBackHeader</i>), não criar caminho paralelo via CSS hacks em modal-overlay — usar o que está pronto.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #818cf8;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🖥️ v1.3.4-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Modal de Perfil agora ocupa tela inteira (full viewport).</b> User: <i>"o perfil parece estar abrindo numa subtela e não na tela toda com a largura total do navegador. arrume isso. nenhuma tela deveria abrir dessa forma."</i></p>' +
