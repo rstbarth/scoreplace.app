@@ -3363,14 +3363,15 @@ function setupCreateTournamentModal() {
     window._onLigaInactivityChange();
     window._updateRegDateVisibility();
     window._recalcDuration();
-    openModal('modal-create-tournament');
+    // v1.3.13-beta: navega pra rota #novo-torneio. Pre-population já rolou
+    // acima — renderCreateTournamentPage move .modal pro view-container
+    // preservando valores. Post-init (GSM, places, venue map) roda lá.
+    if (typeof window._navigateToCreateTournament === 'function') {
+      window._navigateToCreateTournament();
+    } else {
+      openModal('modal-create-tournament');
+    }
     if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
-    setTimeout(function() {
-      if (typeof window._gsmInitPresets === 'function') window._gsmInitPresets();
-      else if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
-      if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
-      if (typeof window._autoShowVenueMap === 'function') window._autoShowVenueMap();
-    }, 100);
   };
 
   // NOTE: btn-create-tournament não existe no HTML.
@@ -3739,6 +3740,9 @@ function setupCreateTournamentModal() {
         }
 
         if (typeof window.updateViewModeVisibility === 'function') window.updateViewModeVisibility();
+        // v1.3.13-beta: a navegação pra hash logo abaixo já tira o user da
+        // rota #novo-torneio. closeModal continua sendo chamado pra cobrir
+        // o caminho legacy (caso algum call-site ainda faça openModal).
         closeModal('modal-create-tournament');
 
         // Re-render: força atualização completa da view
@@ -4407,15 +4411,73 @@ window._prefillFromTemplate = function(tpl) {
 };
 
 // ─── Discard create/edit tournament ───────────────────────────────────────
-// Closes the create-tournament modal without saving. Used by the "Voltar"
-// and "Descartar" buttons in the sticky modal header.
+// v1.3.13-beta: agora detecta rota — se estiver em #novo-torneio, navega
+// pro dashboard (history.back se possível). Se for modal-overlay legacy,
+// remove .active. Compat com ambos os caminhos.
 window._discardCreateTournament = function() {
+  if (window.location.hash === '#novo-torneio') {
+    window.location.hash = '#dashboard';
+    return;
+  }
   if (typeof closeModal === 'function') closeModal('modal-create-tournament');
   else {
     var modal = document.getElementById('modal-create-tournament');
     if (modal) modal.classList.remove('active');
   }
 };
+
+// ─── Navigation helper + page renderer (v1.3.13-beta) ────────────────────
+// Padrão centralizado: criar/editar torneio é page-route #novo-torneio.
+// Topbar visível, hamburger funcional, URL bookmarkable.
+//
+// Pre-população dos campos (form.reset, set sport, prefill venue, etc.)
+// continua acontecendo nos call-sites ANTES da navegação — DOM moves
+// preservam valores quando renderCreateTournamentPage move .modal pro
+// view-container.
+window._navigateToCreateTournament = function () {
+  // Se já está em #novo-torneio, força re-render (initRouter)
+  if (window.location.hash === '#novo-torneio') {
+    if (typeof window.initRouter === 'function') window.initRouter();
+  } else {
+    window.location.hash = '#novo-torneio';
+  }
+};
+
+window.renderCreateTournamentPage = function (container) {
+  if (!container) return;
+  // Garantir que setupCreateTournamentModal já criou a estrutura DOM
+  if (!document.getElementById('modal-create-tournament') && typeof window.setupCreateTournamentModal === 'function') {
+    window.setupCreateTournamentModal();
+  }
+  var modalEl = document.getElementById('modal-create-tournament');
+  var modalInner = modalEl ? modalEl.querySelector('.modal') : null;
+  if (!modalInner) {
+    if (modalEl) modalEl.remove();
+    if (typeof window.setupCreateTournamentModal === 'function') window.setupCreateTournamentModal();
+    modalEl = document.getElementById('modal-create-tournament');
+    modalInner = modalEl ? modalEl.querySelector('.modal') : null;
+  }
+  if (!modalInner) return;
+
+  container.innerHTML = '';
+  container.appendChild(modalInner);
+  if (modalEl && modalEl.parentNode === document.body) modalEl.remove();
+
+  // Re-rodar setup async que depende de DOM visível (places, venue map, GSM)
+  setTimeout(function () {
+    if (typeof window._gsmInitPresets === 'function') window._gsmInitPresets();
+    else if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
+    if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
+    if (typeof window._autoShowVenueMap === 'function') window._autoShowVenueMap();
+  }, 50);
+
+  if (typeof window._reflowChrome === 'function') window._reflowChrome();
+};
+
+// Expor setupCreateTournamentModal pra que renderCreateTournamentPage possa
+// rebuildar quando o user navega pra fora e volta (router clear destrói o
+// .modal que estava no view-container).
+window.setupCreateTournamentModal = setupCreateTournamentModal;
 
 // ─── Render the sticky back-header for the create/edit tournament modal ──
 // Uses the centralized window._renderBackHeader helper with action buttons

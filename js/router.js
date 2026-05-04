@@ -285,6 +285,18 @@ function initRouter() {
           return;
         }
         break;
+      case 'novo-torneio':
+        // v1.3.13-beta: criar/editar torneio como page-route. Pre-population
+        // dos campos (form.reset, sport, prefill) já aconteceu antes da
+        // navegação — renderCreateTournamentPage move .modal pro container
+        // preservando valores.
+        if (typeof window.renderCreateTournamentPage === 'function') {
+          window.renderCreateTournamentPage(viewContainer);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       case 'support':
         if (typeof window.renderSupportPage === 'function') {
           window.renderSupportPage(viewContainer);

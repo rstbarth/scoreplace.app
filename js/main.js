@@ -1513,19 +1513,23 @@ window._openHelpPage = function () { window.location.hash = '#help'; };
       if (_pidInp)   _pidInp.value = _advVenuePref.placeId || '';
     }
 
-    if (typeof openModal === 'function') openModal('modal-create-tournament');
+    // v1.3.13-beta: navega pra rota #novo-torneio. Pre-population (form
+    // reset, sport selection, venue prefill) já rolou acima.
+    if (typeof window._navigateToCreateTournament === 'function') {
+      window._navigateToCreateTournament();
+    } else if (typeof openModal === 'function') {
+      openModal('modal-create-tournament');
+    }
     if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
-    // Ensure GSM summary renders after modal is visible
-    setTimeout(function() {
-      if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
-      if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
-      if (typeof window._autoShowVenueMap === 'function') window._autoShowVenueMap();
-      // Render the venue map immediately if we have coords from the prefill.
-      if (_advVenuePref && _advVenuePref.lat != null && _advVenuePref.lon != null &&
-          typeof window._initVenueCreateMap === 'function') {
-        window._initVenueCreateMap(parseFloat(_advVenuePref.lat), parseFloat(_advVenuePref.lon), _advVenuePref.venueName || '');
-      }
-    }, 100);
+    // Venue map precisa de extra-init quando há coords do prefill — roda
+    // depois que renderCreateTournamentPage moveu o .modal pro container.
+    if (_advVenuePref && _advVenuePref.lat != null && _advVenuePref.lon != null) {
+      setTimeout(function () {
+        if (typeof window._initVenueCreateMap === 'function') {
+          window._initVenueCreateMap(parseFloat(_advVenuePref.lat), parseFloat(_advVenuePref.lon), _advVenuePref.venueName || '');
+        }
+      }, 150);
+    }
   });
 
   // ─── Template Integration ────────────────────────────────────────────────
@@ -1581,13 +1585,13 @@ window._openHelpPage = function () { window.location.hash = '#help'; };
     if (typeof window._prefillFromTemplate === 'function') {
       window._prefillFromTemplate(tpl);
     }
-    if (typeof openModal === 'function') openModal('modal-create-tournament');
+    // v1.3.13-beta: navega pra rota #novo-torneio (page-route padronizada).
+    if (typeof window._navigateToCreateTournament === 'function') {
+      window._navigateToCreateTournament();
+    } else if (typeof openModal === 'function') {
+      openModal('modal-create-tournament');
+    }
     if (typeof window._refreshTemplateBtn === 'function') window._refreshTemplateBtn();
-    setTimeout(function() {
-      if (typeof window._updateGSMSummaryFromHidden === 'function') window._updateGSMSummaryFromHidden();
-      if (typeof window._initPlacesAutocomplete === 'function') window._initPlacesAutocomplete();
-      if (typeof window._autoShowVenueMap === 'function') window._autoShowVenueMap();
-    }, 100);
   };
 
   window._qcDeleteTemplate = async function(templateId) {

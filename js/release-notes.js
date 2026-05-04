@@ -9,6 +9,23 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #10b981;border-radius:12px;padding:14px 16px;background:rgba(16,185,129,0.10);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🏆 v1.3.13-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Criar/Editar Torneio convertido pra page-route <code>#novo-torneio</code> (auditoria parte 3).</b></p>' +
+      '<p>Formulão grande, scrollável, com muitos campos — caso clássico de "deveria ser rota". Antes era modal-overlay com max-width 800px (card flutuante).</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><code>window._navigateToCreateTournament()</code> nova função — navega pra <code>#novo-torneio</code></li>' +
+        '<li><code>window.renderCreateTournamentPage(container)</code> renderer canônico que move o <code>.modal</code> pro view-container preservando todos os listeners e valores pré-populados</li>' +
+        '<li><code>window.setupCreateTournamentModal</code> exposto globalmente pra rebuild idempotente quando o user navega pra fora e volta</li>' +
+        '<li><code>_discardCreateTournament()</code> agora detecta rota — navega pro <code>#dashboard</code> em vez de só fechar modal</li>' +
+        '<li>Pre-population dos campos (form.reset, sport selection, venue prefill, template apply) continua acontecendo nos call-sites ANTES da navegação. <code>renderCreateTournamentPage</code> move o <code>.modal</code> com valores intactos pro view-container</li>' +
+        '<li>Post-init (GSM presets, Places autocomplete, venue map) roda dentro do renderer com <code>setTimeout(50)</code> garantindo DOM visível</li>' +
+        '<li>Header padronizado já existia via <code>_renderCreateTournamentHeader</code> (Voltar + Carregar Template + Salvar Template + Descartar + Salvar) — preservado</li>' +
+        '<li>3 callers atualizados: btn-quick-advanced, _qcApplyTemplate, openEditModal</li>' +
+        '<li>Hint context <code>create-tournament</code> adicionado</li>' +
+      '</ul>' +
+      '<p>Topbar visível, hamburger funciona, URL bookmarkable. Última na auditoria: <code>casual-match-overlay</code> (com cuidado por causa do live state — placar, timer).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #10b981;border-radius:12px;padding:14px 16px;background:rgba(16,185,129,0.10);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🏷️ v1.3.12-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Category Manager convertido pra page-route <code>#categorias/&lt;tId&gt;</code> (auditoria parte 2).</b></p>' +
       '<p>Conteúdo rico (cards, drag/drop, mesclagem) onde o organizador passa tempo gerenciando — ficou claro que devia ser rota com URL própria. Antes era full-screen modal-overlay com z-index 10001 cobrindo tudo.</p>' +
