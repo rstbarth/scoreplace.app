@@ -9,6 +9,11 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #a855f7;border-radius:12px;padding:14px 16px;background:rgba(168,85,247,0.10);">' +
+      '<div style="font-weight:800; color:#d8b4fe; font-size:1rem; margin-bottom:8px;">↕️ v1.2.4-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Bloco "Categorias do Torneio" subiu — agora vem logo depois de Tipo de Jogo e antes de Modo de Inscrição.</b> User: <i>"agora parece que faz mais sentido colocar todo o bloco de categorias logo depois do tipo de jogo e antes do modo de inscrição."</i></p>' +
+      '<p>Faz sentido funcional: o tipo de jogo (Simples/Duplas) afeta a multiplicação das categorias (ex.: <code>Fem A Simples</code> vs <code>Fem A Duplas</code>), então definir as duas dimensões antes de configurar a inscrição mantém o fluxo lógico — o organizador vê todas as categorias geradas no preview antes de decidir como os participantes vão se inscrever.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #a855f7;border-radius:12px;padding:14px 16px;background:rgba(168,85,247,0.10);">' +
       '<div style="font-weight:800; color:#d8b4fe; font-size:1rem; margin-bottom:8px;">📋 v1.2.3-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Preview de categorias agrupado por gênero, com Misto sempre colapsado.</b> User: <i>"Quero apenas Misto como categoria nesse box. Nesse mesmo box podemos colocar os generos divididos em linhas (ficaria Fem A, Fem B, Fem C, Fem 40+, Fem 50+ na linha de baixo Masc A..."</i></p>' +
       '<p>Box de "Categorias do Torneio" reorganizado: uma linha por gênero, ordem fixa Fem → Masc → Misto. Skill+age da mesma família ficam juntos na mesma linha (skill em roxo, age em âmbar pra distinção visual). Antes os pills viravam um wrap horizontal sem agrupamento — difícil de ler.</p>' +
