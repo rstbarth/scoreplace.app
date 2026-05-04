@@ -567,6 +567,38 @@
     return html;
   }
 
+  // v1.3.3-beta: cleanup centralizado pra garantir que o overlay nunca
+  // fica fantasma na tela. Antes só era limpo via botão Voltar — se o
+  // user navegasse via hashchange (URL muda) ou abrisse outro modal por
+  // cima, o overlay ficava no DOM cobrindo tudo com z-index alto.
+  function _closeReport() {
+    var overlay = document.getElementById('enrollment-report-modal');
+    if (overlay) overlay.remove();
+    document.body.classList.remove('enrollment-report-open');
+  }
+  // Expor pra outros módulos limparem se necessário (ex: ao abrir profile)
+  window._closeEnrollmentReport = _closeReport;
+
+  // Auto-close em mudança de rota — overlay não deve sobreviver à navegação
+  if (typeof window !== 'undefined' && !window._enrollmentReportHashListener) {
+    window._enrollmentReportHashListener = true;
+    window.addEventListener('hashchange', function () {
+      _closeReport();
+    });
+
+    // Auto-close quando qualquer modal-overlay nativo abre (perfil, login,
+    // criar torneio, etc.). Senão o report fica fantasma cobrindo tudo
+    // com z-index alto, e o user vê só o header dele em cima do modal novo.
+    if (typeof window.openModal === 'function' && !window._enrollmentReportOpenModalHook) {
+      window._enrollmentReportOpenModalHook = true;
+      var _origOpenModal = window.openModal;
+      window.openModal = function (modalId) {
+        if (modalId !== 'enrollment-report-modal') _closeReport();
+        return _origOpenModal.apply(this, arguments);
+      };
+    }
+  }
+
   function _showLoading(t) {
     var existing = document.getElementById('enrollment-report-modal');
     if (existing) existing.remove();
@@ -577,7 +609,7 @@
       ? window._renderBackHeader({
         label: 'Voltar',
         middleHtml: '<div style="flex:1;text-align:center;font-weight:700;color:var(--text-bright);font-size:0.9rem;">📊 Análise de Inscritos</div>',
-        onClickOverride: function () { overlay.remove(); },
+        onClickOverride: _closeReport,
       })
       : '';
     overlay.innerHTML = hdr +
@@ -639,7 +671,7 @@
       ? window._renderBackHeader({
         label: 'Voltar',
         middleHtml: '<div style="flex:1;text-align:center;font-weight:700;color:var(--text-bright);font-size:0.9rem;">📊 Análise de Inscritos</div>',
-        onClickOverride: function () { overlay.remove(); document.body.classList.remove('enrollment-report-open'); },
+        onClickOverride: _closeReport,
       })
       : '';
 

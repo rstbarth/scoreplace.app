@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #818cf8;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
+      '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🔧 v1.3.3-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Cabeçalho do Modal de Perfil padronizado + cleanup do overlay de Análise.</b> User: <i>"o cabecalho no perfil está quebrado. cade logo, hamburger etc"</i></p>' +
+      '<p>Dois fixes:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Modal de Perfil agora usa <code>_renderBackHeader</code></b>: padrão consistente com o resto do app — <i>Voltar</i> à esquerda (fecha o modal), título "Meu Perfil" centralizado, botão <i>Salvar</i> à direita, e hamburger acessível. Antes era um header custom com title + Cancelar + Salvar (sem hamburger). Memória do user: "all pages/modals/overlays: back button left + title center + hamburger right".</li>' +
+        '<li><b>Overlay de Análise de Inscritos com cleanup robusto</b>: agora fecha automaticamente em <code>hashchange</code> (URL muda → overlay some) e quando qualquer outro modal abre via <code>openModal()</code> (perfil, login, criar torneio…). Antes podia ficar fantasma cobrindo a tela com z-index 10020. CSS atualizado pra que back-header dentro do overlay flua estaticamente (não <code>position:fixed</code>) e mostre o hamburger — comportamento igual aos outros overlays (#venues-detail-overlay, #qr-modal-overlay, etc.).</li>' +
+      '</ul>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #818cf8;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.10);">' +
       '<div style="font-weight:800; color:#a5b4fc; font-size:1rem; margin-bottom:8px;">🔧 v1.3.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Análise de Inscritos: pills baseadas no perfil + categorias derivadas + bloco diagnóstico.</b> User: <i>"temos 1 inscrito com perfil completo, mas não parece estar funcionando. deveria ter masc 1, habilidade D 1, Masc 50+ 1 - que são os dados do perfil inscrito."</i></p>' +
       '<p>Três fixes:</p>' +

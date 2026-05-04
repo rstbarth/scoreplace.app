@@ -3459,15 +3459,14 @@ function setupProfileModal() {
       return '<option value="' + c.code + '">' + c.flag + ' +' + c.code + '</option>';
     }).join('');
 
+    // v1.3.3-beta: cabeçalho padronizado — _renderBackHeader (Voltar + título
+    // centralizado + Salvar + hamburger). User: 'o cabecalho no perfil está
+    // quebrado. cade logo, hamburger etc'. Memória: "all pages/modals/overlays:
+    // back button left + title center + hamburger right".
+    var _backHdrPlaceholder = '<div id="profile-back-hdr-slot"></div>';
     var modalHtml = '<div class="modal-overlay" id="modal-profile">' +
       '<div class="modal" style="max-width: 520px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; width: calc(100% - 2rem);">' +
-        '<div class="modal-header" style="position: sticky; top: 0; z-index: 2; background: var(--bg-card); padding: 0.75rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">' +
-          '<h2 class="card-title" style="margin:0;font-size:1.1rem;">' + _t('profile.myProfile') + '</h2>' +
-          '<div style="display:flex;gap:8px;align-items:center;">' +
-            '<button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById(\'modal-profile\').classList.remove(\'active\')">' + _t('btn.cancel') + '</button>' +
-            '<button type="button" class="btn btn-primary btn-sm" onclick="window._spinButton(this, \'Salvando...\'); if(typeof saveUserProfile===\'function\')saveUserProfile()">' + _t('btn.save') + '</button>' +
-          '</div>' +
-        '</div>' +
+        _backHdrPlaceholder +
         '<div class="modal-body" style="padding: 1rem 1.25rem; overflow-x: hidden;">' +
           // Avatar row
           // v1.0.23-beta: feedback do user — "esses ícones são ridículos.
@@ -3665,6 +3664,21 @@ function setupProfileModal() {
       '</div>' +
     '</div>';
     document.body.appendChild(createInteractiveElement(modalHtml));
+
+    // v1.3.3-beta: substituir placeholder pelo back-header padronizado
+    var _profileBackSlot = document.getElementById('profile-back-hdr-slot');
+    if (_profileBackSlot && typeof window._renderBackHeader === 'function') {
+      var _profileSaveBtn = '<button type="button" class="btn btn-primary btn-sm" onclick="window._spinButton(this, \'Salvando...\'); if(typeof saveUserProfile===\'function\')saveUserProfile()" style="flex-shrink:0;">' + _t('btn.save') + '</button>';
+      _profileBackSlot.outerHTML = window._renderBackHeader({
+        label: 'Voltar',
+        middleHtml: '<div style="flex:1;text-align:center;font-weight:700;color:var(--text-bright);font-size:1rem;">' + _t('profile.myProfile') + '</div>',
+        rightHtml: _profileSaveBtn,
+        onClickOverride: function () {
+          var m = document.getElementById('modal-profile');
+          if (m) m.classList.remove('active');
+        },
+      });
+    }
 
     // Setup phone mask
     var phoneInput = document.getElementById('profile-edit-phone');
