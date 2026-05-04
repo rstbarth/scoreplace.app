@@ -8,6 +8,18 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #f59e0b;border-radius:12px;padding:14px 16px;background:rgba(245,158,11,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">🎾 v1.3.14-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Live scoring: drag da bola não rouba mais o swap de quadra.</b> User: <i>"podemos arrastar a bolinha para mudar o sacador... podemos arrastar os lados da quadra... Por vezes quando tentei mudar a bolinha de lugar mudou o lado da quadra. Isso precisa funcionar melhor. se o usuário clicar na bolinha (ou perto dela), arrasta a bolinha e não o lado da quadra. para mudar o lado da quadra precisa clicar fora do card com a bolinha."</i></p>' +
+      '<p>Bug raiz: o <code>touchstart</code> no span da bola não chamava <code>stopPropagation</code>, então o handler do <code>.court-side</code> (parent) também ativava — ambos sistemas competiam pelo touch. Resultado: usuário tentava arrastar a bola e às vezes o lado da quadra trocava de lugar.</p>' +
+      '<p>Três fixes:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Zona de drag estendida do span do ícone pro card inteiro do jogador-sacador</b>. Marcado com <code>data-serve-ball-card</code>. Tocou em qualquer lugar do card → arrasta bola.</li>' +
+        '<li><b><code>stopPropagation</code> em todos os eventos de touch da bola</b> (touchstart/touchmove/touchend). Court-side nunca mais recebe esses eventos quando o usuário começou na bola.</li>' +
+        '<li><b>Threshold de 8px de movimento separa tap de drag</b>. Tap puro (sem mover) ainda dispara o click original (editar nome do jogador). Movimento ≥ 8px ativa drag de bola, cancela edição. <code>preventDefault</code> só é chamado quando virou drag de fato — preserva a UX de tap.</li>' +
+      '</ul>' +
+      '<p>Para arrastar o lado da quadra: tocar em qualquer lugar EXCETO no card do sacador (vazio entre cards, card do parceiro sem bola, ou área do placar). Comportamento exatamente como o user descreveu.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #10b981;border-radius:12px;padding:14px 16px;background:rgba(16,185,129,0.10);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🏆 v1.3.13-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Criar/Editar Torneio convertido pra page-route <code>#novo-torneio</code> (auditoria parte 3).</b></p>' +

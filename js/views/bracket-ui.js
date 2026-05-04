@@ -5180,9 +5180,15 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
         // Drop target: each player row is a drop target for the serve ball
         var dropAttr = _canDragServe ? ' data-serve-drop="' + team + '-' + ni + '"' : '';
+        // v1.3.14-beta: card inteiro do jogador-sacador vira zona de drag da
+        // bola — antes só o span do ícone reagia, e o card vazava o touchstart
+        // pro court-side, fazendo "trocar bola" virar "trocar lado da quadra".
+        // User: "se o usuário clicar na bolinha (ou perto dela), arrasta a
+        // bolinha e não o lado da quadra".
+        var ballCardAttr = (isServing && _canDragServe) ? ' data-serve-ball-card="true"' : '';
 
         // Individual player box
-        cards += '<div' + dropAttr + ' onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);transition:transform 0.15s,background 0.15s;min-width:0;">' +
+        cards += '<div' + dropAttr + ballCardAttr + ' onclick="window._liveEditName(' + team + ',' + ni + ')" style="cursor:pointer;display:flex;align-items:center;gap:5px;padding:5px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);transition:transform 0.15s,background 0.15s;min-width:0;">' +
           servBall +
           avatar +
           '<span style="flex:1;min-width:0;font-size:clamp(0.72rem,2.2vw,0.88rem);font-weight:' + (isServing ? '800' : '600') + ';color:' + (isServing ? clr : 'rgba(255,255,255,0.75)') + ';white-space:normal;word-break:break-word;overflow-wrap:anywhere;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;">' + fullName + '</span>' +
@@ -5479,107 +5485,150 @@ window._openLiveScoring = function(tId, matchId, opts) {
   }
 
   // ── Serve ball drag-and-drop (inline server change) ──
+  // v1.3.14-beta: zona de drag estendida do span do ícone pro card inteiro
+  // do jogador-sacador. Threshold de 8px de movimento separa "tap" (edita
+  // nome) de "drag" (arrasta bola). stopPropagation impede que court-side
+  // receba o evento e dispare swap-de-lados em paralelo.
   var _serveBallDragging = false;
   var _serveBallGhost = null;
+  var DRAG_THRESHOLD_PX = 8; // distância antes de virar drag (vs tap)
 
   function _setupServeBallDrag() {
-    var ball = document.querySelector('[data-serve-ball]');
-    if (!ball) return;
+    // Sources: ball span E card inteiro do sacador (ambos disparam drag).
+    var sources = document.querySelectorAll('[data-serve-ball], [data-serve-ball-card]');
+    if (sources.length === 0) return;
     var drops = document.querySelectorAll('[data-serve-drop]');
 
-    // Desktop drag from ball
-    ball.addEventListener('dragstart', function(e) {
-      _serveBallDragging = true;
-      e.dataTransfer.effectAllowed = 'move';
-      // Highlight valid drop targets
+    function _highlightValidDrops() {
       drops.forEach(function(d) {
         var parts = d.getAttribute('data-serve-drop').split('-');
         var dropTeam = parseInt(parts[0]);
         var canDrop = (state.totalGamesPlayed === 0) || (state.totalGamesPlayed === 1 && state.serveOrder.length > 1 && dropTeam === state.serveOrder[1].team);
         if (canDrop) d.style.background = 'rgba(255,200,0,0.15)';
       });
-    });
-    ball.addEventListener('dragend', function() {
-      _serveBallDragging = false;
+    }
+    function _clearDrops() {
       drops.forEach(function(d) { d.style.background = ''; d.style.transform = ''; });
-    });
+    }
+    function _commitServer(target) {
+      if (!target || !target.dataset || target.dataset.serveDrop === undefined) return false;
+      var parts = target.dataset.serveDrop.split('-');
+      var dropTeam = parseInt(parts[0]);
+      var dropIdx = parseInt(parts[1]);
+      if (state.totalGamesPlayed >= 2) return false;
+      if (state.totalGamesPlayed === 1 && state.serveOrder.length > 1 && dropTeam !== state.serveOrder[1].team) return false;
+      window._liveSetServer(dropTeam, dropIdx);
+      return true;
+    }
 
-    // Drop targets
+    // Drop targets — atribuídos uma vez (compartilhados com sources).
     drops.forEach(function(drop) {
       drop.addEventListener('dragover', function(e) {
         if (!_serveBallDragging) return;
         e.preventDefault();
+        e.stopPropagation();
         drop.style.transform = 'scale(1.05)';
       });
       drop.addEventListener('dragleave', function() { drop.style.transform = ''; });
       drop.addEventListener('drop', function(e) {
-        e.preventDefault();
-        drop.style.transform = '';
         if (!_serveBallDragging) return;
+        e.preventDefault();
+        e.stopPropagation();
+        drop.style.transform = '';
         _serveBallDragging = false;
-        var parts = drop.getAttribute('data-serve-drop').split('-');
-        var dropTeam = parseInt(parts[0]);
-        var dropIdx = parseInt(parts[1]);
-        // HARD LOCK after 2 games
-        if (state.totalGamesPlayed >= 2) return;
-        // Validate: game 0 = any, game 1 = other team only (team that started is locked)
-        if (state.totalGamesPlayed === 1 && state.serveOrder.length > 1 && dropTeam !== state.serveOrder[1].team) return;
-        window._liveSetServer(dropTeam, dropIdx);
+        _commitServer(drop);
       });
     });
 
-    // Touch drag from ball
-    var _ballTouch = false;
-    ball.addEventListener('touchstart', function(e) {
-      _ballTouch = true;
-      e.preventDefault();
-    }, { passive: false });
-    ball.addEventListener('touchmove', function(e) {
-      if (!_ballTouch) return;
-      e.preventDefault();
-      if (!_serveBallGhost) {
-        _serveBallGhost = document.createElement('div');
-        _serveBallGhost.style.cssText = 'position:fixed;z-index:200000;font-size:1.5rem;pointer-events:none;filter:drop-shadow(0 0 8px rgba(255,200,0,0.8));';
-        _serveBallGhost.textContent = _sportBall;
-        document.body.appendChild(_serveBallGhost);
+    sources.forEach(function(src) {
+      // Desktop drag — só ativo no span da bola (card inteiro não é
+      // draggable=true, senão drag iniciaria mesmo em clique normal).
+      if (src.hasAttribute('data-serve-ball')) {
+        src.addEventListener('dragstart', function(e) {
+          _serveBallDragging = true;
+          e.stopPropagation();
+          e.dataTransfer.effectAllowed = 'move';
+          _highlightValidDrops();
+        });
+        src.addEventListener('dragend', function(e) {
+          e.stopPropagation();
+          _serveBallDragging = false;
+          _clearDrops();
+        });
       }
-      var t = e.touches[0];
-      _serveBallGhost.style.left = (t.clientX - 15) + 'px';
-      _serveBallGhost.style.top = (t.clientY - 15) + 'px';
-      // Highlight drop target under finger
-      drops.forEach(function(d) { d.style.transform = ''; d.style.background = ''; });
-      var el = document.elementFromPoint(t.clientX, t.clientY);
-      var target = el;
-      while (target) {
-        if (target.dataset && target.dataset.serveDrop !== undefined) {
-          target.style.transform = 'scale(1.05)';
-          target.style.background = 'rgba(255,200,0,0.15)';
-          break;
+
+      // Touch drag — ativo no span E no card. Threshold separa tap de drag.
+      var _touch = { active: false, startX: 0, startY: 0, dragging: false };
+      src.addEventListener('touchstart', function(e) {
+        var t = e.touches[0];
+        _touch = { active: true, startX: t.clientX, startY: t.clientY, dragging: false };
+        // stopPropagation impede court-side touchstart de rodar (que setaria
+        // opacity:0.6 e _touchSide). preventDefault NÃO é chamado pra
+        // preservar o click event de editar nome quando user só dá tap.
+        e.stopPropagation();
+      }, { passive: true });
+
+      src.addEventListener('touchmove', function(e) {
+        if (!_touch.active) return;
+        var t = e.touches[0];
+        var dx = t.clientX - _touch.startX;
+        var dy = t.clientY - _touch.startY;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+        if (!_touch.dragging) {
+          if (dist < DRAG_THRESHOLD_PX) return; // ainda pode ser tap
+          _touch.dragging = true;
+          _serveBallDragging = true;
+          _highlightValidDrops();
         }
-        target = target.parentElement;
-      }
-    }, { passive: false });
-    ball.addEventListener('touchend', function(e) {
-      if (_serveBallGhost) { _serveBallGhost.remove(); _serveBallGhost = null; }
-      drops.forEach(function(d) { d.style.transform = ''; d.style.background = ''; });
-      if (!_ballTouch) return;
-      _ballTouch = false;
-      var t = e.changedTouches[0];
-      var el = document.elementFromPoint(t.clientX, t.clientY);
-      var target = el;
-      while (target) {
-        if (target.dataset && target.dataset.serveDrop !== undefined) {
-          var parts = target.dataset.serveDrop.split('-');
-          var dropTeam = parseInt(parts[0]);
-          var dropIdx = parseInt(parts[1]);
-          // HARD LOCK after 2 games
-          if (state.totalGamesPlayed >= 2) break;
-          if (state.totalGamesPlayed === 1 && state.serveOrder.length > 1 && dropTeam !== state.serveOrder[1].team) break;
-          window._liveSetServer(dropTeam, dropIdx);
+        // Drag iniciado — agora bloqueia comportamento default (scroll, etc.)
+        // e impede que court-side processe o touch como swap.
+        e.preventDefault();
+        e.stopPropagation();
+        if (!_serveBallGhost) {
+          _serveBallGhost = document.createElement('div');
+          _serveBallGhost.style.cssText = 'position:fixed;z-index:200000;font-size:1.5rem;pointer-events:none;filter:drop-shadow(0 0 8px rgba(255,200,0,0.8));';
+          _serveBallGhost.textContent = _sportBall;
+          document.body.appendChild(_serveBallGhost);
+        }
+        _serveBallGhost.style.left = (t.clientX - 15) + 'px';
+        _serveBallGhost.style.top = (t.clientY - 15) + 'px';
+        drops.forEach(function(d) { d.style.transform = ''; d.style.background = ''; });
+        var el = document.elementFromPoint(t.clientX, t.clientY);
+        var target = el;
+        while (target) {
+          if (target.dataset && target.dataset.serveDrop !== undefined) {
+            target.style.transform = 'scale(1.05)';
+            target.style.background = 'rgba(255,200,0,0.15)';
+            break;
+          }
+          target = target.parentElement;
+        }
+      }, { passive: false });
+
+      src.addEventListener('touchend', function(e) {
+        if (_serveBallGhost) { _serveBallGhost.remove(); _serveBallGhost = null; }
+        drops.forEach(function(d) { d.style.transform = ''; d.style.background = ''; });
+        var wasDragging = _touch.dragging;
+        _touch = { active: false, startX: 0, startY: 0, dragging: false };
+        _serveBallDragging = false;
+        if (!wasDragging) {
+          // Tap — deixa o onclick original (editar nome) rolar normalmente.
+          // Importante: não chamar preventDefault aqui.
           return;
         }
-        target = target.parentElement;
-      }
+        // Drag concluído — commit no drop target sob o dedo. preventDefault
+        // pra cancelar o synthetic click event que o browser geraria.
+        e.preventDefault();
+        e.stopPropagation();
+        var t = e.changedTouches[0];
+        var el = document.elementFromPoint(t.clientX, t.clientY);
+        var target = el;
+        while (target) {
+          if (_commitServer(target)) return;
+          if (target.dataset && target.dataset.serveDrop !== undefined) return; // not commitable
+          target = target.parentElement;
+        }
+      });
     });
   }
 
