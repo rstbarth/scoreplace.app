@@ -432,6 +432,16 @@
     if (hash.indexOf('#casual/') === 0) return 'casual-match';
     if (hash.indexOf('#my-venues') === 0) return 'my-venues';
     if (hash.indexOf('#notifications') === 0) return 'notifications';
+    // v1.3.10-beta: novas page-routes — perfil e análise de inscritos.
+    // Antes essas rotas caíam no default 'dashboard' e disparavam hints
+    // de dashboard fora de contexto. User: "as dicas devem aparecer apenas
+    // na pagina que está visivel".
+    if (hash.indexOf('#profile') === 0) return 'profile';
+    if (hash.indexOf('#analise/') === 0) return 'enrollment-report';
+    if (hash.indexOf('#support') === 0) return 'support';
+    if (hash.indexOf('#privacy') === 0) return 'privacy';
+    if (hash.indexOf('#terms') === 0) return 'terms';
+    if (hash.indexOf('#invite') === 0) return 'invite';
     return 'dashboard';
   }
 
@@ -475,12 +485,14 @@
 
   // ── Strict visibility check ────────────────────────────────────────────────
   // Element must: exist, have real dimensions, not be display:none,
-  // not be inside a hidden parent, and be within the visible viewport.
-  // If a blocking overlay is open, the element must be INSIDE it.
+  // not be inside a hidden parent, be within the visible viewport, AND
+  // not be occluded by another element on top (modal, overlay, page).
+  // v1.3.10-beta: adicionado check de occlusão via elementFromPoint —
+  // garante que o elemento está realmente VISÍVEL na tela. User:
+  // "as dicas devem aparecer apenas na pagina que está visivel e na
+  // parte da pagina que esta visivel."
   function _isElementVisible(el) {
     if (!el) return false;
-    // offsetParent is null for display:none or fixed elements
-    // For fixed elements (topbar), check getComputedStyle
     var style = window.getComputedStyle(el);
     if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') return false;
 
@@ -517,7 +529,41 @@
       depth++;
     }
 
-    return true;
+    // OCCLUSION CHECK: testar 5 pontos do elemento (centro + 4 cantos
+    // recuados). Pelo menos UM precisa retornar o próprio el (ou
+    // descendente/ancestral). Senão tem outro elemento tampando.
+    // Pula esse check pra elementos position:fixed do topbar/back-header
+    // (eles podem estar tecnicamente atrás do hamburger-dropdown mas
+    // ainda são "visíveis" na UI corrente — não queremos falso negativo).
+    var cx = rect.left + rect.width / 2;
+    var cy = rect.top + rect.height / 2;
+    // Garantir que o centro está dentro do viewport pra elementFromPoint funcionar
+    cx = Math.max(1, Math.min(vw - 1, cx));
+    cy = Math.max(1, Math.min(vh - 1, cy));
+
+    function _isAtPoint(x, y) {
+      var topmost = document.elementFromPoint(x, y);
+      if (!topmost) return false;
+      // Match: o próprio el OU descendente/ancestral (cobre casos onde
+      // o el é wrapper e elementFromPoint retorna filho clicável).
+      return topmost === el || el.contains(topmost) || topmost.contains(el);
+    }
+
+    // Checa centro + 4 quadrantes recuados em 25%
+    var qx = rect.width / 4;
+    var qy = rect.height / 4;
+    var points = [
+      [cx, cy],
+      [Math.max(1, rect.left + qx), Math.max(1, rect.top + qy)],
+      [Math.min(vw - 1, rect.right - qx), Math.max(1, rect.top + qy)],
+      [Math.max(1, rect.left + qx), Math.min(vh - 1, rect.bottom - qy)],
+      [Math.min(vw - 1, rect.right - qx), Math.min(vh - 1, rect.bottom - qy)]
+    ];
+    for (var p = 0; p < points.length; p++) {
+      if (_isAtPoint(points[p][0], points[p][1])) return true;
+    }
+    // Nenhum dos 5 pontos deu match — elemento está completamente coberto.
+    return false;
   }
 
   // ── Find first visible element matching selector ───────────────────────────

@@ -8,6 +8,16 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #f59e0b;border-radius:12px;padding:14px 16px;background:rgba(245,158,11,0.10);">' +
+      '<div style="font-weight:800; color:#fbbf24; font-size:1rem; margin-bottom:8px;">💡 v1.3.10-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
+      '<p><b>Dicas (hints) contextualmente corretas — nunca mais hints de páginas invisíveis.</b> User: <i>"as dicas continuam estranhas... a pagina de detalhes do torneio não está na tela (deve estar atras da pagina de analise). Não faz sentido mostrar dicas tão fora de contexto. corrija isso no programa todo. isso nunca pode acontecer. as dicas devem ser muito contextualizadas (devem aparecer apenas na pagina que está visivel e na parte da pagina que esta visivel)."</i></p>' +
+      '<p>Dois fixes em <code>js/hints.js</code>:</p>' +
+      '<ul style="margin:0 0 0 1.2rem; padding:0; font-size:0.82rem;">' +
+        '<li><b>Contextos de página faltando</b>: <code>_getCurrentContext()</code> agora reconhece as page-routes novas — <code>#profile</code>, <code>#analise/&lt;tId&gt;</code>, <code>#support</code>, <code>#privacy</code>, <code>#terms</code>, <code>#invite</code>. Antes essas rotas caíam no default <code>"dashboard"</code>, fazendo hints de dashboard aparecerem em telas onde nada do dashboard estava visível.</li>' +
+        '<li><b>Check de occlusão via elementFromPoint</b>: além de checar display:none / visibility:hidden / viewport bounds / ancestrais escondidos, agora <code>_isElementVisible</code> verifica se o elemento está realmente NO TOPO em pelo menos 1 dos 5 pontos testados (centro + 4 quadrantes recuados). Se outro elemento (modal, overlay, página) estiver cobrindo, o hint é descartado. Antes elementos tecnicamente no DOM mas visualmente escondidos atrás de outra view passavam pelo check e disparavam hints incorretos.</li>' +
+      '</ul>' +
+      '<p>Resultado: estando na página de Análise (ou qualquer outra), os hints só apontam pra elementos que VOCÊ ESTÁ VENDO de fato — não mais pra coisas atrás de modais ou páginas anteriores.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #10b981;border-radius:12px;padding:14px 16px;background:rgba(16,185,129,0.10);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🛣️ v1.3.9-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(3 de Maio, 2026)</span></div>' +
       '<p><b>Análise de Inscritos convertida pra page-route (#analise/&lt;tId&gt;).</b> User: <i>"o menu na analise não esta aparecendo corretamente quando clicamos no hamburber. aplique o cabecalho canonico aqui"</i></p>' +
