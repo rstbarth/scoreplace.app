@@ -1271,13 +1271,19 @@ function handleEmailRegister() {
     .catch(function(error) {
       window._pendingProfileUpdate = false;
       console.error('Email register error:', error);
-      if (typeof window._captureException === 'function') {
-        window._captureException(error, { area: 'emailRegister', code: error && error.code });
+      var code = (error && error.code) || 'unknown';
+      // v1.3.23-beta: NÃO mandar pra Sentry códigos esperados de UX
+      // (user errou senha, email já cadastrado, etc.) — esses já têm
+      // tratamento no client e poluiam digest do scoreplace-sentry-check.
+      // Bugs reais (network-request-failed transient com count alto,
+      // operation-not-allowed, unknown) continuam reportados.
+      var EXPECTED_AUTH_CODES = ['auth/email-already-in-use', 'auth/invalid-email', 'auth/weak-password'];
+      if (typeof window._captureException === 'function' && EXPECTED_AUTH_CODES.indexOf(code) === -1) {
+        window._captureException(error, { area: 'emailRegister', code: code });
       }
       // v1.0.19-beta: msgs específicas + sugere fallback. Bug reportado por
       // beta tester (Cátia) com auth/network-request-failed travando criação
       // de conta sem indicar o que tentar.
-      var code = (error && error.code) || 'unknown';
       if (code === 'auth/email-already-in-use') {
         showNotification(_t('auth.emailInUse'), _t('auth.emailInUseMsg'), 'error');
       } else if (code === 'auth/invalid-email') {
