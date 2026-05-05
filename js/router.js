@@ -166,21 +166,12 @@ function initRouter() {
     }
     _firstRoute = false;
     // If auth hasn't resolved yet but we have cache, show a loading state briefly.
-    // v0.17.94: ⏳ estática trocada por 🎾 girando (proposta do usuário —
-    // marca esportiva do app). Animação CSS injetada inline pra não
-    // depender de CSS externo carregar.
+    // v1.3.26-beta: usa helper canônico window._renderBallLoader — mesmo
+    // emoji 🎾 + animação spin+pulse de todas as outras telas de loading.
     if (!_isLoggedInNow && _hasAuthCacheNow && (view === '' || view === 'dashboard')) {
-      viewContainer.innerHTML =
-        '<style id="loading-spin-keyframes">' +
-          '@keyframes scoreplace-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }' +
-          '@keyframes scoreplace-pulse { 0%,100% { filter: drop-shadow(0 0 0 transparent); } 50% { filter: drop-shadow(0 0 12px rgba(212, 244, 60, 0.6)); } }' +
-        '</style>' +
-        '<div style="display:flex;justify-content:center;align-items:center;min-height:60vh;">' +
-          '<div style="text-align:center;">' +
-            '<div style="font-size:3rem;margin-bottom:1rem;display:inline-block;animation:scoreplace-spin 1.2s linear infinite, scoreplace-pulse 1.6s ease-in-out infinite;">🎾</div>' +
-            '<p style="color:var(--text-muted);font-size:0.9rem;">Carregando...</p>' +
-          '</div>' +
-        '</div>';
+      viewContainer.innerHTML = (typeof window._renderBallLoader === 'function')
+        ? window._renderBallLoader('Carregando…', { minHeight: '60vh' })
+        : '<div style="text-align:center;padding:60vh 0 0;">Carregando…</div>';
       return;
     }
 

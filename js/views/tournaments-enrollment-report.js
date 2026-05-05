@@ -842,10 +842,12 @@
         middleHtml: '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">📊 Análise de Inscritos</span>',
       })
       : '';
-    container.innerHTML = hdr +
-      '<div style="max-width:760px;margin:0 auto;padding:1rem;">' +
-      '<div style="text-align:center;padding:48px 12px;color:var(--text-muted);font-size:0.85rem;">⏳ Carregando perfis dos inscritos…</div>' +
-      '</div>';
+    // v1.3.26-beta: usa helper canônico (🎾 girando), padronizando com
+    // boot loader e router cache loader.
+    var loaderHtml = (typeof window._renderBallLoader === 'function')
+      ? window._renderBallLoader('Carregando perfis dos inscritos…', { minHeight: '40vh' })
+      : '<div style="text-align:center;padding:48px 12px;color:var(--text-muted);font-size:0.85rem;">⏳ Carregando perfis dos inscritos…</div>';
+    container.innerHTML = hdr + '<div style="max-width:760px;margin:0 auto;padding:1rem;">' + loaderHtml + '</div>';
     if (typeof window._reflowChrome === 'function') window._reflowChrome();
   }
 

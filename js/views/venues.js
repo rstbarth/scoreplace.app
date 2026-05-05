@@ -1290,7 +1290,12 @@
     if (!box) return;
     var selHtml = state.selectedPlace ? _selectedPlaceCard(state.selectedPlace) : '';
     if (state.loading) {
-      box.innerHTML = selHtml + '<div style="text-align:center;color:var(--text-muted);padding:1.5rem 0;font-size:0.88rem;">Buscando locais próximos…</div>';
+      // v1.3.26-beta: usa helper canônico (🎾 girando). Antes era texto
+      // estático; padroniza com boot loader e demais telas de loading.
+      var loadingHtml = (typeof window._renderBallLoader === 'function')
+        ? window._renderBallLoader('Buscando locais próximos…', { minHeight: '20vh', size: '2.4rem' })
+        : '<div style="text-align:center;color:var(--text-muted);padding:1.5rem 0;font-size:0.88rem;">Buscando locais próximos…</div>';
+      box.innerHTML = selHtml + loadingHtml;
       return;
     }
     var hasResults = state.results.length > 0 || (state.googleResults || []).length > 0;
@@ -1502,16 +1507,28 @@
     }
     html += '</div>';
 
-    // 3) Sugestões do Google
-    if (gResults.length > 0) {
+    // 3) Sugestões do Google — sempre renderiza header + slot. Quando
+    // googleLoading=true, mostra mini-loader 🎾 dentro do slot. Resultados
+    // vão chegando via re-render. v1.3.26-beta: secção visível mesmo
+    // antes do fetch resolver pra usuário saber que vem mais.
+    var hasGoogleSlot = state.googleLoading || gResults.length > 0;
+    if (hasGoogleSlot) {
       var gTop = (resolvedPreferred.length > 0 || spResults.length > 0) ? 'margin-top:14px;margin-bottom:8px;' : 'margin-bottom:8px;';
       html += '<div style="font-size:0.7rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;' + gTop + '">📍 Sugestões do Google</div>';
-      html += '<div style="display:flex;flex-direction:column;gap:8px;">';
-      gResults.forEach(function(p) { html += _googleVenueCard(p); });
-      html += '</div>';
+      if (state.googleLoading && gResults.length === 0) {
+        // Slot vazio com mini-loader enquanto fetch tá em voo.
+        var inlineLoader = (typeof window._renderBallLoaderInline === 'function')
+          ? window._renderBallLoaderInline('Buscando sugestões do Google…')
+          : '<div style="color:var(--text-muted);font-size:0.82rem;padding:6px 0;">🎾 Buscando sugestões…</div>';
+        html += '<div style="padding:4px 0;">' + inlineLoader + '</div>';
+      } else {
+        html += '<div style="display:flex;flex-direction:column;gap:8px;">';
+        gResults.forEach(function(p) { html += _googleVenueCard(p); });
+        html += '</div>';
+      }
     }
 
-    if (resolvedPreferred.length === 0 && spResults.length === 0 && gResults.length === 0) {
+    if (resolvedPreferred.length === 0 && spResults.length === 0 && gResults.length === 0 && !state.googleLoading) {
       html += '<div style="text-align:center;padding:1.5rem 0;color:var(--text-muted);font-size:0.85rem;">Nenhum local encontrado nessa região.</div>';
     }
 
@@ -1749,59 +1766,82 @@
       console.warn('preferred venue fetch failed:', e);
     }
 
-    // 3) Google Places nearby — external suggestions. Only fires when we
-    // have a real center so we don't waste the Places quota.
+    // v1.3.26-beta: PINTA AGORA com preferidos + registrados resolvidos.
+    // Google nearby (16 chamadas paralelas) tipicamente leva 1-2s e o
+    // usuário pediu pra preferidos aparecerem rápido. Marca loading como
+    // false ANTES da chamada do Google — usuário vê seus locais favoritos
+    // imediatamente; "Sugestões do Google" injetam-se quando chegarem.
+    state.loading = false;
+    state.googleLoading = !!center; // se vamos buscar, marca pra render mostrar mini-loader
+    state.googleResults = state.googleResults || [];
+    renderResults();
+    _hydrateMapSummary();
+
+    // 3) Google Places nearby — em BACKGROUND (não bloqueia render). Só
+    // dispara quando temos center real (evita queimar quota Places).
     if (center) {
-      state.googleResults = await _loadGoogleNearby(center, state.distanceKm, state.sports);
+      _loadGoogleNearby(center, state.distanceKm, state.sports).then(function(results) {
+        state.googleResults = results || [];
+        state.googleLoading = false;
+        renderResults();
+        _hydrateMapSummary();
+        // GA4 só dispara depois do round-trip completo — totais reais
+        try {
+          if (typeof window._trackVenueSearched === 'function') {
+            var totalResults = (state.results ? state.results.length : 0) + state.googleResults.length;
+            window._trackVenueSearched(state.location || '', totalResults);
+          }
+        } catch (_e) {}
+      }).catch(function(e) {
+        console.warn('Google nearby fetch failed:', e);
+        state.googleLoading = false;
+        state.googleResults = [];
+        renderResults();
+      });
     } else {
       state.googleResults = [];
+      state.googleLoading = false;
     }
-    // v1.0.59-beta: GA4 — venue_searched. Útil pra entender padrões de
-    // busca por região (state.location), filtro de raio e modalidades.
-    try {
-      if (typeof window._trackVenueSearched === 'function') {
-        var totalResults = (state.results ? state.results.length : 0) + (state.googleResults ? state.googleResults.length : 0);
-        window._trackVenueSearched(state.location || '', totalResults);
-      }
-    } catch (_e) {}
 
     // 4) Auto-focus preferred se usuário já tem presença ativa num local
     // preferido. Reabrir #place deve trazer de volta o foco+gráfico sem
-    // exigir novo clique nos botões. Só roda na primeira renderização
-    // (state.focusedPreferred ainda null) pra não sobrescrever clear manual.
+    // exigir novo clique nos botões. v1.3.26-beta: não bloqueia render.
+    // Roda em background; quando achar match, faz re-render. Só executa
+    // na primeira render (state.focusedPreferred null) pra não sobrescrever
+    // clear manual.
     if (!state.focusedPreferred) {
-      try {
-        var cuFocus = window.AppStore && window.AppStore.currentUser;
-        if (cuFocus && cuFocus.uid && window.PresenceDB) {
-          var myActive = await window.PresenceDB.loadMyActive(cuFocus.uid);
-          if (Array.isArray(myActive) && myActive.length > 0) {
-            for (var mi = 0; mi < myActive.length; mi++) {
-              var mp = myActive[mi];
-              if (!mp || !mp.placeId) continue;
-              // v0.16.26: passa o presence doc inteiro — matching cai em
-              // nome/coords quando placeId não casa (preferreds label-only).
-              var prefForMp = _findPreferredByPid(mp);
-              if (prefForMp) {
-                state.focusedPreferred = {
-                  placeId: mp.placeId,
-                  docId: mp._id || null,
-                  type: mp.type || 'checkin',
-                  startsAt: mp.startsAt || Date.now(),
-                  endsAt: mp.endsAt || (Date.now() + 4 * 3600 * 1000),
-                  sports: Array.isArray(mp.sports) ? mp.sports : (mp.sport ? [mp.sport] : []),
-                  venueName: mp.venueName || '',
-                  prefObj: prefForMp
-                };
-                break;
-              }
+      var cuFocus = window.AppStore && window.AppStore.currentUser;
+      if (cuFocus && cuFocus.uid && window.PresenceDB) {
+        window.PresenceDB.loadMyActive(cuFocus.uid).then(function(myActive) {
+          if (!Array.isArray(myActive) || myActive.length === 0) return;
+          for (var mi = 0; mi < myActive.length; mi++) {
+            var mp = myActive[mi];
+            if (!mp || !mp.placeId) continue;
+            // v0.16.26: passa o presence doc inteiro — matching cai em
+            // nome/coords quando placeId não casa (preferreds label-only).
+            var prefForMp = _findPreferredByPid(mp);
+            if (prefForMp) {
+              state.focusedPreferred = {
+                placeId: mp.placeId,
+                docId: mp._id || null,
+                type: mp.type || 'checkin',
+                startsAt: mp.startsAt || Date.now(),
+                endsAt: mp.endsAt || (Date.now() + 4 * 3600 * 1000),
+                sports: Array.isArray(mp.sports) ? mp.sports : (mp.sport ? [mp.sport] : []),
+                venueName: mp.venueName || '',
+                prefObj: prefForMp
+              };
+              renderResults();
+              break;
             }
           }
-        }
-      } catch (e) { console.warn('auto-focus preferred failed:', e); }
+        }).catch(function(e) { console.warn('auto-focus preferred failed:', e); });
+      }
     }
 
-    state.loading = false;
-    renderResults();
+    // Mapa pinta junto da primeira render (não depende de Google nearby
+    // nem de PresenceDB). Centraliza no GPS e desenha marcadores dos
+    // venues registrados imediatamente.
     _hydrateMapExtras();
     if (_map) {
       if (center) {

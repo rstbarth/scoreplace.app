@@ -67,10 +67,14 @@
   <style>
     #scoreplace-boot-loader { position:fixed; inset:0; background:#0f172a; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; z-index:99998; transition:opacity 0.35s ease; color:#fff; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
     #scoreplace-boot-loader.scoreplace-fade-out { opacity:0; pointer-events:none; }
-    #scoreplace-boot-loader .scoreplace-boot-ball { font-size:3rem; line-height:1; animation:scoreplace-bounce 0.7s ease-in-out infinite alternate; }
+    /* v1.3.26-beta: spec idêntica ao window._renderBallLoader (store.js).
+       Animação spin + pulse — todas as telas de loading do app usam a
+       mesma identidade visual. */
+    #scoreplace-boot-loader .scoreplace-boot-ball { font-size:3rem; line-height:1; display:inline-block; animation:scoreplace-ball-spin 1.2s linear infinite, scoreplace-ball-pulse 1.6s ease-in-out infinite; }
     #scoreplace-boot-loader .scoreplace-boot-brand { font-size:1.05rem; color:#fbbf24; font-weight:700; letter-spacing:0.3px; }
     #scoreplace-boot-loader .scoreplace-boot-tag { font-size:0.78rem; color:#64748b; }
-    @keyframes scoreplace-bounce { from { transform:translateY(0) scale(1);} to { transform:translateY(-14px) scale(1.06);} }
+    @keyframes scoreplace-ball-spin { from { transform:rotate(0deg);} to { transform:rotate(360deg);} }
+    @keyframes scoreplace-ball-pulse { 0%,100% { filter:drop-shadow(0 0 0 transparent);} 50% { filter:drop-shadow(0 0 12px rgba(212,244,60,0.6));} }
     @media (prefers-reduced-motion: reduce) { #scoreplace-boot-loader .scoreplace-boot-ball { animation:none; } }
   </style>
   <div id="scoreplace-boot-loader" role="status" aria-label="Carregando scoreplace.app">
@@ -202,7 +206,7 @@
   <script src="js/i18n-en.js?v=1.0.17-beta" defer></script>
 
   <script src="js/notification-catalog.js?v=0.17.1" defer></script>
-  <script src="js/store.js?v=1.3.20-beta" defer></script>
+  <script src="js/store.js?v=1.3.26-beta" defer></script>
   <script src="js/firebase-db.js?v=1.0.5-beta" defer></script>
   <script src="js/presence-db.js?v=1.0.59-beta" defer></script>
   <script src="js/presence-geo.js?v=0.15.44" defer></script>
@@ -216,7 +220,7 @@
   <script src="js/views/terms-acceptance.js?v=1.0.52-beta" defer></script>
   <script src="js/views/dashboard.js?v=1.0.58-beta" defer></script>
   <script src="js/views/presence.js?v=0.17.16" defer></script>
-  <script src="js/views/venues.js?v=1.1.11-beta" defer></script>
+  <script src="js/views/venues.js?v=1.3.26-beta" defer></script>
   <script src="js/views/tournaments-utils.js?v=1.0.91-beta" defer></script>
   <script src="js/views/tournaments-sharing.js?v=0.15.72" defer></script>
   <script src="js/views/tournaments-analytics.js?v=1.0.39-beta" defer></script>
@@ -225,7 +229,7 @@
   <script src="js/views/tournaments-categories.js?v=1.3.12-beta" defer></script>
   <script src="js/views/tournaments.js?v=1.3.1-beta" defer></script>
   <script src="js/views/tournaments-enrollment.js?v=1.3.24-beta" defer></script>
-  <script src="js/views/tournaments-enrollment-report.js?v=1.3.24-beta" defer></script>
+  <script src="js/views/tournaments-enrollment-report.js?v=1.3.26-beta" defer></script>
   <script src="js/views/tournaments-draw-prep.js?v=1.1.1-beta" defer></script>
   <script src="js/views/tournaments-draw.js?v=1.0.91-beta" defer></script>
   <script src="js/views/create-tournament.js?v=1.3.13-beta" defer></script>
@@ -242,7 +246,7 @@
   <script src="js/views/auth.js?v=1.3.23-beta" defer></script>
 
   <script src="js/hints.js?v=1.3.13-beta" defer></script>
-  <script src="js/router.js?v=1.3.13-beta" defer></script>
+  <script src="js/router.js?v=1.3.26-beta" defer></script>
   <script src="js/main.js?v=1.3.13-beta" defer></script>
   <script>
     if ('serviceWorker' in navigator) {

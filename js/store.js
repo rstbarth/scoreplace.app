@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.3.25-beta';
+window.SCOREPLACE_VERSION = '1.3.26-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -515,6 +515,55 @@ window._loadingSpinner = (function() {
     }
   };
 })();
+
+// v1.3.26-beta: helper canônico pra renderizar bloco "🎾 Carregando…"
+// dentro de uma área (view container, modal, slot). Emite o MESMO emoji
+// + animação spin+pulse que o boot loader e o auth-cache loader, pra
+// padronizar todas as telas de loading. Chamadores fazem
+// `container.innerHTML = window._renderBallLoader('Buscando perfis…')`.
+// Sem 'label' usa "Carregando…" como default.
+//
+// As keyframes ficam em <style id="scoreplace-ball-keyframes"> injetado
+// uma vez no <head>. Pode coexistir com o estilo do _loadingSpinner
+// (chaves com prefixo diferente) sem conflito.
+window._renderBallLoader = function(label, opts) {
+  opts = opts || {};
+  if (!document.getElementById('scoreplace-ball-keyframes')) {
+    var style = document.createElement('style');
+    style.id = 'scoreplace-ball-keyframes';
+    style.textContent =
+      '@keyframes scoreplace-ball-spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }' +
+      '@keyframes scoreplace-ball-pulse { 0%,100% { filter: drop-shadow(0 0 0 transparent);} 50% { filter: drop-shadow(0 0 12px rgba(212,244,60,0.6));} }';
+    document.head.appendChild(style);
+  }
+  var size = opts.size || '3rem';
+  var minHeight = opts.minHeight || '40vh';
+  var safeLabel = label ? String(label).replace(/[<>]/g, '') : 'Carregando…';
+  return '<div class="scoreplace-ball-loader" style="display:flex;justify-content:center;align-items:center;min-height:' + minHeight + ';">' +
+    '<div style="text-align:center;">' +
+      '<div aria-hidden="true" style="font-size:' + size + ';margin-bottom:0.85rem;display:inline-block;line-height:1;animation:scoreplace-ball-spin 1.2s linear infinite, scoreplace-ball-pulse 1.6s ease-in-out infinite;">🎾</div>' +
+      '<div role="status" aria-live="polite" style="color:var(--text-muted, #9ca3af);font-size:0.88rem;font-weight:600;">' + safeLabel + '</div>' +
+    '</div>' +
+  '</div>';
+};
+
+// Inline (mini) — pra slots pequenos dentro de cards ou seções (ex: "🎾
+// Sugestões do Google carregando…" abaixo da seção "Outros locais"). Sem
+// padding vertical pesado. Mesma animação canônica.
+window._renderBallLoaderInline = function(label, opts) {
+  opts = opts || {};
+  if (!document.getElementById('scoreplace-ball-keyframes')) {
+    // Reutiliza _renderBallLoader pra garantir o style injetado mesmo se
+    // o caller nunca tiver invocado a versão block.
+    window._renderBallLoader('', { minHeight: '0' });
+  }
+  var size = opts.size || '1.4rem';
+  var safeLabel = label ? String(label).replace(/[<>]/g, '') : 'Carregando…';
+  return '<div class="scoreplace-ball-loader-inline" style="display:inline-flex;align-items:center;gap:8px;padding:6px 0;color:var(--text-muted,#9ca3af);font-size:0.82rem;">' +
+    '<span aria-hidden="true" style="font-size:' + size + ';display:inline-block;line-height:1;animation:scoreplace-ball-spin 1.2s linear infinite, scoreplace-ball-pulse 1.6s ease-in-out infinite;">🎾</span>' +
+    '<span role="status" aria-live="polite">' + safeLabel + '</span>' +
+  '</div>';
+};
 
 // overlays at z 9999–999999 (TV mode, set scoring, draw prep, categories,
 // host transfer, re-auth, etc). If ANY of them survives a hashchange, it
