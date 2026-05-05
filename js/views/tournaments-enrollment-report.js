@@ -677,6 +677,24 @@
           : '—';
         html += '<div>profile: gender=<code>' + _esc(prof.gender || '—') + '</code> birthDate=<code>' + _esc(prof.birthDate || '—') + '</code> defaultCategory=<code>' + _esc(prof.defaultCategory || '—') + '</code></div>';
         html += '<div>profile.skillBySport: <code>' + _esc(skillMapStr) + '</code></div>';
+        // v1.3.22-beta: timestamps + terms — distingue perfil alpha-leftover
+        // (createdAt antes de 2026-04-29 OU acceptedTerms !== true) de
+        // novato beta. Beta começou em 2026-04-29 com reset; users foram
+        // preservados, então perfis alpha que nunca atualizaram pra fields
+        // novos (gender/birthDate/skillBySport) ficam stale em torneios beta.
+        var betaCutoff = '2026-04-29';
+        var createdAt = prof.createdAt || '';
+        var isPreBeta = createdAt && createdAt < betaCutoff;
+        var noTerms = prof.acceptedTerms !== true;
+        var stragglerFlag = '';
+        if (isPreBeta && noTerms) {
+          stragglerFlag = ' <span style="color:#fbbf24;font-weight:600;">🕰️ alpha-leftover (pre-beta + sem aceite)</span>';
+        } else if (isPreBeta) {
+          stragglerFlag = ' <span style="color:#fbbf24;font-weight:600;">🕰️ pré-beta (perfil pode estar stale)</span>';
+        } else if (noTerms) {
+          stragglerFlag = ' <span style="color:#fbbf24;font-weight:600;">⚠️ sem aceite de termos</span>';
+        }
+        html += '<div>profile.meta: createdAt=<code>' + _esc(createdAt || '—') + '</code> acceptedTerms=<code>' + _esc(prof.acceptedTerms === true ? 'true' : 'false') + '</code> acceptedTermsAt=<code>' + _esc(prof.acceptedTermsAt || '—') + '</code>' + stragglerFlag + '</div>';
       } else {
         html += '<div style="color:#f87171;">profile: NÃO carregado (uid não bate, doc não existe, ou rules block)</div>';
       }
