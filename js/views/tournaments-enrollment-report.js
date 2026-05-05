@@ -180,21 +180,91 @@
   }
 
   // ─── Profile fetch ───────────────────────────────────────────────────
+  //
+  // v1.3.24-beta: agora resolve perfil em 3 camadas pra recuperar inscritos
+  // que perderam uid no participantObj por bug em algum path de enrollment
+  // (não é "manual add" — bug reportado pelo dono: "AS pessoas entraram
+  // tem perfil"):
+  //
+  //   1. Direct uid fetch (caminho normal)
+  //   2. Email lookup — se participantObj.email existe e não temos uid,
+  //      query users where email == X. Se único match, vincula.
+  //   3. DisplayName lookup — último recurso quando não tem email nem uid.
+  //      Só vincula se houver EXATAMENTE 1 match no users collection
+  //      (case-insensitive trim) — caso contrário deixa não-vinculado pra
+  //      evitar falso positivo.
+  //
+  // Retorna { byUid: {uid: profileData}, resolvedFor: {participantIdx:
+  // {uid, profile, resolvedVia}} } — o caller usa resolvedFor pra saber
+  // que aquele inscrito foi rescued e via qual mecanismo.
 
-  function _fetchProfiles(uids) {
-    if (!uids || uids.length === 0) return Promise.resolve({});
-    if (!window.firebase || !firebase.firestore) return Promise.resolve({});
+  function _fetchProfiles(parts) {
+    if (!parts || parts.length === 0) return Promise.resolve({ byUid: {}, resolvedFor: {} });
+    if (!window.firebase || !firebase.firestore) return Promise.resolve({ byUid: {}, resolvedFor: {} });
     var db = firebase.firestore();
-    var out = {};
-    var uniq = {};
-    uids.forEach(function (u) { if (u) uniq[u] = 1; });
-    var keys = Object.keys(uniq);
-    var promises = keys.map(function (uid) {
+    var byUid = {};
+    var resolvedFor = {};
+
+    // ─ Camada 1: direct uid fetch ────────────────────────────────────
+    var uids = {};
+    parts.forEach(function (p) { if (p && p.uid) uids[p.uid] = 1; });
+    var uidPromises = Object.keys(uids).map(function (uid) {
       return db.collection('users').doc(uid).get()
-        .then(function (doc) { if (doc.exists) out[uid] = doc.data(); })
-        .catch(function () { /* swallow per-user error */ });
+        .then(function (doc) { if (doc.exists) byUid[uid] = doc.data(); })
+        .catch(function () { /* per-user err — silencioso */ });
     });
-    return Promise.all(promises).then(function () { return out; });
+
+    return Promise.all(uidPromises).then(function () {
+      // ─ Camada 2 + 3: rescue inscritos sem uid ──────────────────────
+      var rescueIdxs = [];
+      parts.forEach(function (p, idx) {
+        if (!p || p.uid) return; // já tem uid; nada a fazer
+        // Pular orgs adições reais — heuristic: orgs add manual quase
+        // sempre tem só name+displayName, sem email. Mas vamos tentar
+        // mesmo assim: se não houver match, deixa não-vinculado.
+        rescueIdxs.push(idx);
+      });
+
+      if (rescueIdxs.length === 0) return { byUid: byUid, resolvedFor: resolvedFor };
+
+      var rescuePromises = rescueIdxs.map(function (idx) {
+        var p = parts[idx];
+        var email = p && p.email ? String(p.email).trim().toLowerCase() : '';
+        var name = p && (p.displayName || p.name) ? String(p.displayName || p.name).trim() : '';
+
+        // Camada 2: email lookup (alta confiança)
+        var emailQ = email
+          ? db.collection('users').where('email', '==', email).limit(2).get()
+          : Promise.resolve(null);
+
+        return emailQ.then(function (snap) {
+          if (snap && snap.size === 1) {
+            var doc = snap.docs[0];
+            var uid = doc.id;
+            byUid[uid] = doc.data();
+            resolvedFor[idx] = { uid: uid, profile: doc.data(), via: 'email' };
+            return null;
+          }
+          // Camada 3: displayName lookup (média confiança — só se 1 match)
+          if (!name) return null;
+          // Tenta displayName primeiro (campo comum em users).
+          return db.collection('users').where('displayName', '==', name).limit(2).get()
+            .then(function (nameSnap) {
+              if (nameSnap && nameSnap.size === 1) {
+                var doc = nameSnap.docs[0];
+                var uid = doc.id;
+                byUid[uid] = doc.data();
+                resolvedFor[idx] = { uid: uid, profile: doc.data(), via: 'displayName' };
+              }
+            })
+            .catch(function () { /* swallow */ });
+        }).catch(function () { /* swallow */ });
+      });
+
+      return Promise.all(rescuePromises).then(function () {
+        return { byUid: byUid, resolvedFor: resolvedFor };
+      });
+    });
   }
 
   // ─── Build per-participant rows ──────────────────────────────────────
@@ -212,12 +282,24 @@
   // perfil.defaultCategory='D' + profile.gender='masc' = inscrito conta como
   // 'Masc D' nas estatísticas.
 
-  function _buildRows(t, parts, profileMap) {
+  function _buildRows(t, parts, fetchResult) {
     var ageCats = (t.ageCategories || []).slice();
     var skillCats = (t.skillCategories || []).slice();
+    // Compat: se passar profileMap antigo (objeto uid→profile direto),
+    // converter pro shape novo. Evita quebrar callers durante refactor.
+    var profileMap = (fetchResult && fetchResult.byUid) ? fetchResult.byUid : (fetchResult || {});
+    var resolvedFor = (fetchResult && fetchResult.resolvedFor) ? fetchResult.resolvedFor : {};
 
-    return parts.map(function (p) {
+    return parts.map(function (p, idx) {
       var uid = p && p.uid ? p.uid : null;
+      var resolvedVia = null; // 'email' | 'displayName' | null (uid direto)
+      // v1.3.24-beta: rescue — se participantObj não tinha uid mas
+      // _fetchProfiles conseguiu match por email/displayName, usa o uid
+      // resolvido. Inscrito conta como "vinculado" no report.
+      if (!uid && resolvedFor[idx] && resolvedFor[idx].uid) {
+        uid = resolvedFor[idx].uid;
+        resolvedVia = resolvedFor[idx].via;
+      }
       var profile = uid ? profileMap[uid] : null;
       // Profile vence — mantém report fresh quando user atualiza perfil
       // depois de se inscrever. Cai pra participantObj se profile não existe.
@@ -277,7 +359,10 @@
       var missing = [];
       var hasUid = !!uid;
       if (!hasUid) {
-        missing.push('adicionado manualmente — sem perfil vinculado');
+        // Chegou aqui = não tem uid no participantObj E rescue por email/
+        // displayName falhou. Pode ser bug de enrollment OU manual-add real.
+        // Mensagem reflete os dois casos sem assumir.
+        missing.push('uid não vinculado (precisa rastrear pelo email/nome — pode ser bug)');
       } else {
         if (!gender) missing.push('gênero');
         if (effectiveSkills.length === 0) missing.push('habilidade');
@@ -297,6 +382,7 @@
         effectiveSkills: effectiveSkills,  // skill efetivo (assigned > profile)
         missing: missing,
         hasUid: hasUid,
+        resolvedVia: resolvedVia,           // null | 'email' | 'displayName'
       };
     });
   }
@@ -615,7 +701,9 @@
       html += '</div>';
     });
     html += '</div>';
-    // v1.3.20-beta: dois caminhos distintos pra resolver — explicar separados
+    // v1.3.24-beta: três grupos — uid direto (gaps de perfil), uid resgatado
+    // via lookup (gaps de perfil também) e uid não vinculado (bug de
+    // enrollment ou manual-add real). Mensagens diferentes pra cada caso.
     var hasNoUid = incompleteRows.some(function (r) { return !r.hasUid; });
     var hasUidGapsOnly = incompleteRows.some(function (r) { return r.hasUid; });
     html += '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:10px;display:flex;flex-direction:column;gap:6px;">';
@@ -623,7 +711,7 @@
       html += '<p style="margin:0;font-style:italic;">💡 <b>Inscritos com perfil:</b> peça que completem em scoreplace.app/#dashboard → 👤 perfil (gênero, data de nascimento e habilidade por modalidade).</p>';
     }
     if (hasNoUid) {
-      html += '<p style="margin:0;font-style:italic;">📝 <b>Inscritos adicionados manualmente:</b> não têm perfil vinculado, então gênero/idade/habilidade ficam indisponíveis. Pra categorizá-los, atribua manualmente em "🏷️ Categorias", ou peça que se inscrevam direto pelo link de convite (criando perfil scoreplace).</p>';
+      html += '<p style="margin:0;font-style:italic;">⚠️ <b>Inscritos sem uid vinculado:</b> a inscrição existe mas não conseguimos amarrar a um perfil scoreplace nem por email nem por nome. Possíveis causas: (1) bug de enrollment que perdeu o uid no momento da inscrição; (2) participante adicionado manualmente sem login. Abra o "🔧 Diagnóstico" abaixo pra ver o nome/email crus do participantObj — se a pessoa tem perfil no app, dá pra rastrear pelo email exato.</p>';
     }
     html += '</div>';
     html += '</div>';
@@ -643,7 +731,8 @@
   }
   window._closeEnrollmentReport = _closeReport;
 
-  function _renderDiagnostic(t, rows, profileMap, parts) {
+  function _renderDiagnostic(t, rows, profileMap, parts, resolvedFor) {
+    resolvedFor = resolvedFor || {};
     // v1.3.2-beta: bloco diagnóstico pro organizador entender por que algum
     // inscrito não tá sendo categorizado. Mostra dados crus do torneio +
     // dados crus por inscrito (uid, profile fetched, gender resolvido,
@@ -663,7 +752,16 @@
     rows.forEach(function (r, i) {
       html += '<div style="padding:6px 8px;background:rgba(0,0,0,0.15);border-radius:6px;font-family:monospace;font-size:0.68rem;line-height:1.4;">';
       html += '<div><b>#' + (i + 1) + ' ' + _esc(r.name) + '</b></div>';
-      html += '<div>uid: <code>' + _esc(r.uid || '(sem uid)') + '</code></div>';
+      // v1.3.24-beta: indica se uid veio direto do participantObj ou foi
+      // resgatado via email/displayName lookup. Resgate = bug de enrollment
+      // que perdeu uid mas a pessoa tem perfil real.
+      var uidSource = '';
+      if (r.resolvedVia === 'email') {
+        uidSource = ' <span style="color:#22d3ee;font-weight:600;">⚙ resgatado via email lookup</span>';
+      } else if (r.resolvedVia === 'displayName') {
+        uidSource = ' <span style="color:#22d3ee;font-weight:600;">⚙ resgatado via displayName lookup</span>';
+      }
+      html += '<div>uid: <code>' + _esc(r.uid || '(sem uid)') + '</code>' + uidSource + '</div>';
       var p = parts[i];
       // v1.3.20-beta: mostra email + displayName + selfEnrolled — assim o
       // org distingue inscrição manual (sem email/uid) de auto-enroll que
@@ -710,7 +808,7 @@
   // v1.3.9-beta: render no view-container — page-route #analise/<tId>.
   // Topbar fica visível, _renderBackHeader cuida do cabeçalho com hamburger
   // funcional. Padrão centralizado (vide CLAUDE.md "REGRA CRITICA v1.3.5").
-  function _renderPage(container, t, rows, profileMap, parts) {
+  function _renderPage(container, t, rows, profileMap, parts, resolvedFor) {
     if (!container) return;
     var hdr = (typeof window._renderBackHeader === 'function')
       ? window._renderBackHeader({
@@ -729,7 +827,7 @@
       _renderOverview(rows, t) +
       _renderCategoryTable(rows, t) +
       _renderIncomplete(rows) +
-      _renderDiagnostic(t, rows, profileMap || {}, parts || []) +
+      _renderDiagnostic(t, rows, profileMap || {}, parts || [], resolvedFor || {}) +
       '</div>';
 
     if (typeof window._reflowChrome === 'function') window._reflowChrome();
@@ -772,18 +870,22 @@
 
     _renderLoading(container, t);
 
-    var uids = parts.filter(function (p) { return p && p.uid; }).map(function (p) { return p.uid; });
-    _fetchProfiles(uids).then(function (profileMap) {
+    // v1.3.24-beta: passa parts inteiro pro _fetchProfiles — agora ele
+    // tenta rescue por email/displayName quando participantObj não tem uid.
+    _fetchProfiles(parts).then(function (fetchResult) {
       // Re-checa se ainda na rota — user pode ter navegado fora durante o fetch
       if (window.location.hash !== '#analise/' + tId) return;
-      var rows = _buildRows(t, parts, profileMap);
-      console.log('[EnrollmentReport v1.3.9] profiles fetched:', Object.keys(profileMap).length, 'rows:', rows);
-      _renderPage(container, t, rows, profileMap, parts);
+      var rows = _buildRows(t, parts, fetchResult);
+      var byUid = fetchResult.byUid || {};
+      var resolved = fetchResult.resolvedFor || {};
+      console.log('[EnrollmentReport v1.3.24] profiles fetched:', Object.keys(byUid).length,
+        'rescued:', Object.keys(resolved).length, 'rows:', rows);
+      _renderPage(container, t, rows, byUid, parts, resolved);
     }).catch(function (err) {
       console.error('[EnrollmentReport] erro:', err);
       if (window.location.hash !== '#analise/' + tId) return;
-      var rows = _buildRows(t, parts, {});
-      _renderPage(container, t, rows, {}, parts);
+      var rows = _buildRows(t, parts, { byUid: {}, resolvedFor: {} });
+      _renderPage(container, t, rows, {}, parts, {});
     });
   };
 

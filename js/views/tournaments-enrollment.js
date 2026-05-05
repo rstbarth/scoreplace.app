@@ -66,6 +66,24 @@ window.enrollCurrentUser = function (tId) {
         return;
     }
     if (t) {
+        // v1.3.24-beta: GUARD — não inscrever sem uid. Se chegou aqui sem
+        // uid, é race condition de login (currentUser populado parcialmente)
+        // ou sessão corrompida. Inscrever mesmo assim cria registro "fantasma"
+        // que não consegue ser categorizado depois (perfil não vincula).
+        // Bug reportado por dono do app vendo 6 de 8 inscritos sem perfil
+        // vinculado num torneio onde sabia que todos tinham conta scoreplace.
+        if (!user.uid) {
+            if (typeof showNotification !== 'undefined') showNotification('Sessão sem identificador', 'Faça logout e entre novamente antes de se inscrever.', 'error');
+            if (typeof window._captureException === 'function') {
+                window._captureException(new Error('Enrollment attempted with empty uid'), {
+                    area: 'enrollCurrentUser',
+                    tournamentId: tId,
+                    hasDisplayName: !!user.displayName,
+                    hasEmail: !!user.email,
+                });
+            }
+            return;
+        }
         // Verifica se as inscrições estão realmente abertas
         if (t.status === 'finished') {
             showAlertDialog(_t('enroll.tournamentFinished'), _t('enroll.tournamentFinishedMsg'), null, { type: 'warning' });
@@ -77,7 +95,7 @@ window.enrollCurrentUser = function (tId) {
         if (!inscricoesAbertas) {
             if (_allowsLateEnrollment(t) && t.status !== 'finished') {
                 // Late enrollment — send to standby
-                var participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '', ligaActive: true };
+                var participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid, ligaActive: true };
                 _enrollToStandby(t, tId, participantObj, function() {
                     const container = document.getElementById('view-container');
                     if (container && typeof renderTournaments === 'function') renderTournaments(container, tId);
@@ -134,7 +152,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
         catsArr = [selectedCategories];
     }
 
-    const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid || '', selfEnrolled: true, ligaActive: true };
+    const participantObj = { name: user.displayName, email: user.email, displayName: user.displayName, uid: user.uid, selfEnrolled: true, ligaActive: true };
     if (user.gender) participantObj.gender = user.gender;
     if (catsArr) {
         participantObj.categories = catsArr;
@@ -222,7 +240,7 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
             // Rollback: remove from local state and re-render
             console.warn('Enroll transaction error:', err);
             t.participants = t.participants.filter(function(p) {
-                return !(p.email === user.email && p.uid === (user.uid || ''));
+                return !(p.email === user.email && p.uid === user.uid);
             });
             if (typeof showNotification !== 'undefined') showNotification(_t('enroll.error'), _t('enroll.errorMsg'), 'error');
             var container = document.getElementById('view-container');
@@ -235,6 +253,22 @@ window.submitTeamEnroll = function (tId) {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     const user = window.AppStore.currentUser;
     if (!t || !user) return;
+
+    // v1.3.24-beta: GUARD — mesma proteção de enrollCurrentUser. Sem uid,
+    // o team enroll grava participantObj sem vincular perfil, criando
+    // inscrição "fantasma".
+    if (!user.uid) {
+        if (typeof showNotification !== 'undefined') showNotification('Sessão sem identificador', 'Faça logout e entre novamente antes de se inscrever.', 'error');
+        if (typeof window._captureException === 'function') {
+            window._captureException(new Error('Team enrollment attempted with empty uid'), {
+                area: 'submitTeamEnroll',
+                tournamentId: tId,
+                hasDisplayName: !!user.displayName,
+                hasEmail: !!user.email,
+            });
+        }
+        return;
+    }
 
     // Verifica se as inscrições estão realmente abertas
     if (t.status === 'finished') {
@@ -253,7 +287,7 @@ window.submitTeamEnroll = function (tId) {
             inputs2.forEach(function(inp) { var v = inp.value.trim(); if (!v) allOk = false; teamNames2.push(v); });
             if (!allOk) { showAlertDialog(_t('enroll.requiredFields'), _t('enroll.requiredFieldsMsg'), null, { type: 'warning' }); return; }
             var teamStr = teamNames2.join(' / ');
-            var partObj = { name: teamStr, email: user.email, displayName: teamStr, uid: user.uid || '' };
+            var partObj = { name: teamStr, email: user.email, displayName: teamStr, uid: user.uid };
             _enrollToStandby(t, tId, partObj, function() {
                 var mod2 = document.getElementById('team-enroll-modal-' + tId);
                 if (mod2) mod2.style.display = 'none';
@@ -282,7 +316,7 @@ window.submitTeamEnroll = function (tId) {
     }
 
     const teamString = teamNames.join(' / ');
-    const participantObj = { name: teamString, email: user.email, displayName: teamString, uid: user.uid || '', ligaActive: true };
+    const participantObj = { name: teamString, email: user.email, displayName: teamString, uid: user.uid, ligaActive: true };
     // Registrar origem da equipe via extraUpdates
     var _teamOrigins = t.teamOrigins || {};
     _teamOrigins[teamString] = 'inscrita';
