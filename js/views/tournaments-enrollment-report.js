@@ -262,13 +262,27 @@
         ? assignedSkills
         : (profileSkill ? [profileSkill] : []);
 
+      // v1.3.20-beta: missing[] reporta SEMPRE qualquer campo de perfil que
+      // está vazio — não só os que o org configurou em t.ageCategories /
+      // t.skillCategories. Antes, se o org não tinha categoria de idade
+      // explicitamente, ninguém aparecia "faltando data de nascimento" mesmo
+      // que 6 inscritos não tivessem nascimento cadastrado. Mesma coisa
+      // habilidade. O report é "perfis incompletos" — relativo ao perfil em
+      // si, não relativo à config atual do torneio.
+      //
+      // Para inscritos sem uid (org adicionou manualmente sem vincular conta),
+      // não vale enumerar "gênero / idade / habilidade" um por um — todos
+      // estão indisponíveis por construção. Mostra mensagem única clara,
+      // direcionando o org pra ação correta.
       var missing = [];
-      if (!gender) missing.push('gênero');
-      // skill considera tanto a atribuição quanto profile.defaultCategory
-      if (skillCats.length > 0 && effectiveSkills.length === 0) missing.push('categoria de habilidade');
-      if (ageCats.length > 0 && age == null) missing.push('data de nascimento');
       var hasUid = !!uid;
-      if (!hasUid) missing.push('sem perfil scoreplace');
+      if (!hasUid) {
+        missing.push('adicionado manualmente — sem perfil vinculado');
+      } else {
+        if (!gender) missing.push('gênero');
+        if (effectiveSkills.length === 0) missing.push('habilidade');
+        if (age == null) missing.push('data de nascimento');
+      }
 
       return {
         name: name,
@@ -601,7 +615,17 @@
       html += '</div>';
     });
     html += '</div>';
-    html += '<p style="font-size:0.68rem;color:var(--text-muted);margin:10px 0 0;font-style:italic;">💡 Pra recolher esses dados, o organizador pode pedir aos inscritos que completem o perfil em scoreplace.app/#dashboard → 👤 perfil. Inscritos sem conta scoreplace só ficam categorizados quando alguém atribui manualmente em "🏷️ Categorias".</p>';
+    // v1.3.20-beta: dois caminhos distintos pra resolver — explicar separados
+    var hasNoUid = incompleteRows.some(function (r) { return !r.hasUid; });
+    var hasUidGapsOnly = incompleteRows.some(function (r) { return r.hasUid; });
+    html += '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:10px;display:flex;flex-direction:column;gap:6px;">';
+    if (hasUidGapsOnly) {
+      html += '<p style="margin:0;font-style:italic;">💡 <b>Inscritos com perfil:</b> peça que completem em scoreplace.app/#dashboard → 👤 perfil (gênero, data de nascimento e habilidade por modalidade).</p>';
+    }
+    if (hasNoUid) {
+      html += '<p style="margin:0;font-style:italic;">📝 <b>Inscritos adicionados manualmente:</b> não têm perfil vinculado, então gênero/idade/habilidade ficam indisponíveis. Pra categorizá-los, atribua manualmente em "🏷️ Categorias", ou peça que se inscrevam direto pelo link de convite (criando perfil scoreplace).</p>';
+    }
+    html += '</div>';
     html += '</div>';
     return html;
   }
@@ -641,6 +665,10 @@
       html += '<div><b>#' + (i + 1) + ' ' + _esc(r.name) + '</b></div>';
       html += '<div>uid: <code>' + _esc(r.uid || '(sem uid)') + '</code></div>';
       var p = parts[i];
+      // v1.3.20-beta: mostra email + displayName + selfEnrolled — assim o
+      // org distingue inscrição manual (sem email/uid) de auto-enroll que
+      // perdeu o uid por algum motivo (raro).
+      html += '<div>participantObj: name=<code>' + _esc((p && (p.displayName || p.name)) || '—') + '</code> email=<code>' + _esc((p && p.email) || '—') + '</code> selfEnrolled=<code>' + _esc((p && p.selfEnrolled) ? 'true' : 'false') + '</code></div>';
       html += '<div>participantObj: gender=<code>' + _esc((p && p.gender) || '—') + '</code> categories=<code>' + _esc(JSON.stringify((p && p.categories) || [])) + '</code></div>';
       var prof = r.uid ? profileMap[r.uid] : null;
       if (prof) {
