@@ -1603,12 +1603,34 @@ window._openHelpPage = function () { window.location.hash = '#help'; };
   };
 })();
 
-// Inicializa estrutura base da UI (Modais, Menus)
-setupUI();
+// Inicializa estrutura base da UI (Modais, Menus).
+// v1.3.28-beta: defensive — se um setup* falhar (ex.: arquivo deferred
+// não chegou a parsear por race com SW cache), não derruba o resto.
+// Bug reportado: usuário viu `setupCreateTournamentModal` undefined
+// → erro fatal no main.js → openModal/_toggleHamburger nunca foram
+// expostos → landing CTA + hamburger silenciosamente não funcionavam.
+function _safeSetup(name) {
+  if (typeof console !== 'undefined' && console.warn) {
+    console.warn('[main.js] ' + name + ' indisponível no boot — UI pode estar parcialmente carregada.');
+  }
+  if (typeof window._captureMessage === 'function') {
+    window._captureMessage('Boot: ' + name + ' undefined', 'warning');
+  }
+}
 
-setupCreateTournamentModal();
-setupLoginModal();
-setupProfileModal();
+if (typeof setupUI === 'function') { try { setupUI(); } catch (e) { console.warn('[main.js] setupUI threw:', e); } }
+
+if (typeof setupCreateTournamentModal === 'function') {
+  try { setupCreateTournamentModal(); } catch (e) { console.warn('[main.js] setupCreateTournamentModal threw:', e); }
+} else { _safeSetup('setupCreateTournamentModal'); }
+
+if (typeof setupLoginModal === 'function') {
+  try { setupLoginModal(); } catch (e) { console.warn('[main.js] setupLoginModal threw:', e); }
+} else { _safeSetup('setupLoginModal'); }
+
+if (typeof setupProfileModal === 'function') {
+  try { setupProfileModal(); } catch (e) { console.warn('[main.js] setupProfileModal threw:', e); }
+} else { _safeSetup('setupProfileModal'); }
 // v0.16.42: setupResultModal/setupEnrollModal removidos — ambos arquivos eram
 // dead code (result-modal deprecated v0.4.0; enroll-modal sem callers reais).
 

@@ -92,6 +92,14 @@ body.hamburger-open .topbar {
   justify-content: center;
   align-items: center;
   gap: 4px;
+  /* v1.3.28-beta: scroll quando o conteúdo do menu não cabe no viewport
+     (especialmente em mobile com muitos itens — Inicio, Explorar,
+     Notif, Convidar, Pro, Apoie, Avatar, Logout, Tema, Idioma…).
+     Bug reportado: "menu não scrola". Sem isso, itens do final ficavam
+     inacessíveis. -60px = altura da topbar fixa acima. */
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 /* Nav groups inside dropdown */
 .hamburger-dropdown .topbar-nav-group {
