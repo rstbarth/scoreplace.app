@@ -85,7 +85,7 @@ function renderBracket(container, tournamentId, isInline) {
     <div class="bracket-action-btns" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
       <a href="#rules/${t.id}" class="btn btn-secondary btn-sm hover-lift" style="text-align:center;text-decoration:none;">📋 Regras</a>
       <a href="#participants/${t.id}" class="btn btn-secondary btn-sm hover-lift" style="text-align:center;text-decoration:none;">👥 Inscritos</a>
-      ${hasContent ? `<button class="btn btn-secondary btn-sm hover-lift no-print" onclick="window._printBracket()">🖨️ Imprimir</button>` : '<span></span>'}
+      ${hasContent ? `<button class="btn btn-secondary btn-sm hover-lift no-print" onclick="window._printTournament('${_tIdSafe}')">🖨️ Imprimir</button>` : '<span></span>'}
       ${hasContent ? `<button class="btn btn-secondary btn-sm hover-lift" onclick="window._exportTournamentCSV('${_tIdSafe}')">📊 CSV</button>` : '<span></span>'}
       ${hasContent ? `<button class="btn btn-secondary btn-sm hover-lift no-print" onclick="window._tvMode('${_tIdSafe}')">📺 Modo TV</button>` : '<span></span>'}
       ${isOrg && !hasContent ? `<button class="btn btn-primary btn-sm hover-lift" style="grid-column:span 2;" onclick="window.generateDrawFunction('${_tIdSafe}')">🎲 Realizar Sorteio</button>` : ''}

@@ -204,125 +204,351 @@ window._printQRCode = function() {
     win.onload = function() { win.print(); };
 };
 
+// ─── Helpers compartilhados (Print + CSV) ────────────────────────────────
+// v1.3.27-beta: unifica extração de inscritos + matches + standings que
+// tanto _printTournament quanto _exportTournamentCSV consomem. Antes
+// CSV pegava só matches (sem lista de inscritos) e Print era window.print()
+// no DOM atual (que em pre-iniciar é só o botão "Iniciar Torneio" → vazio).
+
+function _resolveCompetitorRows(t) {
+  // Lista de inscritos com categoria, gênero e habilidade — fonte primária
+  // pra listagem impressa e CSV. Ordena alfabeticamente; trata duplas.
+  var parts = Array.isArray(t.participants) ? t.participants : [];
+  return parts.map(function(p) {
+    if (typeof p === 'string') return { name: p, category: '', gender: '', skill: '', email: '' };
+    var name = p.displayName || p.name || (p.email ? p.email.split('@')[0] : '');
+    var cats = Array.isArray(p.categories) ? p.categories.join(', ') : (p.category || '');
+    return {
+      name: name,
+      category: cats,
+      gender: p.gender || '',
+      skill: p.defaultCategory || '',
+      email: p.email || '',
+    };
+  }).sort(function(a, b) { return String(a.name).localeCompare(String(b.name), 'pt-BR'); });
+}
+
+function _resolveMatchRows(t) {
+  // Mesma lógica do CSV antigo, extraída pra reuso. Retorna { rows: [],
+  // hasMatches: bool } onde rows são linhas tabulares (não inclui header).
+  // v1.3.27-beta: try/catch defensivo em volta de _getUnifiedRounds —
+  // ele assume estruturas que torneios minimal/mock não têm e blows up.
+  // Fallback pro scan legacy resolve isso.
+  var allMatches = [];
+  var _unified = null;
+  try {
+    if (typeof window._getUnifiedRounds === 'function') _unified = window._getUnifiedRounds(t);
+  } catch (e) { _unified = null; }
+  var _hasUnified = _unified && Array.isArray(_unified.columns) && _unified.columns.length > 0;
+  if (_hasUnified) {
+    _unified.columns.forEach(function(c) {
+      if (!c || c.phase === 'swiss-past') return;
+      if (c.phase === 'thirdplace') {
+        (c.matches || []).forEach(function(m) { allMatches.push({ m: m, label: 'Disputa 3º lugar' }); });
+        return;
+      }
+      if ((c.phase === 'groups' || c.phase === 'monarch') && Array.isArray(c.subgroups)) {
+        c.subgroups.forEach(function(sg, gi) {
+          var gname = (sg && sg.name) || String.fromCharCode(65 + gi);
+          (sg && sg.matches || []).forEach(function(m, mi) {
+            allMatches.push({ m: m, label: 'Grupo ' + gname + ' - Partida ' + (mi + 1) });
+          });
+        });
+        return;
+      }
+      var lbl = c.label || ('Rodada ' + c.round);
+      (c.matches || []).forEach(function(m) { allMatches.push({ m: m, label: lbl }); });
+    });
+  } else {
+    if (Array.isArray(t.matches)) {
+      t.matches.forEach(function(m, idx) { allMatches.push({ m: m, label: m.round || m.label || ('Partida ' + (idx + 1)) }); });
+    }
+    if (Array.isArray(t.rounds)) {
+      t.rounds.forEach(function(r, ri) {
+        (r.matches || []).forEach(function(m) { allMatches.push({ m: m, label: 'Rodada ' + (ri + 1) }); });
+      });
+    }
+    if (Array.isArray(t.groups)) {
+      t.groups.forEach(function(g, gi) {
+        (g.matches || []).forEach(function(m, mi) { allMatches.push({ m: m, label: 'Grupo ' + (gi + 1) + ' - Partida ' + (mi + 1) }); });
+      });
+    }
+    if (Array.isArray(t.rodadas)) {
+      t.rodadas.forEach(function(rd, ri) {
+        (rd.matches || []).concat(rd.jogos || []).forEach(function(m) { allMatches.push({ m: m, label: 'Rodada ' + (ri + 1) }); });
+      });
+    }
+    if (t.thirdPlaceMatch) allMatches.push({ m: t.thirdPlaceMatch, label: 'Disputa 3º lugar' });
+  }
+  var rows = [];
+  var matchNum = 0;
+  allMatches.forEach(function(item) {
+    var m = item.m;
+    if (!m.p1 && !m.p2) return;
+    matchNum++;
+    rows.push({
+      n: matchNum,
+      p1: m.p1 || 'TBD',
+      p2: m.p2 || 'TBD',
+      score1: (m.scoreP1 != null) ? m.scoreP1 : '',
+      score2: (m.scoreP2 != null) ? m.scoreP2 : '',
+      winner: m.winner || '',
+      label: item.label,
+    });
+  });
+  return { rows: rows, hasMatches: rows.length > 0 };
+}
+
+function _resolveStandingsRows(t) {
+  // Padrão do CSV antigo, extraído. Retorna [{cat, rows: [{pos, name,...}]}].
+  if (typeof window._computeStandings !== 'function') return [];
+  var isLiga = window._isLigaFormat ? window._isLigaFormat(t) : false;
+  var isSuico = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss';
+  if (!isLiga && !isSuico) return [];
+  var categories = (t.combinedCategories && t.combinedCategories.length) ? t.combinedCategories : ['default'];
+  var out = [];
+  categories.forEach(function(cat) {
+    var computed = window._computeStandings(t, cat === 'default' ? undefined : cat) || [];
+    if (computed.length === 0) return;
+    out.push({
+      cat: cat === 'default' ? '' : cat,
+      rows: computed.map(function(s, i) {
+        return { pos: i + 1, name: s.name, points: s.points, wins: s.wins, draws: s.draws || 0, losses: s.losses, pointsDiff: s.pointsDiff, played: s.played };
+      }),
+    });
+  });
+  return out;
+}
+
+// ─── Print: open dedicated printable page in a new window ────────────────
+//
+// v1.3.27-beta: window.print() no DOM atual era inútil em qualquer view
+// que não fosse o bracket. Agora gera HTML auto-contido com header do
+// torneio + inscritos + matches + standings, em paisagem retrato A4.
+window._printTournament = function(tournamentId) {
+  var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
+  if (!t) {
+    if (typeof showNotification === 'function') showNotification('Erro', 'Torneio não encontrado.', 'error');
+    return;
+  }
+
+  var competitors = _resolveCompetitorRows(t);
+  var matchData = _resolveMatchRows(t);
+  var standingsData = _resolveStandingsRows(t);
+
+  var esc = function(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  };
+  var fmtDate = function(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+  };
+  var competitorsCount = competitors.length;
+  var hasCategories = competitors.some(function(c) { return !!c.category; });
+
+  var html = '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8">' +
+    '<title>' + esc(t.name || 'Torneio') + ' — scoreplace.app</title>' +
+    '<style>' +
+      '@page { size: A4 portrait; margin: 14mm; }' +
+      'body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; color:#1a1a1a; margin:0; padding:0; font-size:10pt; line-height:1.4; }' +
+      'h1 { margin:0 0 4px; font-size:18pt; color:#0f172a; }' +
+      'h2 { margin:18px 0 8px; font-size:12pt; color:#0f172a; border-bottom:1.5px solid #e5e7eb; padding-bottom:4px; }' +
+      '.brand { font-size:9pt; color:#64748b; margin-bottom:14px; }' +
+      '.meta { background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:10px 14px; margin-bottom:14px; }' +
+      '.meta-row { display:flex; flex-wrap:wrap; gap:8px 24px; font-size:9.5pt; }' +
+      '.meta-row b { color:#0f172a; }' +
+      'table { width:100%; border-collapse:collapse; margin-bottom:14px; font-size:9.5pt; }' +
+      'th, td { padding:6px 8px; border-bottom:1px solid #e5e7eb; text-align:left; }' +
+      'th { background:#f1f5f9; color:#334155; font-weight:600; font-size:8.5pt; text-transform:uppercase; letter-spacing:0.3px; }' +
+      'tr:nth-child(even) td { background:#fafbfc; }' +
+      '.no { width:32px; color:#64748b; font-variant-numeric:tabular-nums; }' +
+      '.center { text-align:center; }' +
+      '.right { text-align:right; }' +
+      '.cat { font-size:8.5pt; color:#475569; }' +
+      '.score { font-variant-numeric:tabular-nums; font-weight:600; min-width:24px; }' +
+      '.footer { margin-top:24px; padding-top:10px; border-top:1px solid #e5e7eb; font-size:8.5pt; color:#64748b; text-align:center; }' +
+      '.section-empty { color:#64748b; font-style:italic; font-size:9.5pt; padding:8px 0; }' +
+      '.subhead { font-size:10pt; font-weight:600; color:#0f172a; margin:12px 0 6px; }' +
+    '</style>' +
+    '</head><body>' +
+    '<h1>' + esc(t.name || 'Torneio') + '</h1>' +
+    '<div class="brand">scoreplace.app · gerado em ' + fmtDate(new Date().toISOString()) + '</div>' +
+    '<div class="meta"><div class="meta-row">' +
+      (t.sport ? '<span><b>Esporte:</b> ' + esc(t.sport) + '</span>' : '') +
+      (t.format ? '<span><b>Formato:</b> ' + esc(t.format) + '</span>' : '') +
+      (t.startDate ? '<span><b>Início:</b> ' + esc(fmtDate(t.startDate)) + '</span>' : '') +
+      (t.endDate ? '<span><b>Fim:</b> ' + esc(fmtDate(t.endDate)) + '</span>' : '') +
+      (t.venue ? '<span><b>Local:</b> ' + esc(t.venue) + '</span>' : '') +
+      (t.access ? '<span><b>Acesso:</b> ' + esc(t.access) + '</span>' : '') +
+      '<span><b>Inscritos:</b> ' + competitorsCount + '</span>' +
+    '</div></div>' +
+
+    '<h2>Inscritos (' + competitorsCount + ')</h2>';
+  if (competitorsCount === 0) {
+    html += '<div class="section-empty">Sem inscritos.</div>';
+  } else {
+    html += '<table><thead><tr><th class="no">#</th><th>Nome</th>' +
+      (hasCategories ? '<th>Categoria</th>' : '') +
+      '<th>E-mail</th></tr></thead><tbody>';
+    competitors.forEach(function(c, i) {
+      html += '<tr><td class="no">' + (i + 1) + '</td>' +
+        '<td>' + esc(c.name) + '</td>' +
+        (hasCategories ? '<td class="cat">' + esc(c.category) + '</td>' : '') +
+        '<td class="cat">' + esc(c.email) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  if (matchData.hasMatches) {
+    html += '<h2>Partidas (' + matchData.rows.length + ')</h2>';
+    var lastLabel = '';
+    matchData.rows.forEach(function(r, idx) {
+      if (r.label !== lastLabel) {
+        if (idx > 0) html += '</tbody></table>';
+        html += '<div class="subhead">' + esc(r.label) + '</div>';
+        html += '<table><thead><tr><th class="no">Jogo</th><th>Jogador 1</th><th class="center">Placar</th><th>Jogador 2</th><th>Vencedor</th></tr></thead><tbody>';
+        lastLabel = r.label;
+      }
+      html += '<tr>' +
+        '<td class="no">' + r.n + '</td>' +
+        '<td>' + esc(r.p1) + '</td>' +
+        '<td class="center score">' + esc(r.score1) + ' × ' + esc(r.score2) + '</td>' +
+        '<td>' + esc(r.p2) + '</td>' +
+        '<td>' + esc(r.winner) + '</td>' +
+      '</tr>';
+    });
+    html += '</tbody></table>';
+  }
+
+  if (standingsData.length > 0) {
+    html += '<h2>Classificação</h2>';
+    standingsData.forEach(function(catBlock) {
+      if (catBlock.cat) html += '<div class="subhead">Categoria: ' + esc(catBlock.cat) + '</div>';
+      html += '<table><thead><tr><th class="no">Pos</th><th>Participante</th><th class="right">Pts</th><th class="right">V</th><th class="right">E</th><th class="right">D</th><th class="right">Saldo</th><th class="right">Jogos</th></tr></thead><tbody>';
+      catBlock.rows.forEach(function(s) {
+        html += '<tr><td class="no">' + s.pos + '</td>' +
+          '<td>' + esc(s.name) + '</td>' +
+          '<td class="right score">' + s.points + '</td>' +
+          '<td class="right">' + s.wins + '</td>' +
+          '<td class="right">' + s.draws + '</td>' +
+          '<td class="right">' + s.losses + '</td>' +
+          '<td class="right">' + s.pointsDiff + '</td>' +
+          '<td class="right">' + s.played + '</td></tr>';
+      });
+      html += '</tbody></table>';
+    });
+  }
+
+  html += '<div class="footer">scoreplace.app · ' + esc(t.name || 'Torneio') + ' · ' + competitorsCount + ' inscrito' + (competitorsCount === 1 ? '' : 's') +
+    (matchData.hasMatches ? ' · ' + matchData.rows.length + ' partida' + (matchData.rows.length === 1 ? '' : 's') : '') +
+    '</div></body></html>';
+
+  var win = window.open('', '_blank');
+  if (!win) {
+    if (typeof showNotification === 'function') showNotification('Pop-up bloqueado', 'Permita pop-ups pra imprimir o torneio.', 'warning');
+    return;
+  }
+  win.document.write(html);
+  win.document.close();
+  // Espera carregar antes de chamar print() — alguns browsers (Safari) não
+  // disparam onload em document.write se chamado muito rápido.
+  win.onload = function() { try { win.focus(); win.print(); } catch (e) {} };
+  // Fallback: dispara print após 600ms se onload não rolar
+  setTimeout(function() { try { win.print(); } catch (e) {} }, 600);
+};
+
+// Compat — _printBracket continua funcionando, agora redireciona pro
+// novo handler (precisa achar o tournament). Tenta resolver via hash.
+window._printBracket = function() {
+  var hash = window.location.hash || '';
+  var m = hash.match(/#tournaments\/([^/?#]+)|#bracket\/([^/?#]+)|#pre-draw\/([^/?#]+)/);
+  var tId = m ? (m[1] || m[2] || m[3]) : null;
+  if (tId && typeof window._printTournament === 'function') {
+    window._printTournament(tId);
+    return;
+  }
+  // Último fallback — print do DOM atual
+  window.print();
+};
+
 // Export tournament results as CSV file
+//
+// v1.3.27-beta: reescrito pra incluir lista de Inscritos sempre (antes
+// só matches/standings — o que dava CSV vazio em torneios pré-iniciar).
+// Estrutura: bloco Torneio (header + dados) + bloco Inscritos +
+// bloco Partidas (se houver) + bloco Classificação (Liga/Suíço).
 window._exportTournamentCSV = function(tournamentId) {
     var t = window.AppStore.tournaments.find(function(tour) { return String(tour.id) === String(tournamentId); });
     if (!t) return;
+
     var rows = [];
-    var hasStandings = false;
-    var isLiga = window._isLigaFormat ? window._isLigaFormat(t) : false;
-    var isSuico = t.format === 'Suíço Clássico' || t.classifyFormat === 'swiss' || t.currentStage === 'swiss';
 
-    // For Liga/Suíço: export standings
-    if (isLiga || isSuico) {
-        var categories = (t.combinedCategories && t.combinedCategories.length) ? t.combinedCategories : ['default'];
-        categories.forEach(function(cat) {
-            var computed = typeof window._computeStandings === 'function' ? window._computeStandings(t, cat === 'default' ? undefined : cat) : [];
-            if (computed.length === 0) return;
-            hasStandings = true;
-            if (cat !== 'default') rows.push(['--- Categoria: ' + cat + ' ---']);
-            rows.push(['Posição', 'Participante', 'Pontos', 'Vitórias', 'Empates', 'Derrotas', 'Saldo', 'Jogos']);
-            computed.forEach(function(s, i) {
-                rows.push([i + 1, s.name, s.points, s.wins, s.draws || 0, s.losses, s.pointsDiff, s.played]);
-            });
-            rows.push([]); // blank line between categories
+    // ─ Bloco 1: Torneio (header + dados) ─────────────────────────────
+    rows.push(['=== TORNEIO ===']);
+    rows.push(['Nome', t.name || '']);
+    if (t.sport) rows.push(['Esporte', t.sport]);
+    if (t.format) rows.push(['Formato', t.format]);
+    if (t.startDate) rows.push(['Início', t.startDate]);
+    if (t.endDate) rows.push(['Fim', t.endDate]);
+    if (t.venue) rows.push(['Local', t.venue]);
+    if (t.access) rows.push(['Acesso', t.access]);
+    if (t.organizerEmail) rows.push(['Organizador', t.organizerEmail]);
+    rows.push(['Exportado em', new Date().toLocaleString('pt-BR')]);
+    rows.push([]);
+
+    // ─ Bloco 2: Inscritos ────────────────────────────────────────────
+    var competitors = _resolveCompetitorRows(t);
+    rows.push(['=== INSCRITOS (' + competitors.length + ') ===']);
+    if (competitors.length === 0) {
+      rows.push(['Sem inscritos.']);
+    } else {
+      var hasCategories = competitors.some(function(c) { return !!c.category; });
+      var inscHeader = ['#', 'Nome'];
+      if (hasCategories) inscHeader.push('Categoria');
+      inscHeader.push('Gênero', 'Habilidade', 'E-mail');
+      rows.push(inscHeader);
+      competitors.forEach(function(c, i) {
+        var row = [i + 1, c.name];
+        if (hasCategories) row.push(c.category);
+        row.push(c.gender, c.skill, c.email);
+        rows.push(row);
+      });
+    }
+    rows.push([]);
+
+    // ─ Bloco 3: Partidas (se houver) ─────────────────────────────────
+    var matchData = _resolveMatchRows(t);
+    if (matchData.hasMatches) {
+      rows.push(['=== PARTIDAS (' + matchData.rows.length + ') ===']);
+      rows.push(['Jogo', 'Jogador 1', 'Placar 1', 'Placar 2', 'Jogador 2', 'Vencedor', 'Rodada/Fase']);
+      matchData.rows.forEach(function(r) {
+        rows.push([r.n, r.p1, r.score1, r.score2, r.p2, r.winner, r.label]);
+      });
+      rows.push([]);
+    }
+
+    // ─ Bloco 4: Classificação (Liga/Suíço) ───────────────────────────
+    var standingsData = _resolveStandingsRows(t);
+    if (standingsData.length > 0) {
+      rows.push(['=== CLASSIFICAÇÃO ===']);
+      standingsData.forEach(function(catBlock) {
+        if (catBlock.cat) rows.push(['--- Categoria: ' + catBlock.cat + ' ---']);
+        rows.push(['Posição', 'Participante', 'Pontos', 'Vitórias', 'Empates', 'Derrotas', 'Saldo', 'Jogos']);
+        catBlock.rows.forEach(function(s) {
+          rows.push([s.pos, s.name, s.points, s.wins, s.draws, s.losses, s.pointsDiff, s.played]);
         });
+        rows.push([]);
+      });
     }
 
-    // For elimination formats: export match results
-    if (!hasStandings) {
-        rows.push(['Partida', 'Jogador 1', 'Jogador 2', 'Placar 1', 'Placar 2', 'Vencedor', 'Rodada/Fase']);
-        var allMatches = [];
-        // Prefer canonical adapter so labels match bracket headers ("Final",
-        // "Semifinais", "Grupo A", "Disputa 3º lugar") across all formats.
-        var _unified = (typeof window._getUnifiedRounds === 'function') ? window._getUnifiedRounds(t) : null;
-        var _hasUnified = _unified && Array.isArray(_unified.columns) && _unified.columns.length > 0;
-        if (_hasUnified) {
-            _unified.columns.forEach(function(c) {
-                // CSV export includes completed rounds — only skip swiss recap
-                // (swiss-past is already reflected in standings for swiss/liga).
-                if (!c || c.phase === 'swiss-past') return;
-                if (c.phase === 'thirdplace') {
-                    (c.matches || []).forEach(function(m) {
-                        allMatches.push({ m: m, label: 'Disputa 3º lugar' });
-                    });
-                    return;
-                }
-                if ((c.phase === 'groups' || c.phase === 'monarch') && Array.isArray(c.subgroups)) {
-                    c.subgroups.forEach(function(sg, gi) {
-                        var gname = (sg && sg.name) || String.fromCharCode(65 + gi);
-                        (sg && sg.matches || []).forEach(function(m, mi) {
-                            allMatches.push({ m: m, label: 'Grupo ' + gname + ' - Partida ' + (mi + 1) });
-                        });
-                    });
-                    return;
-                }
-                var lbl = c.label || ('Rodada ' + c.round);
-                (c.matches || []).forEach(function(m) {
-                    allMatches.push({ m: m, label: lbl });
-                });
-            });
-        } else {
-            // Defensive fallback: legacy scan across all shapes.
-            if (Array.isArray(t.matches)) {
-                t.matches.forEach(function(m, idx) {
-                    allMatches.push({ m: m, label: m.round || m.label || ('Partida ' + (idx + 1)) });
-                });
-            }
-            if (Array.isArray(t.rounds)) {
-                t.rounds.forEach(function(r, ri) {
-                    (r.matches || []).forEach(function(m, mi) {
-                        allMatches.push({ m: m, label: 'Rodada ' + (ri + 1) });
-                    });
-                });
-            }
-            if (Array.isArray(t.groups)) {
-                t.groups.forEach(function(g, gi) {
-                    (g.matches || []).forEach(function(m, mi) {
-                        allMatches.push({ m: m, label: 'Grupo ' + (gi + 1) + ' - Partida ' + (mi + 1) });
-                    });
-                });
-            }
-            if (Array.isArray(t.rodadas)) {
-                t.rodadas.forEach(function(rd, ri) {
-                    (rd.matches || []).concat(rd.jogos || []).forEach(function(m) {
-                        allMatches.push({ m: m, label: 'Rodada ' + (ri + 1) });
-                    });
-                });
-            }
-            if (t.thirdPlaceMatch) {
-                allMatches.push({ m: t.thirdPlaceMatch, label: 'Disputa 3º lugar' });
-            }
-        }
-        var matchNum = 0;
-        allMatches.forEach(function(item) {
-            var m = item.m;
-            if (!m.p1 && !m.p2) return;
-            matchNum++;
-            rows.push([
-                matchNum,
-                m.p1 || 'TBD',
-                m.p2 || 'TBD',
-                m.scoreP1 !== undefined && m.scoreP1 !== null ? m.scoreP1 : '',
-                m.scoreP2 !== undefined && m.scoreP2 !== null ? m.scoreP2 : '',
-                m.winner || '',
-                item.label
-            ]);
-        });
+    if (competitors.length === 0 && !matchData.hasMatches && standingsData.length === 0) {
+      if (typeof showNotification === 'function') showNotification(_t('share.noResults'), _t('share.noResultsMsg'), 'warning');
+      return;
     }
-
-    if (rows.length === 0) {
-        if (typeof showNotification === 'function') showNotification(_t('share.noResults'), _t('share.noResultsMsg'), 'warning');
-        return;
-    }
-
-    // Add header with tournament info — horizontal layout for landscape viewing
-    var header = [
-        ['Torneio', 'Formato', 'Esporte', 'Data', 'Local', 'Inscritos', 'Exportado em'],
-        [t.name, t.format || '', t.sport || '', t.startDate || '', t.venue || '', (typeof window._getCompetitors === 'function' ? window._getCompetitors(t).length : (Array.isArray(t.participants) ? t.participants.length : 0)), new Date().toLocaleString('pt-BR')],
-        []
-    ];
-    rows = header.concat(rows);
 
     // Generate CSV
     var csvContent = rows.map(function(row) {
