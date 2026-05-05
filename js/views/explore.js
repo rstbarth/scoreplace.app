@@ -117,6 +117,23 @@ function _nameHtml(line1, line2) {
     (line2 ? '<div style="' + s2 + '">' + window._safeHtml(line2) + '</div>' : '');
 }
 
+// v1.3.25-beta: normaliza cidade pra comparar — strip acentos via NFD
+// + lowercase + trim. "Sao Paulo" === "São Paulo" === "são paulo"  ===
+// "Sao paulo  " — todas iguais. Bug reportado: cards de Flavio/Raquel
+// mostravam "Sao Paulo" mesmo o usuário também sendo de São Paulo,
+// porque a comparação anterior usava só toLowerCase() (acento bate).
+function _normalizeCity(s) {
+  if (!s) return '';
+  // ̀-ͯ = combining diacritical marks (acentos isolados após NFD).
+  return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+}
+
+// True quando a cidade do outro user é a mesma do logado (ignorando acento/case/espaços).
+function _isSameCityAsMe(theirCity) {
+  var cu = window.AppStore && window.AppStore.currentUser ? window.AppStore.currentUser : {};
+  return _normalizeCity(theirCity) === _normalizeCity(cu.city);
+}
+
 // Compact card for the "Meus Amigos" section only. Drops the extra action
 // button area in favor of a tiny ✕ at top-right for unfriending; shows just
 // photo + name + city (when different from mine) + preferred sport — no age.
@@ -129,11 +146,11 @@ function _friendCompactCardHtml(u, uid) {
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
   var fallbackPhoto = initialsUrl;
 
-  // City: only show if present AND different from mine (case/accent-insensitive).
+  // City: only show if present AND different from mine (case + accent + trim
+  // insensitive — v1.3.25-beta usa _normalizeCity p/ "Sao Paulo" === "São Paulo").
   var subtitleChips = [];
-  var myCity = (cu.city || '').toString().trim().toLowerCase();
   var theirCity = (u.city || '').toString().trim();
-  if (theirCity && theirCity.toLowerCase() !== myCity) subtitleChips.push(theirCity);
+  if (theirCity && !_isSameCityAsMe(theirCity)) subtitleChips.push(theirCity);
   // Sport: first preferred sport (normalized, no emoji).
   if (u.preferredSports) {
     var firstSport = String(u.preferredSports).split(/[,;]/)[0].trim();
@@ -165,7 +182,10 @@ function _userCardHtml(u, uid, actionHtml, variant) {
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
   var fallbackPhoto = initialsUrl;
   var infoChips = [];
-  if (u.city) infoChips.push(u.city);
+  // v1.3.25-beta: cidade só aparece quando diferente da minha (mesma regra
+  // de _friendCompactCardHtml). Antes essa variant sempre empurrava cidade
+  // — bug paralelo nas seções "Outros Usuários" / "Conhecidos".
+  if (u.city && !_isSameCityAsMe(u.city)) infoChips.push(u.city);
   // preferredSports: aceita array (forma moderna) ou string CSV (legacy).
   if (u.preferredSports) {
     var _sportsStr = Array.isArray(u.preferredSports)
