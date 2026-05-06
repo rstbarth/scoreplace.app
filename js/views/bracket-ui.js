@@ -1,6 +1,90 @@
 // ── Bracket UI Handlers ──
 var _t = window._t || function(k) { return k; };
 
+// v1.3.31-beta: helper compartilhado pra computar estatísticas de tempo
+// dos pontos a partir de um array de intervalos (ms entre pontos consecutivos,
+// onde o primeiro intervalo é matchStart→primeiroPonto).
+//
+// Faz 2 filtragens:
+//   1. Outliers CURTOS (taps de correção, < max(2s, 30% mediana)) — descartados
+//      do cálculo de "ponto mais rápido", igual à v1.0.35.
+//   2. AQUECIMENTO INICIAL — se o PRIMEIRO intervalo for > 2× a mediana
+//      dos demais (após filtro de curtos), assume que foi tempo de
+//      aquecimento e o EXCLUI do cálculo de avgMs e maxMs. O tempo total
+//      do jogo (matchEndTime - matchStartTime) NÃO é afetado — o helper
+//      retorna esse valor inalterado pra o caller usar.
+//
+// Bug reportado pelo dono: "caso o primeiro ponto demore muito mais do
+// que a média de tempo dos pontos pode ser por causa de um aquecimento
+// inicial bem comum. Desconsidere para efeito de ponto mais longo e para
+// a média de tempo dos pontos na partida. pode considerar para o tempo
+// total do jogo apenas".
+//
+// Retorna: { avgMs, maxMs, minMs, warmupSkipped, warmupMs, outlierFilteredCount }
+//   - avgMs/maxMs: calculados sobre o set "limpo" (sem warmup)
+//   - minMs: calculado com filtro de curtos
+//   - warmupSkipped: bool — se o 1º intervalo foi tratado como aquecimento
+//   - warmupMs: o intervalo descartado (pra debug / display opcional)
+window._computeMatchTimeStats = function(intervals) {
+  if (!intervals || intervals.length === 0) return null;
+  var _median = function(arr) {
+    if (!arr || arr.length === 0) return 0;
+    var s = arr.slice().sort(function(a,b){return a-b;});
+    return s.length % 2 === 1 ? s[Math.floor(s.length/2)] : (s[s.length/2 - 1] + s[s.length/2]) / 2;
+  };
+  // Mediana inicial sobre TODOS os intervalos pra setar threshold de curtos
+  var medianAll = _median(intervals);
+  var shortThreshold = Math.max(2000, Math.floor(medianAll * 0.3));
+
+  // Detecta aquecimento: 1º intervalo > 2× mediana DOS DEMAIS (após
+  // descartar os curtos). Precisa de pelo menos 2 intervalos no "rest"
+  // pra ter mediana confiável — caso contrário pula a heurística.
+  var warmupSkipped = false;
+  var warmupMs = null;
+  if (intervals.length >= 3) {
+    var rest = [];
+    for (var ri = 1; ri < intervals.length; ri++) {
+      if (intervals[ri] >= shortThreshold) rest.push(intervals[ri]);
+    }
+    if (rest.length >= 2) {
+      var medianRest = _median(rest);
+      if (medianRest > 0 && intervals[0] > 2 * medianRest) {
+        warmupSkipped = true;
+        warmupMs = intervals[0];
+      }
+    }
+  }
+
+  // Working set: sem warmup (se detectado)
+  var workingSet = warmupSkipped ? intervals.slice(1) : intervals.slice();
+  if (workingSet.length === 0) {
+    // Edge case: só tinha o 1º intervalo e foi marcado como warmup. Retorna
+    // null em vez de stats vazias — display cai pro fallback "—".
+    return { avgMs: null, maxMs: null, minMs: null, warmupSkipped: true, warmupMs: warmupMs, outlierFilteredCount: 0 };
+  }
+
+  var avgMs = Math.round(_median(workingSet));
+  var maxMs = 0, filteredMin = Infinity, filteredCount = 0;
+  for (var wi = 0; wi < workingSet.length; wi++) {
+    if (workingSet[wi] > maxMs) maxMs = workingSet[wi];
+    if (workingSet[wi] >= shortThreshold) {
+      if (workingSet[wi] < filteredMin) filteredMin = workingSet[wi];
+      filteredCount++;
+    }
+  }
+  var sortedWorking = workingSet.slice().sort(function(a,b){return a-b;});
+  var safeMin = filteredCount > 0 ? filteredMin : sortedWorking[0];
+  return {
+    avgMs: avgMs,
+    maxMs: maxMs || null,
+    minMs: safeMin,
+    warmupSkipped: warmupSkipped,
+    warmupMs: warmupMs,
+    outlierFilteredCount: workingSet.length - filteredCount
+  };
+};
+
+
 // v0.16.87: propaga mutação de um match (m) pra todas as refs com mesmo id
 // no tournament. Necessário porque após Firestore deserialização (onSnapshot
 // dispara em todo save), refs entre t.rounds[i].matches[k] e
@@ -3853,7 +3937,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var endT = _matchEndTime || Date.now();
     var ctx = extraContext || {};
 
-    // Time-per-point analytics from pointLog timestamps
+    // Time-per-point analytics from pointLog timestamps.
+    // v1.3.31-beta: usa helper compartilhado window._computeMatchTimeStats
+    // que aplica detecção de aquecimento inicial (1º intervalo > 2× mediana
+    // dos demais → tratado como warmup, excluído de avg/max).
     var timeStatsRec = null;
     var ptsWithT = (state.pointLog || []).filter(function(p) { return !!p.t; });
     if (ptsWithT.length >= 2) {
@@ -3863,39 +3950,16 @@ window._openLiveScoring = function(tId, matchId, opts) {
         if (prevTs) recIntervals.push(ptsWithT[rti].t - prevTs);
         prevTs = ptsWithT[rti].t;
       }
-      if (recIntervals.length > 0) {
-        // v1.0.35-beta: mesmo filtro de outliers que o time-per-point inline
-        // (avgMs via mediana, minMs com threshold). Persistido em Firestore +
-        // localStorage cache, alimentando o modal "Estatísticas Detalhadas"
-        // do hero box. Sem isso, casual antigo com tap-correção quebrava a
-        // estatística "ponto mais rápido" pra sempre.
-        var sortedRecInt = recIntervals.slice().sort(function(a,b){return a-b;});
-        var medianRecMs;
-        if (sortedRecInt.length % 2 === 1) {
-          medianRecMs = sortedRecInt[Math.floor(sortedRecInt.length / 2)];
-        } else {
-          var midR = sortedRecInt.length / 2;
-          medianRecMs = (sortedRecInt[midR - 1] + sortedRecInt[midR]) / 2;
-        }
-        var outlierThresholdR = Math.max(2000, Math.floor(medianRecMs * 0.3));
-        var maxI = 0;
-        var filteredMinR = Infinity, filteredCntR = 0;
-        for (var rk = 0; rk < recIntervals.length; rk++) {
-          if (recIntervals[rk] > maxI) maxI = recIntervals[rk];
-          if (recIntervals[rk] >= outlierThresholdR) {
-            if (recIntervals[rk] < filteredMinR) filteredMinR = recIntervals[rk];
-            filteredCntR++;
-          }
-        }
-        var safeMinR;
-        if (filteredCntR > 0) safeMinR = filteredMinR;
-        else safeMinR = sortedRecInt[0];
+      var rec = window._computeMatchTimeStats(recIntervals);
+      if (rec) {
         timeStatsRec = {
-          avgPointMs: Math.round(medianRecMs),
-          longestPointMs: maxI,
-          shortestPointMs: safeMinR,
+          avgPointMs: rec.avgMs,
+          longestPointMs: rec.maxMs,
+          shortestPointMs: rec.minMs,
           pointsWithTime: ptsWithT.length,
-          outlierFilteredCount: recIntervals.length - filteredCntR
+          outlierFilteredCount: rec.outlierFilteredCount,
+          warmupSkipped: rec.warmupSkipped,
+          warmupMs: rec.warmupMs
         };
       }
     }
@@ -4874,6 +4938,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
         var m = Math.floor(s / 60), ss = s % 60;
         return m + 'm' + String(ss).padStart(2, '0') + 's';
       }
+      // v1.3.31-beta: refatorado pra usar window._computeMatchTimeStats
+      // (mesmo helper de timeStatsRec, com filtro de curtos + detecção de
+      // aquecimento). Tempo total do jogo (totalMs) NÃO é afetado pelo
+      // warmup — usa o intervalo bruto de _matchStartTime → _matchEndTime
+      // direto. avg/max/min usam o set "limpo".
       var _timeStats = null;
       if (state.pointLog && state.pointLog.length >= 2) {
         var tsPts = state.pointLog;
@@ -4885,51 +4954,17 @@ window._openLiveScoring = function(tId, matchId, opts) {
           if (prevT) intervals.push(ti - prevT);
           prevT = ti;
         }
-        if (intervals.length > 0) {
-          // v1.0.35-beta: filtro de outliers pra "ponto mais rápido" não
-          // ser distorcido por taps acidentais ou correções rápidas.
-          // Bug reportado: "ao final do jogo nas estatisticas constava que
-          // o ponto mais rápido se deu em 0 segundos. isso é absurdo".
-          // Causa: 2 cliques rápidos consecutivos (correção) → intervalo <
-          // 1s. Solução em 2 camadas:
-          //   1. avgMs usa MEDIANA em vez de média — menos sensível a
-          //      valores extremos (1 outlier não puxa a estatística inteira)
-          //   2. minMs filtra intervalos absurdamente curtos. Threshold:
-          //      max(2000ms, 30% da mediana). Pontos legítimos curtos
-          //      (ace direto = ~3s) passam; cliques de correção (<2s) saem.
-          var sortedIntervals = intervals.slice().sort(function(a,b){return a-b;});
-          var medianMs;
-          if (sortedIntervals.length % 2 === 1) {
-            medianMs = sortedIntervals[Math.floor(sortedIntervals.length / 2)];
-          } else {
-            var mid = sortedIntervals.length / 2;
-            medianMs = (sortedIntervals[mid - 1] + sortedIntervals[mid]) / 2;
-          }
-          var outlierThreshold = Math.max(2000, Math.floor(medianMs * 0.3));
-          var sumMs = 0, maxMs = 0;
-          var filteredMin = Infinity, filteredCount = 0;
-          for (var ii = 0; ii < intervals.length; ii++) {
-            sumMs += intervals[ii];
-            if (intervals[ii] > maxMs) maxMs = intervals[ii];
-            // Para "fastest point", só considera intervalos >= threshold —
-            // descarta cliques de correção que sobreviveram à recuperação.
-            if (intervals[ii] >= outlierThreshold) {
-              if (intervals[ii] < filteredMin) filteredMin = intervals[ii];
-              filteredCount++;
-            }
-          }
-          // Se TODOS os intervalos são suspeitos (nada sobreviveu ao filtro),
-          // cai pro min puro como fallback — pelo menos não mostra null.
-          var safeMin;
-          if (filteredCount > 0) safeMin = filteredMin;
-          else safeMin = sortedIntervals[0];
+        var ts = window._computeMatchTimeStats(intervals);
+        if (ts) {
           _timeStats = {
             totalMs: _matchStartTime && _matchEndTime ? (_matchEndTime - _matchStartTime) : null,
-            avgMs: Math.round(medianMs),  // mediana, mais robusto a outliers
-            minMs: safeMin,
-            maxMs: maxMs || null,
+            avgMs: ts.avgMs,
+            minMs: ts.minMs,
+            maxMs: ts.maxMs,
             pointCount: tsPts.length,
-            outlierFilteredCount: intervals.length - filteredCount  // p/ debug
+            outlierFilteredCount: ts.outlierFilteredCount,
+            warmupSkipped: ts.warmupSkipped,
+            warmupMs: ts.warmupMs
           };
         }
       }
@@ -4941,6 +4976,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
             '<span style="font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;text-align:center;">' + label + '</span>' +
           '</div>';
         };
+        // v1.3.31-beta: hint discreto quando o helper detectou aquecimento
+        // inicial e o desconsiderou de avg/max. Tempo total continua íntegro.
+        var warmupHint = '';
+        if (_timeStats.warmupSkipped && _timeStats.warmupMs) {
+          warmupHint = '<div style="text-align:center;font-size:0.55rem;color:var(--text-muted);opacity:0.7;font-style:italic;">🏃 Aquecimento de ' + _fmtSec(_timeStats.warmupMs) + ' não contado em Tempo/pt e Mais longo</div>';
+        }
         timeStatsSection =
           '<div style="width:100%;max-width:380px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:8px;">' +
             '<div style="text-align:center;font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;">⏱ Tempo</div>' +
@@ -4950,6 +4991,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
               _tsBox('Mais longo', _fmtSec(_timeStats.maxMs), '#fbbf24') +
               _tsBox('Mais curto', _fmtSec(_timeStats.minMs), '#22c55e') +
             '</div>' +
+            warmupHint +
           '</div>';
       }
 
