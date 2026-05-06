@@ -93,6 +93,29 @@ function renderNotifications(container) {
         actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
           '<button class="btn btn-sm" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 700;" onclick="event.stopPropagation(); window.location.hash=\'#casual/' + safeRoom + '\'; _markNotifRead(\'' + safeNotifId + '\')">⚡ Entrar na partida</button>' +
         '</div>';
+      } else if (n.type === 'casual_link_request' && isUnread && n.casualMatchDocId) {
+        // v1.3.33-beta: amigo do usuário sugere que ele jogou esta partida
+        // casual. 2 botões: "Sim, era eu" / "Não". Sim → atualiza match doc
+        // pra atribuir uid; Não → só registra rejeição. Ambos notificam de
+        // volta o solicitante.
+        var notifJsonSafe = JSON.stringify({
+          _id: n._id,
+          casualMatchDocId: n.casualMatchDocId,
+          casualRoomCode: n.casualRoomCode || '',
+          casualSlotIndex: n.casualSlotIndex,
+          casualGuestName: n.casualGuestName || '',
+          casualSport: n.casualSport || ''
+        }).replace(/"/g, '&quot;').replace(/'/g, '\\\'');
+        actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px; flex-wrap:wrap;">' +
+          '<button class="btn btn-sm" style="background: var(--success-color); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 700;" onclick="event.stopPropagation(); var n=JSON.parse(this.getAttribute(\'data-notif\')); if(window._confirmCasualLinkRequest)window._confirmCasualLinkRequest(n,true);" data-notif="' + notifJsonSafe + '">✅ Sim, era eu</button>' +
+          '<button class="btn btn-sm" style="background: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); padding: 4px 14px; font-size: 0.75rem;" onclick="event.stopPropagation(); var n=JSON.parse(this.getAttribute(\'data-notif\')); if(window._confirmCasualLinkRequest)window._confirmCasualLinkRequest(n,false);" data-notif="' + notifJsonSafe + '">❌ Não, era outra pessoa</button>' +
+        '</div>';
+      } else if ((n.type === 'casual_link_accepted' || n.type === 'casual_link_rejected') && n.casualRoomCode) {
+        // Confirmação que veio de volta — botão pra revisar a partida.
+        var safeRoomCfm = String(n.casualRoomCode).replace(/'/g, "\\'").replace(/\\/g, "\\\\").toUpperCase();
+        actionHtml = '<div style="display: flex; gap: 6px; margin-top: 8px;">' +
+          '<button class="btn btn-sm" style="background:linear-gradient(135deg,#38bdf8,#0ea5e9); color: #fff; border: none; padding: 4px 14px; font-size: 0.75rem; font-weight: 700;" onclick="event.stopPropagation(); window.location.hash=\'#casual/' + safeRoomCfm + '\'; _markNotifRead(\'' + safeNotifId + '\')">📊 Ver partida</button>' +
+        '</div>';
       }
 
       // Escape HTML in message to prevent XSS
@@ -115,7 +138,7 @@ function renderNotifications(container) {
     listDiv.innerHTML = html;
 
     // Mark all as read after viewing (skip notifications with pending actions)
-    var _actionTypes = ['host_transfer_invite', 'cohost_invite', 'host_transfer_sent', 'cohost_invite_sent', 'friend_request'];
+    var _actionTypes = ['host_transfer_invite', 'cohost_invite', 'host_transfer_sent', 'cohost_invite_sent', 'friend_request', 'casual_link_request'];
     notifs.forEach(function(n) {
       if (!n.read && _actionTypes.indexOf(n.type) === -1) {
         window.FirestoreDB.markNotificationRead(uid, n._id);

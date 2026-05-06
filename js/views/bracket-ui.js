@@ -93,6 +93,168 @@ window._computeMatchTimeStats = function(intervals) {
   };
 };
 
+// v1.3.33-beta: handler de confirmação do casual_link_request. Chamado
+// pelo botão da notificação na inbox quando o amigo aceita ou rejeita.
+// Atualiza match doc:
+//   - aceita: players[slotIndex].uid = userUid + remove pending. Notifica
+//     o solicitante (casual_link_accepted).
+//   - rejeita: remove pending. Notifica o solicitante (casual_link_rejected).
+window._confirmCasualLinkRequest = async function(notif, accept) {
+  if (!notif || !notif.casualMatchDocId) return;
+  var cu = window.AppStore && window.AppStore.currentUser;
+  if (!cu || !cu.uid) return;
+  if (!window.FirestoreDB || !window.FirestoreDB.db) return;
+  try {
+    var docRef = window.FirestoreDB.db.collection('casualMatches').doc(notif.casualMatchDocId);
+    var snap = await docRef.get();
+    if (!snap.exists) {
+      if (typeof showNotification === 'function') showNotification('Partida não encontrada', 'Pode ter sido apagada.', 'warning');
+      return;
+    }
+    var data = snap.data();
+    var pending = Array.isArray(data.pendingLinkRequests) ? data.pendingLinkRequests.slice() : [];
+    var matchIdx = pending.findIndex(function(r) {
+      return r.slotIndex === notif.casualSlotIndex && r.suggestedUid === cu.uid;
+    });
+    if (matchIdx === -1) {
+      // Já processado ou expirou
+      if (typeof showNotification === 'function') showNotification('Já processado', 'Esta sugestão já foi resolvida.', 'info');
+      return;
+    }
+    var req = pending[matchIdx];
+    pending.splice(matchIdx, 1);
+    var updates = { pendingLinkRequests: pending };
+    if (accept) {
+      // Atualiza players[slotIndex].uid + denormalized arrays
+      var players = Array.isArray(data.players) ? data.players.slice() : [];
+      if (players[notif.casualSlotIndex]) {
+        players[notif.casualSlotIndex] = Object.assign({}, players[notif.casualSlotIndex], {
+          uid: cu.uid,
+          displayName: cu.displayName || players[notif.casualSlotIndex].displayName || '',
+          photoURL: cu.photoURL || players[notif.casualSlotIndex].photoURL || '',
+          linkedViaConfirmation: true,
+          linkedAt: new Date().toISOString()
+        });
+        updates.players = players;
+        var playerUids = Array.isArray(data.playerUids) ? data.playerUids.slice() : [];
+        if (playerUids.indexOf(cu.uid) === -1) {
+          playerUids.push(cu.uid);
+          updates.playerUids = playerUids;
+        }
+        var participants = Array.isArray(data.participants) ? data.participants.slice() : [];
+        if (!participants.some(function(p) { return p.uid === cu.uid; })) {
+          participants.push({
+            uid: cu.uid,
+            displayName: cu.displayName || '',
+            photoURL: cu.photoURL || '',
+            joinedAt: new Date().toISOString(),
+            linkedViaConfirmation: true
+          });
+          updates.participants = participants;
+        }
+      }
+    }
+    await docRef.update(updates);
+    // Marca notif como lida + envia confirmação de volta pro solicitante
+    if (window.FirestoreDB.markNotificationRead && notif._id) {
+      try { await window.FirestoreDB.markNotificationRead(cu.uid, notif._id); } catch(e) {}
+    }
+    if (typeof window._sendUserNotification === 'function' && req.suggestedBy) {
+      await window._sendUserNotification(req.suggestedBy, {
+        type: accept ? 'casual_link_accepted' : 'casual_link_rejected',
+        level: 'all',
+        message: (cu.displayName || 'Usuário') + (accept
+          ? ' confirmou que jogou a partida casual com você. As estatísticas foram atribuídas a ele/ela.'
+          : ' disse que não era ele/ela na partida casual.'),
+        casualMatchDocId: notif.casualMatchDocId,
+        casualRoomCode: notif.casualRoomCode || ''
+      });
+    }
+    if (typeof showNotification === 'function') {
+      showNotification(
+        accept ? '✅ Vínculo confirmado' : '❌ Sugestão rejeitada',
+        accept ? 'Esta partida agora conta nas suas estatísticas.' : 'O solicitante foi avisado.',
+        accept ? 'success' : 'info'
+      );
+    }
+  } catch (e) {
+    console.warn('[casual link] confirm err:', e);
+    if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível processar. Tente novamente.', 'error');
+  }
+};
+
+// ─── Friend matching pra sugerir vínculo de jogador "guest" → user real ──
+// v1.3.33-beta: pedido do dono — durante/após partida casual, se um nome
+// digitado (slot sem uid) bater com nome de um amigo do user logado,
+// sugerir "esse Andre é o André de tal (seu amigo)? Vincular?". Ao
+// vincular, os dados da partida ficam atribuídos ao perfil do amigo.
+
+// Normalizador de nomes — strip acentos + lowercase + trim. Comparação
+// "Andre" === "André" === "ANDRÉ" === "andre ".
+window._normalizeName = function(s) {
+  if (!s) return '';
+  return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+};
+
+// Cache de perfis de amigos (uid → {displayName, photoURL}). Hidratado
+// lazy quando precisar — não duplica os fetches que explore.js já faz.
+window._friendProfilesCache = window._friendProfilesCache || {};
+
+// Busca perfis dos amigos do user logado e popula cache. Idempotente —
+// fetches paralelos só quando necessário, retorna a partir do cache em
+// chamadas subsequentes.
+window._loadFriendProfilesCached = async function() {
+  var cu = window.AppStore && window.AppStore.currentUser;
+  if (!cu || !Array.isArray(cu.friends) || cu.friends.length === 0) return [];
+  if (!window.FirestoreDB || typeof window.FirestoreDB.loadUserProfile !== 'function') return [];
+  var toFetch = cu.friends.filter(function(uid) { return uid && !window._friendProfilesCache[uid]; });
+  if (toFetch.length > 0) {
+    var fetched = await Promise.all(toFetch.map(function(uid) {
+      return window.FirestoreDB.loadUserProfile(uid).then(function(p) {
+        return { uid: uid, profile: p };
+      }).catch(function() { return { uid: uid, profile: null }; });
+    }));
+    fetched.forEach(function(item) {
+      if (item.profile) {
+        window._friendProfilesCache[item.uid] = {
+          uid: item.uid,
+          displayName: item.profile.displayName || '',
+          photoURL: item.profile.photoURL || ''
+        };
+      }
+    });
+  }
+  return cu.friends.map(function(uid) { return window._friendProfilesCache[uid]; }).filter(Boolean);
+};
+
+// Dado um nome digitado, retorna lista ordenada de amigos candidatos.
+// Match em camadas (mais relevante primeiro):
+//   1. Full name exato (normalized)
+//   2. First name exato
+//   3. Substring (any token of typed name in friend's normalized name)
+// Ignora amigos cujo uid já aparece em excludeUids (jogadores já logados).
+window._suggestFriendsForGuestName = function(typedName, excludeUids) {
+  if (!typedName) return [];
+  var excl = Array.isArray(excludeUids) ? excludeUids : [];
+  var friends = (window._friendProfilesCache && Object.keys(window._friendProfilesCache).map(function(k){return window._friendProfilesCache[k];})) || [];
+  var normTyped = window._normalizeName(typedName);
+  var normTypedFirst = normTyped.split(/\s+/)[0];
+  var fullMatches = [], firstMatches = [], partialMatches = [];
+  friends.forEach(function(fr) {
+    if (!fr || !fr.displayName) return;
+    if (excl.indexOf(fr.uid) !== -1) return;
+    var normFr = window._normalizeName(fr.displayName);
+    var normFrFirst = normFr.split(/\s+/)[0];
+    if (normFr === normTyped) { fullMatches.push(fr); return; }
+    if (normFrFirst === normTypedFirst && normTypedFirst.length >= 2) { firstMatches.push(fr); return; }
+    // Substring fallback: typed name é prefixo OU sufixo de friend (ex.: "Andre" em "Andre Marques")
+    if (normTyped.length >= 3 && (normFr.indexOf(normTyped) !== -1 || normTyped.indexOf(normFr) !== -1)) {
+      partialMatches.push(fr);
+    }
+  });
+  return fullMatches.concat(firstMatches).concat(partialMatches);
+};
+
 
 // v0.16.87: propaga mutação de um match (m) pra todas as refs com mesmo id
 // no tournament. Necessário porque após Firestore deserialização (onSnapshot
@@ -5119,6 +5281,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
           '</div>';
       }
 
+      // v1.3.33-beta: slot pra sugestões de vínculo guest→user real.
+      // Hidratado async (precisa fetch de friend profiles). Empty quando
+      // não há candidatos ou não é casual.
+      var linkSuggestionsSlot = isCasual ? '<div id="casual-link-suggestions-slot" style="width:100%;max-width:380px;"></div>' : '';
+
       // Action section pinned at the TOP — "Jogar Novamente" (and optional
       // shuffle toggle for doubles) are always within thumb-reach. Clicking
       // "Jogar Novamente" or "✕ Fechar" both persist the result as confirmed.
@@ -5133,7 +5300,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
           loserSection +
           timeStatsSection +
           (timeStatsSection ? '' : durationRow) +
+          linkSuggestionsSlot +
         '</div>';
+      // v1.3.33-beta: hidrata sugestões de vínculo guest→friend
+      if (isCasual && typeof window._hydrateCasualLinkSuggestions === 'function') {
+        setTimeout(function() { window._hydrateCasualLinkSuggestions(); }, 200);
+      }
       // v1.0.33-beta: dispara animação on-scroll de barras + contadores nos
       // blocos de stats (_compareBar, etc).
       if (typeof window._initStatsAnimation === 'function') {
@@ -5736,6 +5908,142 @@ window._openLiveScoring = function(tId, matchId, opts) {
   var _casualDocId = isCasual && opts ? opts.casualDocId : null;
   var _casualCreatedBy = isCasual && opts ? (opts.createdBy || null) : null;
   var _casualRoomCode = isCasual && opts ? (opts.roomCode || null) : null;
+  // v1.3.33-beta: cópia local dos players da partida casual (mesmo shape
+  // do match.players[] no Firestore). Usado pra render das sugestões de
+  // vínculo guest→friend. Mantido sincronizado via _applyRemoteState.
+  var _casualPlayers = (isCasual && opts && Array.isArray(opts.players)) ? opts.players.slice() : [];
+
+  // v1.3.33-beta: render das sugestões de vínculo guest→friend.
+  // Pra cada slot SEM uid em _casualPlayers, busca matches em
+  // window._friendProfilesCache via _suggestFriendsForGuestName e
+  // renderiza um card "Esse [name] é o [Friend]?" com botão "Sugerir
+  // vínculo" — que dispara notificação pro friend confirmar.
+  window._hydrateCasualLinkSuggestions = async function() {
+    var slot = document.getElementById('casual-link-suggestions-slot');
+    if (!slot) return;
+    if (!isCasual || !_casualDocId) { slot.innerHTML = ''; return; }
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid || !Array.isArray(cu.friends) || cu.friends.length === 0) {
+      slot.innerHTML = ''; return;
+    }
+    // Hidrata cache de perfis dos amigos (idempotente)
+    try { await window._loadFriendProfilesCached(); } catch(e) {}
+    // Coleta uids já logados (incluindo o current user) pra excluir das sugestões
+    var loggedUids = [cu.uid];
+    _casualPlayers.forEach(function(p) { if (p && p.uid) loggedUids.push(p.uid); });
+    // Coleta pending requests do match (carregados quando _applyRemoteState rodou)
+    var pendingByName = {};
+    if (Array.isArray(_casualPendingLinks)) {
+      _casualPendingLinks.forEach(function(req) {
+        if (req && req.guestName) pendingByName[window._normalizeName(req.guestName) + '|' + req.suggestedUid] = req;
+      });
+    }
+    var suggestions = [];
+    _casualPlayers.forEach(function(p, idx) {
+      if (!p || p.uid) return; // já vinculado
+      var typed = (p.name || p.displayName || '').trim();
+      if (!typed) return;
+      var matches = window._suggestFriendsForGuestName(typed, loggedUids);
+      matches.slice(0, 3).forEach(function(fr) {
+        var key = window._normalizeName(typed) + '|' + fr.uid;
+        suggestions.push({
+          guestName: typed,
+          slotIndex: idx,
+          friend: fr,
+          pending: !!pendingByName[key]
+        });
+      });
+    });
+    if (suggestions.length === 0) { slot.innerHTML = ''; return; }
+    var rowsHtml = suggestions.map(function(s) {
+      var photo = s.friend.photoURL
+        ? '<img src="' + window._safeHtml(s.friend.photoURL) + '" style="width:32px;height:32px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid rgba(251,191,36,0.4);" onerror="this.style.display=\'none\'">'
+        : '<div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#fbbf24,#f59e0b);display:flex;align-items:center;justify-content:center;font-size:13px;color:white;font-weight:700;flex-shrink:0;">' + window._safeHtml((s.friend.displayName || '?')[0].toUpperCase()) + '</div>';
+      var btnHtml = s.pending
+        ? '<span style="padding:7px 12px;border-radius:8px;font-size:0.7rem;font-weight:700;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;flex-shrink:0;">⏳ Aguardando</span>'
+        : '<button onclick="window._suggestCasualLink(' + s.slotIndex + ',\'' + s.friend.uid.replace(/'/g, "\\'") + '\')" style="padding:7px 12px;border-radius:8px;font-size:0.7rem;font-weight:700;cursor:pointer;background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.35);color:#fbbf24;flex-shrink:0;white-space:nowrap;">🤝 Sugerir vínculo</button>';
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);">' +
+        photo +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:0.78rem;font-weight:700;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(s.guestName) + ' = ' + window._safeHtml(s.friend.displayName) + '?</div>' +
+          '<div style="font-size:0.62rem;color:var(--text-muted);">Seu amigo no scoreplace</div>' +
+        '</div>' +
+        btnHtml +
+      '</div>';
+    }).join('');
+    slot.innerHTML =
+      '<div style="padding:12px;border-radius:14px;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.20);display:flex;flex-direction:column;gap:8px;">' +
+        '<div style="display:flex;align-items:center;gap:6px;font-size:0.62rem;font-weight:800;color:#fbbf24;text-transform:uppercase;letter-spacing:1.2px;">🤝 Vincular jogadores</div>' +
+        '<div style="font-size:0.68rem;color:var(--text-muted);line-height:1.4;">Esses nomes podem ser amigos seus já cadastrados. Sugerir vínculo envia uma notificação pra eles confirmarem — só após confirmação a partida conta nas estatísticas deles.</div>' +
+        '<div style="display:flex;flex-direction:column;gap:6px;">' + rowsHtml + '</div>' +
+      '</div>';
+  };
+
+  // Action: dispara sugestão pro amigo. Cria entry em pendingLinkRequests
+  // do match doc + envia notificação casual_link_request com payload pro
+  // friend confirmar.
+  window._suggestCasualLink = async function(slotIndex, friendUid) {
+    if (!_casualDocId || !window.FirestoreDB || !window.FirestoreDB.db) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) return;
+    var slotPlayer = _casualPlayers[slotIndex];
+    if (!slotPlayer) return;
+    var guestName = (slotPlayer.name || slotPlayer.displayName || '').trim();
+    if (!guestName) return;
+    var friend = window._friendProfilesCache && window._friendProfilesCache[friendUid];
+    if (!friend) return;
+    try {
+      // Adiciona ao pendingLinkRequests do match (atomic update via firestore arrayUnion-like)
+      var docRef = window.FirestoreDB.db.collection('casualMatches').doc(_casualDocId);
+      var snap = await docRef.get();
+      if (!snap.exists) return;
+      var data = snap.data();
+      var pending = Array.isArray(data.pendingLinkRequests) ? data.pendingLinkRequests.slice() : [];
+      // Idempotente: não duplica
+      var dup = pending.some(function(r) { return r.slotIndex === slotIndex && r.suggestedUid === friendUid; });
+      if (dup) {
+        if (typeof showNotification === 'function') showNotification('Sugestão já enviada', 'Aguardando confirmação de ' + friend.displayName + '.', 'info');
+        return;
+      }
+      pending.push({
+        slotIndex: slotIndex,
+        guestName: guestName,
+        suggestedUid: friendUid,
+        suggestedAt: new Date().toISOString(),
+        suggestedBy: cu.uid,
+        suggestedByName: cu.displayName || ''
+      });
+      await docRef.update({ pendingLinkRequests: pending });
+      // Atualiza cópia local pra UI refletir
+      _casualPendingLinks = pending;
+      // Notificação pro amigo
+      if (typeof window._sendUserNotification === 'function') {
+        var sportLabel = (opts && opts.sportName) || (opts && opts.title) || 'Partida casual';
+        var summary = '';
+        if (data.result && data.result.summary) summary = ' (' + data.result.summary + ')';
+        await window._sendUserNotification(friendUid, {
+          type: 'casual_link_request',
+          level: 'all',
+          message: cu.displayName + ' diz que você jogou uma partida casual de ' + sportLabel + summary + '. Confirma?',
+          casualMatchDocId: _casualDocId,
+          casualRoomCode: _casualRoomCode,
+          casualSlotIndex: slotIndex,
+          casualGuestName: guestName,
+          casualSport: sportLabel
+        });
+      }
+      if (typeof showNotification === 'function') showNotification('🤝 Sugestão enviada', 'Aguardando confirmação de ' + friend.displayName + '.', 'success');
+      // Re-render
+      try { window._hydrateCasualLinkSuggestions(); } catch(e) {}
+    } catch (e) {
+      console.warn('[casual link] suggest err:', e);
+      if (typeof showNotification === 'function') showNotification('Erro', 'Não foi possível enviar a sugestão. Tente novamente.', 'error');
+    }
+  };
+
+  // Tracking local de pending link requests do match (sincronizado via
+  // _applyRemoteState quando a snapshot recebe pendingLinkRequests).
+  var _casualPendingLinks = [];
   var _syncTimer = null;
   var _isRemoteUpdate = false; // true when receiving from Firestore
   var _unsubFirestore = null;

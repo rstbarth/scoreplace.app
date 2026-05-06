@@ -77,5 +77,13 @@ window.NOTIF_CATALOG = {
   // Convite pra partida casual (v0.15.21) — "Fulano começou uma partida
   // casual de X, entra junto". Ícone ⚡ ciano pra bater com a identidade
   // visual da Partida Casual (gradient ciano na dashboard).
-  casual_invite:               { level: 'all',         icon: '⚡', color: '#38bdf8' }
+  casual_invite:               { level: 'all',         icon: '⚡', color: '#38bdf8' },
+
+  // v1.3.33-beta: pedido de vínculo de jogador "guest" → user real numa
+  // partida casual. "Fulano sugere que você jogou esta partida — confirma?"
+  // Ao confirmar, dados da partida ficam atribuídos ao perfil do user.
+  casual_link_request:         { level: 'all',         icon: '🤝', color: '#fbbf24' },
+  // Confirmação chega de volta pra quem solicitou.
+  casual_link_accepted:        { level: 'all',         icon: '✅', color: 'var(--success-color)' },
+  casual_link_rejected:        { level: 'all',         icon: '❌', color: 'var(--text-muted)' }
 };
