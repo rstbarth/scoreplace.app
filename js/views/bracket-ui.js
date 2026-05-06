@@ -5783,27 +5783,39 @@ window._openLiveScoring = function(tId, matchId, opts) {
             return;
           }
           var data = doc.data();
-          // Match ended (status='finished') — transition watchers to the
-          // casual view's result screen so they see the stats instead of
-          // being stuck on a now-frozen live overlay.
+          // v1.3.30-beta: Match ended (status='finished') — APLICA o
+          // liveState final no overlay e deixa o usuário ver a tela de
+          // stats (renderizada quando state.isFinished=true).
+          // Bug reportado: amigo participante de partida casual não viu
+          // estatísticas ao final. Antes redirecionávamos pra
+          // _renderCasualJoin → "result screen" mostrava só placar e
+          // vencedor, sem comparativeSection (% saque, recepção, breaks,
+          // killer points etc). Agora o overlay continua aberto no
+          // finished state com TODAS as stats visíveis. Usuário fecha
+          // manualmente quando quiser.
           if (data && data.status === 'finished' && !_casualCancelled) {
-            _casualCancelled = true;
+            // Aplica o liveState final (com isFinished=true e todos os
+            // dados de pointLog/gameLog/sets pra render das stats).
+            if (data.liveState) {
+              _isRemoteUpdate = true;
+              _applyRemoteState(data.liveState);
+              _isRemoteUpdate = false;
+              state.isFinished = true; // garantia, caso liveState nao tenha
+              if (data.liveState.winner != null) state.winner = data.liveState.winner;
+              _matchEndTime = _matchEndTime || Date.now();
+            }
+            // Para de escutar updates (jogo já acabou).
             if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
-            try { window.removeEventListener('resize', _onResize); } catch(e) {}
-            try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
-            try { _releaseWakeLock(); } catch(e) {}
-            var ovDone = document.getElementById('live-scoring-overlay');
-            if (ovDone) ovDone.remove();
-            var cuDone = window.AppStore && window.AppStore.currentUser;
-            var wasHost = cuDone && _casualCreatedBy && cuDone.uid === _casualCreatedBy;
-            // Host already saw the confirmation; we only redirect guests.
-            if (!wasHost) {
-              var contDone = document.getElementById('view-container');
-              if (contDone && _casualRoomCode && typeof window._renderCasualJoin === 'function') {
-                window._renderCasualJoin(contDone, _casualRoomCode);
-              } else {
-                try { window.location.hash = '#dashboard'; } catch(e) {}
-              }
+            // Re-render no estado finished — comparativeSection com stats
+            // detalhadas aparece automaticamente no _render() quando
+            // isFinished=true.
+            try { _render(); } catch(e) {}
+            // Notificação leve pro guest saber que jogo acabou (host não
+            // recebe esta — ele já viu o confirm dialog).
+            var cuDone2 = window.AppStore && window.AppStore.currentUser;
+            var wasHost2 = cuDone2 && _casualCreatedBy && cuDone2.uid === _casualCreatedBy;
+            if (!wasHost2 && typeof showNotification === 'function') {
+              showNotification('🏆 Partida encerrada', 'Confira as estatísticas abaixo. Toque em ✕ pra fechar.', 'success');
             }
             return;
           }
@@ -8135,6 +8147,40 @@ window._renderCasualJoin = function(container, roomCode) {
       } else {
         winnerLabel = _t('casual.draw');
       }
+      // v1.3.30-beta: abre o overlay de live scoring com o liveState
+      // final salvo (state.isFinished=true), o que dispara automaticamente
+      // a tela de comparativeSection com todas as estatísticas detalhadas
+      // (pontos no saque, recepção, breaks, killer points, maior sequência,
+      // maior vantagem, sets, games etc). Antes só mostrava placar resumido.
+      // Bug reportado: amigo participante não viu stats ao final.
+      if (match.liveState) {
+        var p1NamesFin = players.filter(function(p) { return p.team === 1; }).map(function(p) { return p.name; });
+        var p2NamesFin = players.filter(function(p) { return p.team === 2; }).map(function(p) { return p.name; });
+        var scFin = match.scoring || {};
+        // _openLiveScoring vai abrir overlay e o snapshot listener apply
+        // o liveState (já contém isFinished=true), levando ao render da
+        // tela de stats automaticamente. O overlay não vai redirecionar
+        // de volta pra _renderCasualJoin (a guarda v1.3.30 mudou comportamento).
+        try {
+          window._openLiveScoring(null, null, {
+            casual: true,
+            scoring: scFin,
+            p1Name: p1NamesFin.join(' / '),
+            p2Name: p2NamesFin.join(' / '),
+            title: sportName,
+            sportName: sportName,
+            isDoubles: match.isDoubles || false,
+            casualDocId: docId,
+            createdBy: match.createdBy,
+            roomCode: roomCode,
+            players: players,
+            viewOnly: true
+          });
+          return;
+        } catch (e) { /* fallback pro result screen abaixo */ }
+      }
+      // Fallback: liveState não disponível (cancel-after-finish edge case)
+      // → mostra result screen simples com placar + vencedor.
       _setBody(
         '<div style="text-align:center;padding:2rem 1rem;max-width:500px;margin:0 auto;">' +
           '<div style="font-size:2.5rem;margin-bottom:0.5rem;">🏆</div>' +
