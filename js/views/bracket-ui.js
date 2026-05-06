@@ -5411,8 +5411,27 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (sides.length < 2) return;
 
     sides.forEach(function(side) {
+      // v1.3.29-beta: helper — drag/swap só dispara em área neutra do
+      // court-side. Tocar em BUTTON, INPUT, ou qualquer elemento com
+      // data-no-swap-drag NÃO inicia swap. Bug reportado: arrastar
+      // estava atrapalhando marcação de pontos — usuários acidentalmente
+      // disparavam swap quando queriam apenas tocar botão de placar.
+      var _isInteractive = function(target) {
+        if (!target) return false;
+        var t = target;
+        while (t && t !== side) {
+          if (!t.tagName) { t = t.parentNode; continue; }
+          var tag = t.tagName;
+          if (tag === 'BUTTON' || tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'A') return true;
+          if (t.getAttribute && (t.getAttribute('role') === 'button' || t.hasAttribute('data-no-swap-drag'))) return true;
+          t = t.parentNode;
+        }
+        return false;
+      };
+
       // Desktop drag
       side.addEventListener('dragstart', function(e) {
+        if (_isInteractive(e.target)) { e.preventDefault(); return; }
         _courtDragSide = side.getAttribute('data-court-side');
         side.style.opacity = '0.5';
         e.dataTransfer.effectAllowed = 'move';
@@ -5441,9 +5460,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
         }
       });
 
-      // Touch drag
+      // Touch drag — só inicia se o toque foi em área neutra (não-botão)
       var _touchSide = null;
       side.addEventListener('touchstart', function(e) {
+        if (_isInteractive(e.target)) { _touchSide = null; return; }
         _touchSide = side.getAttribute('data-court-side');
         side.style.opacity = '0.6';
       }, { passive: true });
@@ -6122,9 +6142,50 @@ window._openLiveScoring = function(tId, matchId, opts) {
 
   // ── Screen Wake Lock ──
   // Keep screen on while live scoring is open so the device doesn't sleep
-  // mid-match. Silent no-op on browsers without Wake Lock support.
+  // mid-match. v1.3.29-beta: agora com fallback NoSleep-style pra iOS
+  // Safari (que tem suporte parcial e flaky ao Wake Lock API). Bug
+  // reportado: "iPhone do meu adversário ficava bloqueando a tela
+  // durante o placar ao vivo".
+  //
+  // Estratégia em 3 camadas:
+  //   1. Wake Lock API nativa (Chrome/Edge/Safari ≥16.4) — preferida.
+  //   2. NoSleep fallback: <video> muted+looping em loop. iOS WebKit
+  //      considera vídeo ativo como "tela em uso" e não auto-bloqueia.
+  //      Funciona até em iOS antigo. Custo: ~50KB de RAM, batt drain
+  //      desprezível pra um vídeo de 1 frame.
+  //   3. Re-request no visibilitychange (browsers liberam wake lock
+  //      quando aba fica hidden — re-pegamos ao voltar).
   var _wakeLock = null;
+  var _noSleepVideo = null;
+  var _ensureNoSleepVideo = function() {
+    if (_noSleepVideo) return _noSleepVideo;
+    try {
+      var v = document.createElement('video');
+      v.setAttribute('playsinline', '');
+      v.setAttribute('muted', '');
+      v.muted = true;
+      v.loop = true;
+      v.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;left:0;top:0;z-index:-1;';
+      // Tiny 1-frame MP4 base64 — Apple silicon-compatible. Source:
+      // NoSleep.js minimal blob (apache 2.0). Loops forever, ~1KB.
+      v.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAACyttZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE0MiByMjM4OSA5NTZjOGQ4IC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxNCAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiB0aHJlYWRzPTYgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhyZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNvbnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz0zIGJfcHlyYW1pZD0yIGJfYWRhcHQ9MSBiX2JpYXM9MCBkaXJlY3Q9MSB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTI1MCBrZXlpbnRfbWluPTUgc2NlbmVjdXQ9NDAgaW50cmFfcmVmcmVzaD0wIHJjX2xvb2thaGVhZD00MCByYz1jcmYgbWJ0cmVlPTEgY3JmPTIzLjAgcWNvbXA9MC42MCBxcG1pbj0wIHFwbWF4PTY5IHFwc3RlcD00IGlwX3JhdGlvPTEuNDAgYXE9MToxLjAwAIAAAAAwZYiEAD//8m+P5OXfBeLGOfKE3xkODvFZuBflHv/+VwJIta6cbpIo4ABLoKBaYTkTAAAC7m1vb3YAAABsbXZoZAAAAAAAAAAAAAAAAAAAA+gAAAPoAAEAAAEAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAAIVdHJhawAAAFx0a2hkAAAAAwAAAAAAAAAAAAAAAQAAAAAAAAPoAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAQAAAAACAAAAAgAAAAAAAJG1kaWEAAAAgbWRoZAAAAAAAAAAAAAAAAAAAQAAAAEAAVcQAAAAAAC1oZGxyAAAAAAAAAAB2aWRlAAAAAAAAAAAAAAAAVmlkZW9IYW5kbGVyAAAAAcBtaW5mAAAAFHZtaGQAAAABAAAAAAAAAAAAAAAkZGluZgAAABxkcmVmAAAAAAAAAAEAAAAMdXJsIAAAAAEAAAGAc3RibAAAALhzdHNkAAAAAAAAAAEAAACoYXZjMQAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAACAAIASAAAAEgAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGP//AAAANmF2Y0MBZAAK/+EAGWdkAAqs2V/JfzgIAAADAAgAAAMA8DxgxlgBAAZo6+PLIsAAAAAcdXVpZGtoQPJfJE/Fr0RNo3+tDSEAAAAAAAAACGZpZWwBAAAAE2NvbHJuY2x4AAEAAQABAAAAABBwYXNwAAAAAQAAAAEAAAAYc3R0cwAAAAAAAAABAAAAAQAAQAAAAAAUc3RzcwAAAAAAAAABAAAAAQAAABxzdHNjAAAAAAAAAAEAAAABAAAAAQAAAAEAAAAUc3RzegAAAAAAAALSAAAAAQAAABRzdGNvAAAAAAAAAAEAAAAsAAAAYnVkdGEAAABabWV0YQAAAAAAAAAhaGRscgAAAAAAAAAAbWRpcmFwcGwAAAAAAAAAAAAAAAAtaWxzdAAAACWpdG9vAAAAHWRhdGEAAAABAAAAAExhdmY1Ni40MC4xMDE=';
+      document.body.appendChild(v);
+      _noSleepVideo = v;
+      // Tentar tocar — pode falhar sem user gesture; aceita falha.
+      var p = v.play();
+      if (p && typeof p.catch === 'function') p.catch(function() {});
+      return v;
+    } catch (e) { return null; }
+  };
+  var _stopNoSleepVideo = function() {
+    if (_noSleepVideo) {
+      try { _noSleepVideo.pause(); } catch (e) {}
+      if (_noSleepVideo.parentNode) _noSleepVideo.parentNode.removeChild(_noSleepVideo);
+      _noSleepVideo = null;
+    }
+  };
   var _requestWakeLock = function() {
+    // Camada 1: Wake Lock API
     try {
       if ('wakeLock' in navigator && !_wakeLock) {
         navigator.wakeLock.request('screen').then(function(lock) {
@@ -6133,11 +6194,21 @@ window._openLiveScoring = function(tId, matchId, opts) {
         }).catch(function() {});
       }
     } catch(e) {}
+    // Camada 2: NoSleep video fallback (sempre ativa enquanto live scoring
+    // estiver aberto; idempotente — não cria duplicata). Wake Lock + video
+    // simultâneos é OK.
+    _ensureNoSleepVideo();
+    // Tenta dar replay caso o vídeo tenha pausado por algum motivo
+    if (_noSleepVideo && _noSleepVideo.paused) {
+      var p = _noSleepVideo.play();
+      if (p && typeof p.catch === 'function') p.catch(function() {});
+    }
   };
   var _releaseWakeLock = function() {
     try {
       if (_wakeLock) { _wakeLock.release().catch(function(){}); _wakeLock = null; }
     } catch(e) { _wakeLock = null; }
+    _stopNoSleepVideo();
   };
   // Re-acquire on visibility change (browsers auto-release when tab hidden)
   var _onVisibility = function() {

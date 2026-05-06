@@ -2114,7 +2114,11 @@ async function simulateLoginSuccess(user) {
     // Back-header padronizado: Voltar (esquerda) + título (centro) + Salvar (direita).
     // Hamburger fica oculto neste contexto (não-overlay) — topbar acima já tem o seu.
     var _t = window._t || function (k) { return k; };
-    var saveBtnHtml = '<button type="button" class="btn btn-primary btn-sm" onclick="window._spinButton(this, \'Salvando...\'); if(typeof saveUserProfile===\'function\')saveUserProfile()" style="flex-shrink:0;">' + _t('btn.save') + '</button>';
+    // v1.3.29-beta: Save button compacto, sólido, ícone + label.
+    // width:auto + max-width:120px constrange contra flex-stretch do parent.
+    // Bug reportado: "salvar visivelmente errado" — antes botão crescia
+    // pra ocupar todo o lado direito da back-header.
+    var saveBtnHtml = '<button type="button" class="btn btn-primary btn-sm hover-lift" onclick="if(window._spinButton)window._spinButton(this, \'Salvando...\'); if(typeof saveUserProfile===\'function\')saveUserProfile()" style="flex:0 0 auto;width:auto;max-width:120px;background:#10b981;color:#fff;border:1px solid #059669;font-weight:700;padding:7px 14px;border-radius:10px;font-size:0.82rem;line-height:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;box-shadow:0 1px 3px rgba(16,185,129,0.3);">💾 ' + _t('btn.save') + '</button>';
     var hdr = (typeof window._renderBackHeader === 'function')
       ? window._renderBackHeader({
         href: '#dashboard',
@@ -2127,6 +2131,15 @@ async function simulateLoginSuccess(user) {
     container.innerHTML = hdr;
     // Mover o .modal pra dentro do container (preserva listeners + state).
     container.appendChild(modalInner);
+    // v1.3.29-beta: limpar inline `overflow-y: auto` que setupProfileModal
+    // setou pra fazer o modal scrollar internamente quando dentro do
+    // modal-overlay. No page-route, queremos que o BODY scrolle naturalmente.
+    // Sem isso, modal vira scroll container interno e fica preso ao
+    // viewport — bug reportado: "perfil não scrola".
+    modalInner.style.overflowY = 'visible';
+    modalInner.style.overflowX = 'visible';
+    modalInner.style.maxHeight = 'none';
+    modalInner.style.height = 'auto';
     // Wrapper #modal-profile fica vazio na body — limpar pra evitar
     // confusão de listeners antigos referenciando-o.
     if (modalEl && modalEl.parentNode === document.body) modalEl.remove();
@@ -4842,4 +4855,91 @@ function setupProfileModal() {
       }
     };
   }
+}
+
+// ─── Top-level fallbacks pra rota #profile ──────────────────────────────
+// v1.3.29-beta: window.renderProfilePage e window._closeProfilePage estavam
+// DENTRO de simulateLoginSuccess (linhas 2074-2176), o que significava que
+// só existiam DEPOIS de um login bem-sucedido. Usuário com auth cache que
+// landed direto em #profile via deep-link, ou caso o login terminasse num
+// path que não disparou simulateLoginSuccess (race), via "perfil não abre"
+// — router chamava renderProfilePage undefined → silent fail → tela em
+// branco / não scrola / save errado (na verdade tela errada).
+//
+// Aqui definimos as 2 funções no escopo top-level. Se simulateLoginSuccess
+// rodar depois e re-atribuir, não tem problema — mesma implementação,
+// idempotente.
+
+if (typeof window.renderProfilePage !== 'function') {
+  window.renderProfilePage = async function (container) {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu) {
+      window.location.replace('#dashboard');
+      return;
+    }
+    if (!container) return;
+
+    if (!document.getElementById('modal-profile') && typeof window.setupProfileModal === 'function') {
+      window.setupProfileModal();
+    }
+    var modalEl = document.getElementById('modal-profile');
+    var modalInner = modalEl ? modalEl.querySelector('.modal') : null;
+    if (!modalInner) {
+      if (modalEl) modalEl.remove();
+      if (typeof window.setupProfileModal === 'function') window.setupProfileModal();
+      modalEl = document.getElementById('modal-profile');
+      modalInner = modalEl ? modalEl.querySelector('.modal') : null;
+    }
+    if (!modalInner) return;
+
+    var _t = window._t || function (k) { return k; };
+    // v1.3.29-beta: idem ao primary path — Save compacto + width-constrained.
+    var saveBtnHtml = '<button type="button" class="btn btn-primary btn-sm hover-lift" onclick="if(window._spinButton)window._spinButton(this,\'Salvando...\'); if(typeof saveUserProfile===\'function\')saveUserProfile()" style="flex:0 0 auto;width:auto;max-width:120px;background:#10b981;color:#fff;border:1px solid #059669;font-weight:700;padding:7px 14px;border-radius:10px;font-size:0.82rem;line-height:1;display:inline-flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;box-shadow:0 1px 3px rgba(16,185,129,0.3);">💾 ' + _t('btn.save') + '</button>';
+    var hdr = (typeof window._renderBackHeader === 'function')
+      ? window._renderBackHeader({
+        href: '#dashboard',
+        label: 'Voltar',
+        middleHtml: '<span style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _t('profile.myProfile') + '</span>',
+        rightHtml: saveBtnHtml,
+      })
+      : '';
+
+    container.innerHTML = hdr;
+    container.appendChild(modalInner);
+    // v1.3.29-beta: limpar overflow inline (idem primary path)
+    modalInner.style.overflowY = 'visible';
+    modalInner.style.overflowX = 'visible';
+    modalInner.style.maxHeight = 'none';
+    modalInner.style.height = 'auto';
+    if (modalEl && modalEl.parentNode === document.body) modalEl.remove();
+
+    setTimeout(function () { if (typeof window._setupProfileSearch === 'function') window._setupProfileSearch(); }, 100);
+    setTimeout(function () { if (typeof window._initProfileMap === 'function') window._initProfileMap(); }, 300);
+
+    if (typeof window._populateProfileModalFields === 'function') {
+      window._populateProfileModalFields();
+    }
+
+    if (window.AppStore && typeof window.AppStore.loadUserProfile === 'function' && cu.uid) {
+      try {
+        await window.AppStore.loadUserProfile(cu.uid);
+        if (window.location.hash === '#profile' && typeof window._populateProfileModalFields === 'function') {
+          window._populateProfileModalFields();
+        }
+      } catch (e) { console.warn('Profile refresh on open failed:', e); }
+    }
+
+    if (typeof window._reflowChrome === 'function') window._reflowChrome();
+  };
+}
+
+if (typeof window._closeProfilePage !== 'function') {
+  window._closeProfilePage = function () {
+    if (window.location.hash === '#profile') {
+      window.location.hash = '#dashboard';
+      return;
+    }
+    var modal = document.getElementById('modal-profile');
+    if (modal) modal.classList.remove('active');
+  };
 }

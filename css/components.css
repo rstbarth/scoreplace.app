@@ -545,6 +545,39 @@ body.hamburger-open .topbar {
   box-shadow: none !important;
   display: block !important;
   margin: 0 !important;
+  /* v1.3.29-beta: REMOVER position:fixed da rule responsive.css
+     que aplica `.modal { position: fixed; bottom: 0 ... }` em ≤767px.
+     Sem isso o modal vira fixed-positioned e fica preso ao viewport,
+     impedindo body scroll. Bug reportado: "perfil não scrola". */
+  position: static !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  /* padding-bottom garantindo espaço pro último botão. */
+  padding-bottom: max(40px, env(safe-area-inset-bottom, 20px)) !important;
+}
+/* v1.3.29-beta: .modal-body herda overflow:auto da definição inline em
+   setupProfileModal (era pra modal scrollar internamente quando dentro do
+   modal-overlay). Em page-route precisa overflow:visible pra extender o
+   body. Bug reportado: "perfil não scrola". */
+#view-container > .modal > .modal-body {
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+}
+/* iOS Safari momentum scroll — aplica no body/html. Sem isso o scroll
+   pode parecer "preso" em alguns iPhones. body precisa NÃO ter height
+   fixed pra scrollar naturalmente quando view-container vira tall. */
+html, body {
+  -webkit-overflow-scrolling: touch;
+}
+body {
+  /* Anti-clip: garantir que body NÃO tem altura fixa que impede scroll
+     quando view-container fica alto (ex.: profile page-route com modal
+     2000px). Antes tinha `height: 812px` herdado de algum lugar. */
+  min-height: 100vh;
+  height: auto !important;
 }
 
 /* Mobile modal - full screen bottom sheet style */
