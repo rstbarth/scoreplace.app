@@ -243,11 +243,20 @@ function renderDashboard(container) {
     const hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) ||
                     (Array.isArray(t.rounds) && t.rounds.length > 0) ||
                     (Array.isArray(t.groups) && t.groups.length > 0);
-    if (hasDraw) return 'inProgress';
+    // v1.3.35-beta: "inProgress" só quando o organizador clicou em
+    // Iniciar Torneio (t.tournamentStarted ou status='in_progress'). Antes,
+    // qualquer sorteio realizado já caía em "Em Andamento" — mas o tempo
+    // só conta após o user iniciar.
+    const tournamentStarted = !!(t.tournamentStarted || t.status === 'in_progress');
+    if (tournamentStarted) return 'inProgress';
     const isLiga = t.format === 'Liga' || t.format === 'Ranking' || t.format === 'liga' || t.format === 'ranking';
     const ligaAcceptsEnroll = isLiga && t.ligaOpenEnrollment !== false && t.status !== 'closed';
+    // Liga após sorteio com inscrição aberta = considerar como "inProgress"
+    // (rodadas em andamento) — caso especial pra Liga, que não tem botão
+    // Iniciar Torneio explícito.
+    if (hasDraw && isLiga) return 'inProgress';
     const deadlinePassed = t.registrationLimit && new Date(t.registrationLimit) < new Date();
-    if ((t.status === 'closed' || deadlinePassed) && !ligaAcceptsEnroll) return 'closedNoStart';
+    if ((t.status === 'closed' || deadlinePassed || hasDraw) && !ligaAcceptsEnroll) return 'closedNoStart';
     return 'open';
   };
 
@@ -345,9 +354,12 @@ function renderDashboard(container) {
     const sorteioRealizado = (Array.isArray(t.matches) && t.matches.length > 0) || (Array.isArray(t.rounds) && t.rounds.length > 0) || (Array.isArray(t.groups) && t.groups.length > 0);
     const ligaAberta = (typeof window._isLigaFormat === 'function' ? window._isLigaFormat(t) : t.format === 'Liga') && t.ligaOpenEnrollment !== false && sorteioRealizado;
     const isAberto = (!isFinished && t.status !== 'closed' && !sorteioRealizado && (!t.registrationLimit || new Date(t.registrationLimit) >= new Date())) || ligaAberta;
-    const statusText = isFinished ? _t('status.finished') : (isAberto ? _t('status.open') : (sorteioRealizado ? _t('status.active') : _t('status.closed')));
-    const statusBg = isFinished ? 'rgba(251,191,36,0.15)' : (isAberto ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)'));
-    const statusColor = isFinished ? '#fbbf24' : (isAberto ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5'));
+    // v1.3.35-beta: "Em Andamento" só com t.tournamentStarted setado pelo
+    // botão Iniciar Torneio. Sorteio realizado mantém "Inscrições Encerradas".
+    const tournamentStarted = !!(t.tournamentStarted || t.status === 'in_progress');
+    const statusText = isFinished ? _t('status.finished') : (isAberto ? _t('status.open') : (tournamentStarted ? _t('status.active') : _t('status.closed')));
+    const statusBg = isFinished ? 'rgba(251,191,36,0.15)' : (isAberto ? '#fbbf24' : (tournamentStarted ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)'));
+    const statusColor = isFinished ? '#fbbf24' : (isAberto ? '#78350f' : (tournamentStarted ? '#34d399' : '#fca5a5'));
     const statusFontWeight = isAberto ? '700' : '600';
 
     let enrollmentText = _t('enroll.modeMixed');
@@ -1427,10 +1439,17 @@ function renderDashboard(container) {
     return '<div class="compact-list-container" style="display:flex;flex-direction:column;gap:2px;">' + items.map(function(t) {
       var isOrg = typeof window.AppStore.isOrganizer === 'function' && window.AppStore.isOrganizer(t);
       var statusText = '', statusColor = '';
-      var isFinished = t.status === 'finished' || t.status === 'closed';
-      var hasDraw = (t.matches && t.matches.length) || (t.rounds && t.rounds.length) || (t.groups && t.groups.length);
+      // v1.3.35-beta: distinguir 'finished' real de 'closed' (inscrições
+      // encerradas) e só mostrar "Em Andamento" quando t.tournamentStarted
+      // estiver setado pelo botão Iniciar Torneio. Antes:
+      //   isFinished = status finished OR closed (errado — closed != finished)
+      //   hasDraw → "Em Andamento" (errado — só após Iniciar Torneio)
+      var isFinished = t.status === 'finished';
+      var isClosed = t.status === 'closed';
+      var tournamentStarted = !!(t.tournamentStarted || t.status === 'in_progress');
       if (isFinished) { statusText = _t('status.finished'); statusColor = '#94a3b8'; }
-      else if (hasDraw) { statusText = _t('status.active'); statusColor = '#4ade80'; }
+      else if (tournamentStarted) { statusText = _t('status.active'); statusColor = '#4ade80'; }
+      else if (isClosed) { statusText = _t('status.closed'); statusColor = '#fca5a5'; }
       else { statusText = _t('status.open'); statusColor = '#60a5fa'; }
       var pCount = typeof window._getCompetitors === 'function' ? window._getCompetitors(t).length : (Array.isArray(t.participants) ? t.participants.length : 0);
       var prog = typeof window._getTournamentProgress === 'function' ? window._getTournamentProgress(t) : { pct: 0 };

@@ -569,9 +569,30 @@ function renderTournaments(container, tournamentId = null) {
           window._drainWaitlistsIfOpen(t, { save: true });
         }
 
-        const statusText = isFinished ? '🏆 ' + _t('status.finished') : (ligaAberta ? _t('tournament.leagueOpenEnroll') : (isAberto ? _t('status.open') : (sorteioRealizado ? _t('status.active') : _t('status.closed'))));
-        const statusBg = isFinished ? 'rgba(251,191,36,0.15)' : (isAberto || ligaAberta ? '#fbbf24' : (sorteioRealizado ? 'rgba(16,185,129,0.2)' : 'rgba(0,0,0,0.3)'));
-        const statusColor = isFinished ? '#fbbf24' : (isAberto || ligaAberta ? '#78350f' : (sorteioRealizado ? '#34d399' : '#fca5a5'));
+        // v1.3.35-beta: "Em Andamento" só quando o usuário clicou
+        // explicitamente em "Iniciar Torneio" (t.tournamentStarted truthy
+        // OU t.status === 'in_progress' que o handler também seta).
+        // Antes, sorteio realizado já fazia o status ir pra "Em Andamento" —
+        // mas o tempo só conta após o user iniciar de fato. Bug reportado:
+        // "torneio com inscrições encerradas que aparece como em andamento,
+        // mas o botão iniciar torneio ainda não foi clicado".
+        const tournamentStarted = !!(t.tournamentStarted || t.status === 'in_progress');
+        const statusText = isFinished
+          ? '🏆 ' + _t('status.finished')
+          : (ligaAberta ? _t('tournament.leagueOpenEnroll')
+            : (isAberto ? _t('status.open')
+              : (tournamentStarted ? _t('status.active')
+                : _t('status.closed'))));
+        const statusBg = isFinished
+          ? 'rgba(251,191,36,0.15)'
+          : (isAberto || ligaAberta ? '#fbbf24'
+            : (tournamentStarted ? 'rgba(16,185,129,0.2)'
+              : 'rgba(0,0,0,0.3)'));
+        const statusColor = isFinished
+          ? '#fbbf24'
+          : (isAberto || ligaAberta ? '#78350f'
+            : (tournamentStarted ? '#34d399'
+              : '#fca5a5'));
         const statusFontWeight = isAberto ? '700' : '600';
 
         let enrollmentText = _t('enroll.modeMixed');
