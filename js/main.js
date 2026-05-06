@@ -1639,20 +1639,162 @@ if (typeof setupProfileModal === 'function') {
 //   2. Safari iOS ainda não instalou como PWA → explica o passo a passo
 // Ambos dismissable, persistidos em localStorage, não atrapalham quem já
 // instalou (detectado via display-mode standalone + navigator.standalone).
+//
+// v1.3.34-beta: gating por engagement — banner só aparece após 3+ sessões
+// (cada sessão = uma visita com cooldown de 30min) E nunca mostra se foi
+// dismissed nos últimos 30 dias OU se já foi rejeitado 3x. Pedido do dono:
+// "caso o usuário responda que não, não pergunta de novo (ou só pergunta
+// de novo caso o usuário use o programa várias vezes)".
+
+// Detecta se o app já está instalado como PWA. Funciona em Android Chrome,
+// iOS Safari (navigator.standalone), Edge, Firefox.
+window._isInstalledAsPWA = function() {
+  try {
+    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return true;
+    if (window.navigator.standalone === true) return true;
+    if (window.matchMedia && window.matchMedia('(display-mode: minimal-ui)').matches) return true;
+  } catch (e) {}
+  return false;
+};
+
+// Gating: incrementa session count com cooldown de 30min, retorna true
+// se deve mostrar o banner agora.
+window._shouldShowInstallBanner = function(opts) {
+  opts = opts || {};
+  var minSessions = opts.minSessions || 3;
+  var maxDismissals = opts.maxDismissals || 3;
+  var cooldownDays = opts.cooldownDays || 30;
+  try {
+    if (window._isInstalledAsPWA()) return false;
+    var now = Date.now();
+    var lastSession = parseInt(localStorage.getItem('scoreplace_last_session_ts') || '0', 10) || 0;
+    var sessionCount = parseInt(localStorage.getItem('scoreplace_install_sessions') || '0', 10) || 0;
+    var dismissCount = parseInt(localStorage.getItem('scoreplace_install_dismissed_count') || '0', 10) || 0;
+    var dismissedAt = parseInt(localStorage.getItem('scoreplace_install_dismissed_at') || '0', 10) || 0;
+    // Cooldown de 30min entre sessões — avita inflar o contador em F5 ou
+    // navegação pra outra rota dentro do mesmo dia.
+    if (now - lastSession > 30 * 60 * 1000) {
+      sessionCount += 1;
+      localStorage.setItem('scoreplace_install_sessions', String(sessionCount));
+    }
+    localStorage.setItem('scoreplace_last_session_ts', String(now));
+    // Já dismissed muitas vezes — desiste
+    if (dismissCount >= maxDismissals) return false;
+    // Dismissed recentemente — espera passar o cooldown
+    if (dismissedAt > 0 && (now - dismissedAt) < cooldownDays * 24 * 60 * 60 * 1000) return false;
+    // Sessões insuficientes — usuário ainda novo, não polui
+    if (sessionCount < minSessions) return false;
+    return true;
+  } catch (e) { return false; }
+};
+
+// Marca dismiss — incrementa contador e seta timestamp.
+window._markInstallBannerDismissed = function() {
+  try {
+    var dismissCount = parseInt(localStorage.getItem('scoreplace_install_dismissed_count') || '0', 10) || 0;
+    localStorage.setItem('scoreplace_install_dismissed_count', String(dismissCount + 1));
+    localStorage.setItem('scoreplace_install_dismissed_at', String(Date.now()));
+  } catch (e) {}
+};
+
+// Marca instalado — nunca pergunta de novo.
+window._markInstallBannerInstalled = function() {
+  try {
+    localStorage.setItem('scoreplace_install_dismissed_count', '999'); // efetivamente nunca mais
+    localStorage.setItem('scoreplace_install_completed', '1');
+  } catch (e) {}
+};
+
+// v1.3.34-beta: Android/Chrome/Edge install via beforeinstallprompt.
+// Captura o evento (browser dispara só pra apps que passam o
+// installability check do PWA: HTTPS + manifest + service worker + ícones).
+// Quando o gating permite, mostra um banner próprio com botão "Instalar"
+// que dispara o native install prompt.
+window._deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', function(e) {
+  // Browser abriria o "mini-info bar" automático no Chrome — preferimos
+  // controlar quando mostrar via nosso banner gated. preventDefault
+  // suprime o automático.
+  e.preventDefault();
+  window._deferredInstallPrompt = e;
+  // Dispara nosso banner se o gating já permite agora
+  if (typeof window._showAndroidInstallBanner === 'function') {
+    window._showAndroidInstallBanner();
+  }
+});
+
+// Quando user instala (via banner ou via mini-info bar nativa), apaga o
+// prompt e marca como instalado pra nunca mais perguntar.
+window.addEventListener('appinstalled', function() {
+  window._deferredInstallPrompt = null;
+  window._markInstallBannerInstalled();
+  var ban = document.getElementById('scoreplace-android-install-banner');
+  if (ban) ban.remove();
+});
+
+window._showAndroidInstallBanner = function() {
+  try {
+    if (!window._deferredInstallPrompt) return;
+    if (!window._shouldShowInstallBanner({ minSessions: 3, maxDismissals: 3, cooldownDays: 30 })) return;
+    if (document.getElementById('scoreplace-android-install-banner')) return; // já visível
+    var banner = document.createElement('div');
+    banner.id = 'scoreplace-android-install-banner';
+    banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:10050;background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid rgba(251,191,36,0.35);border-radius:14px;padding:12px 14px;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,0.5);font-size:0.82rem;';
+    banner.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;">' +
+        '<div style="flex-shrink:0;font-size:1.5rem;line-height:1;">📲</div>' +
+        '<div style="flex:1;min-width:0;line-height:1.35;">' +
+          '<div style="font-weight:700;color:#fbbf24;margin-bottom:2px;">Adicionar à tela de início?</div>' +
+          '<div style="color:var(--text-main, #cbd5e1);font-size:0.76rem;">Abre em tela cheia, sem barra de endereço. Recebe notificações e funciona offline.</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;">' +
+          '<button id="scoreplace-android-install-yes" style="padding:7px 14px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;background:#fbbf24;color:#0f172a;border:none;white-space:nowrap;">📲 Instalar</button>' +
+          '<button id="scoreplace-android-install-no" style="padding:5px 8px;border-radius:6px;font-size:0.7rem;font-weight:500;cursor:pointer;background:transparent;color:var(--text-muted,#94a3b8);border:none;white-space:nowrap;">Agora não</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(banner);
+    document.getElementById('scoreplace-android-install-yes').addEventListener('click', async function() {
+      try {
+        if (!window._deferredInstallPrompt) { banner.remove(); return; }
+        window._deferredInstallPrompt.prompt();
+        var choice = await window._deferredInstallPrompt.userChoice;
+        if (choice && choice.outcome === 'accepted') {
+          window._markInstallBannerInstalled();
+        } else {
+          window._markInstallBannerDismissed();
+        }
+        window._deferredInstallPrompt = null;
+      } catch (e) {}
+      banner.remove();
+    });
+    document.getElementById('scoreplace-android-install-no').addEventListener('click', function() {
+      window._markInstallBannerDismissed();
+      banner.remove();
+    });
+  } catch (e) {}
+};
+
 (function iosInstallHints() {
   try {
     var ua = navigator.userAgent || '';
     var isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
     if (!isIOS) return;
     // Já instalado como PWA? Não mostra nada.
-    if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) return;
-    if (window.navigator.standalone === true) return;
-
+    if (window._isInstalledAsPWA && window._isInstalledAsPWA()) return;
+    // v1.3.34-beta: gating por engagement — só mostra após 3+ sessões e
+    // respeita dismissal de 30 dias. Para o banner de Safari (não-Safari
+    // continua mostrando sempre — é avisar que precisa trocar de browser
+    // pra instalar; user-bloqueante diferente).
     var isNonSafariIOS = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+    var safariCanGate = !isNonSafariIOS;
+    if (safariCanGate && window._shouldShowInstallBanner && !window._shouldShowInstallBanner({ minSessions: 3, maxDismissals: 3, cooldownDays: 30 })) return;
 
     var mkBanner = function(opts) {
       var key = opts.key;
-      if (localStorage.getItem(key) === '1') return;
+      // v1.3.34-beta: legacy localStorage flag fica como override (já dismissed
+      // pré-v1.3.34 nunca mais mostra). Pra novos dismisses usamos
+      // _markInstallBannerDismissed que zera após 30d.
+      if (opts.legacy && localStorage.getItem(key) === '1') return;
       var banner = document.createElement('div');
       banner.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:10050;background:linear-gradient(135deg,#1e293b,#0f172a);border:1px solid rgba(251,191,36,0.35);border-radius:14px;padding:12px 14px;color:#fff;box-shadow:0 10px 30px rgba(0,0,0,0.5);font-size:0.82rem;';
       banner.innerHTML =
@@ -1668,6 +1810,7 @@ if (typeof setupProfileModal === 'function') {
         document.body.appendChild(banner);
         banner.querySelector('button[data-dismiss-key]').addEventListener('click', function() {
           try { localStorage.setItem(key, '1'); } catch (e) {}
+          if (!opts.legacy && window._markInstallBannerDismissed) window._markInstallBannerDismissed();
           banner.remove();
         });
       };
@@ -1676,9 +1819,11 @@ if (typeof setupProfileModal === 'function') {
 
     if (isNonSafariIOS) {
       // Browser não-Safari no iPhone — instalar PWA e shortcuts só funcionam
-      // no Safari por limitação do iOS.
+      // no Safari por limitação do iOS. Não tem gating — é blocker pra
+      // o user instalar, vale informar logo.
       mkBanner({
         key: 'scoreplace_safari_hint_dismissed',
+        legacy: true,
         icon: '🧭',
         title: 'Para melhor experiência, use Safari',
         body: 'No iPhone, instalar como app e atalhos de partida só funcionam pelo Safari. Copie o link e abra por lá.'
