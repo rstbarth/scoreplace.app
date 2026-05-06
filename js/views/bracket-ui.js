@@ -41,6 +41,7 @@ window._computeMatchTimeStats = function(intervals) {
   // pra ter mediana confiável — caso contrário pula a heurística.
   var warmupSkipped = false;
   var warmupMs = null;
+  var medianRestForReplace = null;
   if (intervals.length >= 3) {
     var rest = [];
     for (var ri = 1; ri < intervals.length; ri++) {
@@ -51,15 +52,23 @@ window._computeMatchTimeStats = function(intervals) {
       if (medianRest > 0 && intervals[0] > 2 * medianRest) {
         warmupSkipped = true;
         warmupMs = intervals[0];
+        medianRestForReplace = medianRest;
       }
     }
   }
 
-  // Working set: sem warmup (se detectado)
-  var workingSet = warmupSkipped ? intervals.slice(1) : intervals.slice();
+  // v1.3.32-beta: quando warmup é detectado, SUBSTITUI o 1º intervalo pela
+  // MEDIANA DOS DEMAIS em vez de descartar. Assim o 1º ponto continua
+  // contado normalmente — só a duração inflada pelo aquecimento é
+  // substituída pelo valor "típico" da partida. Bug reportado: "considere
+  // para o primeiro ponto o tempo médio".
+  var workingSet;
+  if (warmupSkipped && medianRestForReplace != null) {
+    workingSet = [medianRestForReplace].concat(intervals.slice(1));
+  } else {
+    workingSet = intervals.slice();
+  }
   if (workingSet.length === 0) {
-    // Edge case: só tinha o 1º intervalo e foi marcado como warmup. Retorna
-    // null em vez de stats vazias — display cai pro fallback "—".
     return { avgMs: null, maxMs: null, minMs: null, warmupSkipped: true, warmupMs: warmupMs, outlierFilteredCount: 0 };
   }
 
@@ -4976,11 +4985,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
             '<span style="font-size:0.55rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;text-align:center;">' + label + '</span>' +
           '</div>';
         };
-        // v1.3.31-beta: hint discreto quando o helper detectou aquecimento
-        // inicial e o desconsiderou de avg/max. Tempo total continua íntegro.
+        // v1.3.32-beta: hint discreto quando o helper detectou aquecimento
+        // inicial e SUBSTITUIU o 1º intervalo pela mediana (em vez de
+        // excluir). Tempo total continua íntegro.
         var warmupHint = '';
         if (_timeStats.warmupSkipped && _timeStats.warmupMs) {
-          warmupHint = '<div style="text-align:center;font-size:0.55rem;color:var(--text-muted);opacity:0.7;font-style:italic;">🏃 Aquecimento de ' + _fmtSec(_timeStats.warmupMs) + ' não contado em Tempo/pt e Mais longo</div>';
+          warmupHint = '<div style="text-align:center;font-size:0.55rem;color:var(--text-muted);opacity:0.7;font-style:italic;">🏃 Aquecimento de ' + _fmtSec(_timeStats.warmupMs) + ' detectado — 1º ponto contado com tempo médio</div>';
         }
         timeStatsSection =
           '<div style="width:100%;max-width:380px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);display:flex;flex-direction:column;gap:8px;">' +
@@ -7018,6 +7028,10 @@ window._openCasualMatch = function() {
           '</div>' +
         '</div>' +
       '</div>' +
+      // v1.3.32-beta: slot pra "Últimas três partidas" — populado async
+      // após render. Helper window._casualLoadLastMatches roda 1× e
+      // injeta os 3 botões aqui (ou esconde a seção se não há histórico).
+      '<div id="casual-last-matches-slot" style="margin-top:1.2rem;"></div>' +
 
       '';
 
@@ -7025,7 +7039,72 @@ window._openCasualMatch = function() {
     if (isDoubles && !autoShuffle) {
       setTimeout(function() { _setupDragDrop(); }, 30);
     }
+    // v1.3.32-beta: hidrata "Últimas três partidas"
+    setTimeout(function() {
+      if (typeof window._casualLoadLastMatches === 'function') window._casualLoadLastMatches();
+    }, 200);
   }
+
+  // v1.3.32-beta: carrega últimas 3 partidas casuais finalizadas do user
+  // e renderiza 3 botões. Click → abre overlay de live scoring com o
+  // liveState salvo (mesma tela de stats que aparece no fim de cada
+  // partida). Sem histórico = seção fica oculta.
+  window._casualLoadLastMatches = async function() {
+    var slot = document.getElementById('casual-last-matches-slot');
+    if (!slot) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid || !window.FirestoreDB || typeof window.FirestoreDB.loadRecentCasualMatchesForUser !== 'function') {
+      slot.innerHTML = '';
+      return;
+    }
+    try {
+      var matches = await window.FirestoreDB.loadRecentCasualMatchesForUser(cu.uid, 3);
+      if (!matches || matches.length === 0) {
+        slot.innerHTML = '';
+        return;
+      }
+      var btnsHtml = '';
+      matches.forEach(function(m) {
+        var sport = m.sport || '';
+        var summary = (m.result && m.result.summary) || '';
+        var dateStr = '';
+        if (m.createdAt) {
+          var d = (typeof m.createdAt === 'string') ? new Date(m.createdAt) : null;
+          if (d && !isNaN(d.getTime())) {
+            dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+          }
+        }
+        // Sport icon (pega do sports[] já existente neste closure)
+        var icon = '🎾';
+        for (var ssi = 0; ssi < sports.length; ssi++) {
+          if (sports[ssi].label === sport || sports[ssi].key === sport) { icon = sports[ssi].icon; break; }
+        }
+        var safeRoomCode = (m.roomCode || '').replace(/'/g, "\\'");
+        btnsHtml +=
+          '<button onclick="window._casualOpenPastMatch(\'' + safeRoomCode + '\')" style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:var(--text-bright);cursor:pointer;transition:all 0.15s;font-family:inherit;text-align:center;" onmouseover="this.style.background=\'rgba(251,191,36,0.10)\';this.style.borderColor=\'rgba(251,191,36,0.35)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.10)\'">' +
+            '<span style="font-size:1.2rem;line-height:1;">' + icon + '</span>' +
+            '<span style="font-size:0.65rem;color:var(--text-muted);font-weight:600;">' + window._safeHtml(dateStr || '—') + '</span>' +
+            (summary ? '<span style="font-size:0.7rem;color:#38bdf8;font-weight:700;letter-spacing:0.5px;font-variant-numeric:tabular-nums;">' + window._safeHtml(summary) + '</span>' : '') +
+          '</button>';
+      });
+      slot.innerHTML =
+        '<div style="font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;text-align:center;">📊 Últimas ' + matches.length + ' partida' + (matches.length === 1 ? '' : 's') + '</div>' +
+        '<div style="display:flex;gap:6px;align-items:stretch;">' + btnsHtml + '</div>' +
+        '<div style="text-align:center;font-size:0.55rem;color:var(--text-muted);opacity:0.7;font-style:italic;margin-top:6px;">Toque pra ver as estatísticas</div>';
+    } catch (e) {
+      console.warn('[Casual] _casualLoadLastMatches err:', e);
+      slot.innerHTML = '';
+    }
+  };
+
+  // Click handler: abre o overlay de live scoring no estado finished pra
+  // exibir as stats (mesma tela do fim de partida).
+  window._casualOpenPastMatch = function(roomCode) {
+    if (!roomCode) return;
+    // Reusa _renderCasualJoin que JÁ chama _openLiveScoring com viewOnly
+    // pra matches finalizados (v1.3.30-beta). Navega via hash.
+    try { window.location.hash = '#casual/' + roomCode; } catch (e) {}
+  };
 
   // Drag-and-drop to form teams: drag player A onto player B → they become Team 1
   // Remaining two automatically become Team 2. Current user always ends in Team 1.

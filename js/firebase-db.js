@@ -905,6 +905,58 @@ window.FirestoreDB = {
     }
   },
 
+  // v1.3.32-beta: últimas N partidas casuais FINALIZADAS em que o user
+  // participou (createdBy ou está em participants[].uid). Pra alimentar
+  // a sessão "Últimas três partidas" no setup da partida casual.
+  // Combina 2 queries (createdBy + participants array-contains-any) e
+  // dedupa por _docId. Sem orderBy server-side pra evitar exigência de
+  // índice composto — sort client-side por createdAt desc.
+  async loadRecentCasualMatchesForUser(uid, limit) {
+    if (!this.db || !uid) return [];
+    var n = limit || 3;
+    var out = {};
+    try {
+      // Query 1: matches que o user CRIOU
+      var createdSnap = await this.db.collection('casualMatches')
+        .where('createdBy', '==', uid)
+        .where('status', '==', 'finished')
+        .limit(20).get();
+      createdSnap.forEach(function(d) {
+        var data = d.data();
+        data._docId = d.id;
+        out[d.id] = data;
+      });
+    } catch (e) { console.warn('loadRecentCasualMatchesForUser createdBy err:', e); }
+
+    // Query 2: array-contains em playerUids (denormalizado em
+    // saveCasualMatch + joinCasualMatch — array de uids puros).
+    try {
+      var partSnap = await this.db.collection('casualMatches')
+        .where('playerUids', 'array-contains', uid)
+        .where('status', '==', 'finished')
+        .limit(20).get();
+      partSnap.forEach(function(d) {
+        if (!out[d.id]) {
+          var data = d.data();
+          data._docId = d.id;
+          out[d.id] = data;
+        }
+      });
+    } catch (e) { console.warn('loadRecentCasualMatchesForUser participants err:', e); }
+
+    // Sort client-side by createdAt desc, take N most recent
+    var arr = Object.keys(out).map(function(k) { return out[k]; });
+    arr.sort(function(a, b) {
+      var ta = a.createdAt || a._ts || 0;
+      var tb = b.createdAt || b._ts || 0;
+      // Firestore timestamps may be stored as ms or as Timestamp obj
+      if (ta && typeof ta.toMillis === 'function') ta = ta.toMillis();
+      if (tb && typeof tb.toMillis === 'function') tb = tb.toMillis();
+      return tb - ta;
+    });
+    return arr.slice(0, n);
+  },
+
   async updateCasualMatch(docId, updates) {
     if (!this.db || !docId) return;
     try {
