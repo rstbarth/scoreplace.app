@@ -926,7 +926,20 @@ window.FirestoreDB = {
         data._docId = d.id;
         out[d.id] = data;
       });
-    } catch (e) { console.warn('loadRecentCasualMatchesForUser createdBy err:', e); }
+    } catch (e) {
+      // v1.3.36-beta: detecta missing-index e captura no Sentry pra evitar
+      // falha silenciosa (a v1.3.32 lançou esse query sem o index — só
+      // descobri agora). Indexes deployados em firestore.indexes.json.
+      var msg = (e && e.message) || '';
+      if (msg.indexOf('index') !== -1 || msg.indexOf('failed-precondition') !== -1) {
+        console.error('[loadRecentCasualMatchesForUser] missing Firestore index — verifique firestore.indexes.json:', msg);
+        if (typeof window !== 'undefined' && typeof window._captureMessage === 'function') {
+          window._captureMessage('Missing Firestore index: casualMatches createdBy+status', 'error');
+        }
+      } else {
+        console.warn('loadRecentCasualMatchesForUser createdBy err:', e);
+      }
+    }
 
     // Query 2: array-contains em playerUids (denormalizado em
     // saveCasualMatch + joinCasualMatch — array de uids puros).
@@ -942,7 +955,17 @@ window.FirestoreDB = {
           out[d.id] = data;
         }
       });
-    } catch (e) { console.warn('loadRecentCasualMatchesForUser participants err:', e); }
+    } catch (e) {
+      var msg2 = (e && e.message) || '';
+      if (msg2.indexOf('index') !== -1 || msg2.indexOf('failed-precondition') !== -1) {
+        console.error('[loadRecentCasualMatchesForUser] missing Firestore index — verifique firestore.indexes.json:', msg2);
+        if (typeof window !== 'undefined' && typeof window._captureMessage === 'function') {
+          window._captureMessage('Missing Firestore index: casualMatches playerUids+status', 'error');
+        }
+      } else {
+        console.warn('loadRecentCasualMatchesForUser participants err:', e);
+      }
+    }
 
     // Sort client-side by createdAt desc, take N most recent
     var arr = Object.keys(out).map(function(k) { return out[k]; });
