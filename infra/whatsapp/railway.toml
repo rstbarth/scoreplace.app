@@ -1,0 +1,30 @@
+# scoreplace.app — Evolution API on Railway
+#
+# Deploys the official atendai/evolution-api Docker image. PostgreSQL is
+# attached as a Railway add-on (`railway add postgresql`) and exposes
+# DATABASE_URL automatically. Redis is optional but recommended at scale —
+# add via `railway add redis` and uncomment CACHE_REDIS_* below.
+#
+# After deploy:
+#   1. Get public URL: `railway domain`
+#   2. Open <url>/manager (Web UI) → use AUTHENTICATION_API_KEY as login
+#   3. Create instance (e.g. `scoreplace`) → scan QR Code with WhatsApp
+#      Business app on the dedicated eSIM Vivo number.
+#   4. Note the instance name + the same AUTHENTICATION_API_KEY.
+#   5. Configure Firebase secrets:
+#         firebase functions:secrets:set EVOLUTION_API_URL  # https://<railway-url>
+#         firebase functions:secrets:set EVOLUTION_API_KEY  # AUTHENTICATION_API_KEY
+#         firebase functions:secrets:set EVOLUTION_INSTANCE  # nome da instância
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
+
+[deploy]
+startCommand = "node ./dist/main.js"
+healthcheckPath = "/"
+healthcheckTimeout = 60
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+[[services]]
+name = "evolution-api"

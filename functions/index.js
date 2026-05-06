@@ -25,7 +25,10 @@
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
+const fetch = require("node-fetch");
 
 admin.initializeApp();
 
@@ -342,5 +345,184 @@ exports.sendMagicLink = onCall(
       console.error("[sendMagicLink] falha ao enfileirar email:", err);
       throw new HttpsError("internal", "não foi possível enfileirar o email: " + (err.code || err.message));
     }
+  }
+);
+
+// ─── WhatsApp via Evolution API (self-hosted no Railway) ────────────────────
+// v1.3.37-beta: Cloud Function que consome `whatsapp_queue/{id}` (Firestore
+// trigger onCreate) e POSTa pra Evolution API (https://docs.evolution-api.com).
+// Evolution roda em Railway com WhatsApp Business pareado via QR Code num
+// número eSIM Vivo dedicado. Custo total: ~R$20/mês (eSIM) + R$0-5/mês
+// (Railway free tier).
+//
+// PRÉ-REQUISITOS pra ativar (one-time, fora do código):
+//   1. Deploy Evolution API no Railway — ver infra/whatsapp/README.md
+//   2. Parear instância via QR Code com o WhatsApp Business do eSIM
+//   3. Configurar 3 secrets:
+//        firebase functions:secrets:set EVOLUTION_API_URL
+//        firebase functions:secrets:set EVOLUTION_API_KEY
+//        firebase functions:secrets:set EVOLUTION_INSTANCE
+//   4. Deploy:  firebase deploy --only functions:processWhatsAppQueue
+//
+// Schema do doc em whatsapp_queue/{id} (criado por FirestoreDB.queueWhatsApp):
+//   {
+//     phones: ['5511999998888', ...],   // E.164 sem '+' nem espaços
+//     message: 'texto da mensagem',
+//     createdAt: ISO string,
+//     status: 'pending' | 'sent' | 'partial' | 'failed',
+//     // Atualizado pela função:
+//     processedAt?: ISO string,
+//     attempts?: number,
+//     lastError?: string,
+//     deliveries?: { phone, ok, messageId?, error? }[]
+//   }
+
+const EVOLUTION_API_URL = defineSecret("EVOLUTION_API_URL");
+const EVOLUTION_API_KEY = defineSecret("EVOLUTION_API_KEY");
+const EVOLUTION_INSTANCE = defineSecret("EVOLUTION_INSTANCE");
+
+// Sanitiza telefone pra E.164 sem '+' (formato Evolution API espera).
+// Aceita "+55 11 99999-8888", "55 11 99999-8888", "11 99999-8888",
+// "(11) 99999-8888". Sempre normaliza pra "5511999998888".
+function _normalizePhoneE164(raw) {
+  if (!raw) return null;
+  const digits = String(raw).replace(/\D/g, "");
+  if (digits.length < 10) return null; // muito curto pra ser número BR
+  // Se já começa com 55 e tem 12-13 dígitos (DDD + 8/9 digit number), ok.
+  if (digits.length === 12 || digits.length === 13) {
+    if (digits.startsWith("55")) return digits;
+  }
+  // Se tem 10-11 dígitos (DDD+número, sem DDI), assume BR e prefixa 55.
+  if (digits.length === 10 || digits.length === 11) {
+    return "55" + digits;
+  }
+  // Outro DDI ou número internacional — devolve como veio (sem '+').
+  return digits;
+}
+
+// Send single WhatsApp text via Evolution. Retorna { ok, messageId?, error? }.
+async function _sendWhatsAppText(apiUrl, apiKey, instance, phone, text) {
+  const url = apiUrl.replace(/\/+$/, "") + "/message/sendText/" + encodeURIComponent(instance);
+  const body = {
+    number: phone,
+    text: text,
+    // Evolution-specific options:
+    delay: 1200, // ms entre msgs (parece + humano, evita ban)
+    linkPreview: true,
+  };
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": apiKey,
+      },
+      body: JSON.stringify(body),
+      // Cloud Functions timeout é 60s — fetch sem timeout pode travar a função.
+      // node-fetch v2 não tem timeout nativo; usar AbortController.
+    });
+  } catch (e) {
+    return { ok: false, error: "fetch failed: " + (e.message || String(e)) };
+  }
+  let data = null;
+  try { data = await resp.json(); } catch (e) { /* body não-json */ }
+  if (!resp.ok) {
+    return {
+      ok: false,
+      error: "HTTP " + resp.status + ": " + (data && data.message ? JSON.stringify(data.message) : resp.statusText),
+    };
+  }
+  // Resposta sucesso típica: { key: { id: "..." }, ... }
+  const messageId = data && data.key && data.key.id ? data.key.id : null;
+  return { ok: true, messageId: messageId };
+}
+
+exports.processWhatsAppQueue = onDocumentCreated(
+  {
+    document: "whatsapp_queue/{queueId}",
+    region: "us-central1",
+    timeoutSeconds: 60,
+    memory: "256MiB",
+    secrets: [EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE],
+    retryConfig: { retryCount: 2 }, // Firebase auto-retries 2x em caso de unhandled error
+  },
+  async (event) => {
+    const snap = event.data;
+    if (!snap) return;
+    const data = snap.data();
+    if (!data || !data.message || !Array.isArray(data.phones) || data.phones.length === 0) {
+      console.warn("[processWhatsAppQueue] doc inválido — skip:", event.params.queueId);
+      await snap.ref.update({
+        status: "failed",
+        lastError: "missing phones[] or message",
+        processedAt: new Date().toISOString(),
+      });
+      return;
+    }
+    // Idempotência: se já processado (retry do trigger), skip
+    if (data.status === "sent" || data.status === "partial") return;
+
+    const apiUrl = EVOLUTION_API_URL.value();
+    const apiKey = EVOLUTION_API_KEY.value();
+    const instance = EVOLUTION_INSTANCE.value();
+    if (!apiUrl || !apiKey || !instance) {
+      console.error("[processWhatsAppQueue] secrets ausentes");
+      await snap.ref.update({
+        status: "failed",
+        lastError: "Evolution secrets not configured",
+        processedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
+    const deliveries = [];
+    for (const rawPhone of data.phones) {
+      const phone = _normalizePhoneE164(rawPhone);
+      if (!phone) {
+        deliveries.push({ phone: String(rawPhone), ok: false, error: "invalid phone format" });
+        continue;
+      }
+      const result = await _sendWhatsAppText(apiUrl, apiKey, instance, phone, data.message);
+      deliveries.push({ phone: phone, ok: result.ok, messageId: result.messageId, error: result.error });
+      // Pequena pausa entre msgs múltiplas — Evolution já tem delay interno
+      // mas adicional 200ms reduz chance de rate-limit do WhatsApp Web.
+      if (data.phones.length > 1) await new Promise((r) => setTimeout(r, 200));
+    }
+
+    const okCount = deliveries.filter((d) => d.ok).length;
+    const totalCount = deliveries.length;
+    const status = okCount === totalCount ? "sent" : (okCount === 0 ? "failed" : "partial");
+    const attempts = (data.attempts || 0) + 1;
+
+    await snap.ref.update({
+      status: status,
+      attempts: attempts,
+      processedAt: new Date().toISOString(),
+      deliveries: deliveries,
+      lastError: status === "failed" ? (deliveries[0] && deliveries[0].error) || "unknown" : admin.firestore.FieldValue.delete(),
+    });
+
+    console.log(`[processWhatsAppQueue] ${event.params.queueId}: ${okCount}/${totalCount} entregues`);
+  }
+);
+
+// ─── Scheduled cleanup: WhatsApp queue antigos ────────────────────────────
+// Roda diariamente 03:45 BRT, deleta docs `sent`/`failed` com mais de 30 dias.
+// `pending` não toca — pode estar em retry.
+exports.cleanupOldWhatsAppQueue = onSchedule(
+  {
+    schedule: "every day 03:45",
+    timeZone: "America/Sao_Paulo",
+    region: "us-central1",
+  },
+  async () => {
+    const db = admin.firestore();
+    const threshold = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const query = db.collection("whatsapp_queue")
+      .where("status", "in", ["sent", "failed"])
+      .where("processedAt", "<", threshold);
+    const deleted = await _batchDeleteQuery(query);
+    console.log(`[cleanupOldWhatsAppQueue] deleted ${deleted} docs (threshold: ${threshold})`);
   }
 );

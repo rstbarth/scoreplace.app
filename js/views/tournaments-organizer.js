@@ -121,9 +121,14 @@ window._sendUserNotification = async function(uid, notifData, _skipDispatch) {
             await window.FirestoreDB.addNotification(uid, _notifPayload);
         }
         // Email dispatch — writes to 'mail' Firestore collection, processed by
-        // the "Trigger Email from Firestore" extension. WhatsApp still disabled.
+        // the "Trigger Email from Firestore" extension.
         var email = (profile.notifyEmail !== false && profile.email) ? profile.email : null;
-        var phone = null;
+        // v1.3.37-beta: WhatsApp dispatch — Cloud Function processWhatsAppQueue
+        // consome whatsapp_queue e POSTa pra Evolution API self-hosted no
+        // Railway (infra/whatsapp/README.md). Só envia se opt-in explícito
+        // (notifyWhatsApp=true) E telefone preenchido. Default é OFF —
+        // notifyWhatsApp tem que ser truthy.
+        var phone = (profile.notifyWhatsApp === true && profile.phone) ? profile.phone : null;
 
         // Auto-dispatch email & WhatsApp for this individual notification
         // (skip when called from _notifyTournamentParticipants which does batch dispatch)
