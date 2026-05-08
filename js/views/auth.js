@@ -2069,7 +2069,8 @@ async function simulateLoginSuccess(user) {
       { id: 'profile-accept-friends', val: cu.acceptFriendRequests !== false },
       { id: 'profile-notify-platform', val: cu.notifyPlatform !== false },
       { id: 'profile-notify-email', val: cu.notifyEmail !== false },
-      { id: 'profile-notify-whatsapp', val: cu.notifyWhatsApp === true },
+      // v1.3.41-beta: default ON se já tem telefone cadastrado e não escolheu OFF explicitamente
+      { id: 'profile-notify-whatsapp', val: cu.notifyWhatsApp === true || (cu.notifyWhatsApp !== false && !!(cu.phone && String(cu.phone).replace(/\D/g,'').length >= 8)) },
       { id: 'profile-hints-enabled', val: _hintsEnabled },
       { id: 'profile-presence-auto-checkin', val: !!cu.presenceAutoCheckin }
     ].forEach(function(t) { var el = document.getElementById(t.id); if (el) el.checked = t.val; });
@@ -3882,6 +3883,21 @@ function setupProfileModal() {
           phoneInput.value = _formatPhoneDisplay(digits, this.value);
         });
       }
+      // v1.3.41-beta: auto-ativa WhatsApp toggle quando usuário digita um celular válido
+      phoneInput.addEventListener('input', function() {
+        var digits = (phoneInput.getAttribute('data-digits') || '').replace(/\D/g,'');
+        if (digits.length >= 8) {
+          var waToggle = document.getElementById('profile-notify-whatsapp');
+          // Só ativa automaticamente se ainda não foi explicitamente desativado
+          // (ou seja, se o toggle ainda está desligado). Não sobrescreve escolha manual.
+          if (waToggle && !waToggle.checked) {
+            var cu = window.AppStore && window.AppStore.currentUser;
+            if (!cu || cu.notifyWhatsApp !== false) {
+              waToggle.checked = true;
+            }
+          }
+        }
+      });
     }
 
     // Notification filter toggles: todas (green), importantes (yellow), fundamentais (red)

@@ -9,6 +9,10 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #25d366;border-radius:12px;padding:14px 16px;background:rgba(37,211,102,0.10);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">💬 v1.3.41-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
+      '<p><b>WhatsApp ON por padrão quando há celular cadastrado.</b> O toggle "💬 WhatsApp" em Canais de notificação agora inicia ligado automaticamente se o usuário já tem telefone preenchido no perfil (e nunca escolheu OFF explicitamente). Ao cadastrar um número novo no campo Celular, o toggle ativa sozinho ao digitar ≥8 dígitos — sem precisar ir manualmente até Canais de notificação. Quem quer receber: basta ter o celular cadastrado. Quem não quer: desativa o toggle manualmente e a escolha é respeitada. Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #25d366;border-radius:12px;padding:14px 16px;background:rgba(37,211,102,0.10);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">💬 v1.3.40-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
       '<p><b>Notificações via WhatsApp ativas.</b> Integração end-to-end com WhatsApp Business via Evolution API self-hosted no Railway. O fluxo completo: eventos do app (inscrições, sorteios, resultados) enfileiram mensagens em <code>whatsapp_queue</code> no Firestore → Cloud Function <code>processWhatsAppQueue</code> processa automaticamente e entrega via Evolution API → mensagem chega no WhatsApp do usuário. Para receber: ative "💬 WhatsApp" no perfil (Canais de notificação) e certifique-se de ter o telefone preenchido. Toggle OFF por padrão — opt-in explícito. Alteração em <code>js/views/auth.js</code> (toggle no perfil), <code>js/i18n-pt.js</code>, <code>js/i18n-en.js</code>.</p>' +
     '</div>' +
