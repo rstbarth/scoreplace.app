@@ -383,6 +383,15 @@ if (firebase && firebase.auth) {
         clearTimeout(_pendingSignoutTimer);
         _pendingSignoutTimer = null;
       }
+      // v1.3.39-beta: cancelar o timer do null-handler (se existir) —
+      // Firebase resolveu com usuário, não queremos chamar initRouter()
+      // com null depois.
+      clearTimeout(window._authNullRouterTimer);
+      window._authNullRouterTimer = null;
+      // v1.3.39-beta: cancelar também o fallback de 3 s do router —
+      // usuário presente, router vai ser chamado via simulateLoginSuccess.
+      clearTimeout(window._authNoCacheFallback);
+      window._authNoCacheFallback = null;
       // Skip if email registration is still updating displayName profile
       if (window._pendingProfileUpdate) {
         console.log('[scoreplace-auth] onAuthStateChanged skipped (pending profile update)');
@@ -430,6 +439,26 @@ if (firebase && firebase.auth) {
         }
         _commitSignOut();
       }, _AUTH_SIGNOUT_GRACE_MS);
+
+      // v1.3.39-beta: para usuários novos (hadSession=false), _commitSignOut
+      // não chama initRouter() — o router fica preso no spinner para sempre.
+      // Este timer de 300 ms dispara initRouter() após Firebase confirmar
+      // definitivamente null, permitindo ao router comutar de "aguardando"
+      // para landing. 300 ms < 2500 ms do grace period, portanto se Firebase
+      // re-resolver com usuário antes disso, o cancelamento acima (no branch
+      // user) já limpou o timer e evita chamada dupla.
+      clearTimeout(window._authNullRouterTimer);
+      window._authNullRouterTimer = setTimeout(function() {
+        window._authNullRouterTimer = null;
+        if (!firebase.auth().currentUser && (!window.AppStore || !window.AppStore.currentUser)) {
+          var v = (window.location.hash || '#dashboard').replace('#', '').split('/')[0];
+          if (v === '' || v === 'dashboard') {
+            clearTimeout(window._authNoCacheFallback);
+            window._authNoCacheFallback = null;
+            if (typeof initRouter === 'function') initRouter();
+          }
+        }
+      }, 300);
     }
   });
 }

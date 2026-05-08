@@ -144,13 +144,59 @@ function initRouter() {
       });
     }
 
-    // Landing page gate: non-logged users on dashboard see landing page
-    // Skip landing if Firebase Auth hasn't resolved yet but we have a cached session
+    // Landing page gate — v1.3.39-beta: gate completo que nunca mostra a
+    // landing prematuramente enquanto o Firebase ainda está rehydratando do
+    // IndexedDB (~200-500ms). Lógica em camadas:
+    //
+    //  1. Logado → segue para a view normalmente (nenhuma landing)
+    //  2. Não logado + authCache → spinner enquanto Firebase rehydrata
+    //  3. Não logado + sem cache + Firebase NÃO resolveu → spinner +
+    //     fallback de 3 s para o caso do Firebase nunca resolver
+    //     (ex: offline total, script error)
+    //  4. Não logado + sem cache + Firebase resolveu null → renderiza landing
+    //
+    // Este fluxo cobre o caso crítico de iOS Safari que limpa o localStorage
+    // periodicamente: sem cache, mas o Firebase ainda tem sessão no IndexedDB.
+    // O usuário NÃO deve ver a landing — apenas o spinner por ~300 ms até o
+    // onAuthStateChanged resolver com o usuário de volta.
     var _isLoggedInNow = !!(window.AppStore && window.AppStore.currentUser);
     var _hasAuthCacheNow = false;
     try { _hasAuthCacheNow = !!localStorage.getItem('scoreplace_authCache'); } catch(e) {}
-    console.log('[scoreplace-router] route', hash, 'loggedIn:', _isLoggedInNow, 'authCache:', _hasAuthCacheNow);
-    if (!_isLoggedInNow && !_hasAuthCacheNow && (view === '' || view === 'dashboard') && typeof renderLanding === 'function') {
+    console.log('[scoreplace-router] route', hash, 'loggedIn:', _isLoggedInNow, 'authCache:', _hasAuthCacheNow, 'authResolved:', !!window._authStateResolved);
+
+    if (!_isLoggedInNow && (view === '' || view === 'dashboard') && typeof renderLanding === 'function') {
+
+      if (_hasAuthCacheNow) {
+        // Tem cache de auth, Firebase ainda não resolveu → spinner
+        // (onAuthStateChanged vai chamar initRouter() quando resolver)
+        viewContainer.innerHTML = (typeof window._renderBallLoader === 'function')
+          ? window._renderBallLoader('Carregando…', { minHeight: '60vh' })
+          : '<div style="text-align:center;padding:60vh 0 0;">Carregando…</div>';
+        _firstRoute = false;
+        return;
+      }
+
+      if (!window._authStateResolved) {
+        // Sem cache mas Firebase ainda não respondeu — pode ser usuário
+        // com sessão no IndexedDB mas localStorage limpo pelo iOS.
+        // Mostra spinner e aguarda até 3 s pelo onAuthStateChanged.
+        viewContainer.innerHTML = (typeof window._renderBallLoader === 'function')
+          ? window._renderBallLoader('Carregando…', { minHeight: '60vh' })
+          : '<div style="text-align:center;padding:60vh 0 0;">Carregando…</div>';
+        clearTimeout(window._authNoCacheFallback);
+        window._authNoCacheFallback = setTimeout(function() {
+          window._authNoCacheFallback = null;
+          // Se Firebase ainda não respondeu após 3 s, assume null e renderiza landing
+          if (!window.AppStore || !window.AppStore.currentUser) {
+            window._authStateResolved = true;
+            if (typeof initRouter === 'function') initRouter();
+          }
+        }, 3000);
+        _firstRoute = false;
+        return;
+      }
+
+      // Firebase resolveu com null → renderizar landing
       // Prerender: se primeira rota E HTML estático já está visível, NÃO
       // limpa nem re-renderiza — evita flicker. Próxima navegação volta
       // ao flow normal.
@@ -159,21 +205,12 @@ function initRouter() {
         _firstRoute = false;
         return;
       }
-      console.log('[scoreplace-router] → rendering LANDING (not logged in, no cache)');
+      console.log('[scoreplace-router] → rendering LANDING (not logged in, auth resolved null)');
       renderLanding(viewContainer);
       _firstRoute = false;
       return;
     }
     _firstRoute = false;
-    // If auth hasn't resolved yet but we have cache, show a loading state briefly.
-    // v1.3.26-beta: usa helper canônico window._renderBallLoader — mesmo
-    // emoji 🎾 + animação spin+pulse de todas as outras telas de loading.
-    if (!_isLoggedInNow && _hasAuthCacheNow && (view === '' || view === 'dashboard')) {
-      viewContainer.innerHTML = (typeof window._renderBallLoader === 'function')
-        ? window._renderBallLoader('Carregando…', { minHeight: '60vh' })
-        : '<div style="text-align:center;padding:60vh 0 0;">Carregando…</div>';
-      return;
-    }
 
     switch (view) {
       case '':

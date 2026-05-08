@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.3.38-beta';
+window.SCOREPLACE_VERSION = '1.3.39-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -11,7 +11,14 @@ window.SCOREPLACE_VERSION = '1.3.38-beta';
   try {
     if (localStorage.getItem('scoreplace_beta_cleanup_v1') === '1') return;
     var dataKeys = [
-      'scoreplace_authCache',     // auth cache (força re-login)
+      // scoreplace_authCache REMOVIDO — v1.3.39-beta: nunca limpar o cache
+      // de auth no cleanup. O único efeito de apagá-lo é fazer o router
+      // renderizar a landing imediatamente na próxima visita se o iOS tiver
+      // limpado o localStorage (cleanup re-roda sem o flag). Com authCache
+      // ausente E Firebase ainda não resolvido (~200-500ms), o usuário vê
+      // um flash da landing page antes de ser logado — que é exatamente o
+      // bug que o usuário reportou. A sessão Firebase vive no IndexedDB e
+      // não precisa do authCache para persistir.
       'scoreplace_casual_history',// stats casuais legacy v1
       'scoreplace_casual_history_v2', // stats casuais v2 (era esse o culpado)
       'scoreplace_casual_last',   // último casual restored
