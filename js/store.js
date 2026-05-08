@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.3.36-beta';
+window.SCOREPLACE_VERSION = '1.3.37-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -129,6 +129,8 @@ window._softRefreshView = function() {
                   document.getElementById('qr-modal-overlay') ||
                   document.getElementById('player-stats-overlay') ||
                   document.querySelector('.tv-overlay') ||
+                  document.getElementById('live-scoring-overlay') ||
+                  document.getElementById('casual-match-overlay') ||
                   document.getElementById('unified-resolution-panel') ||
                   document.getElementById('groups-config-panel') ||
                   document.getElementById('remainder-resolution-panel') ||
@@ -583,8 +585,11 @@ window._dismissAllOverlays = function(opts) {
   // confirm de logout, etc.), (b) tem botões "Cancelar"/"Confirmar" próprios
   // que controlam o ciclo de vida.
   var ALWAYS_KEEP = [
-    'modal-terms-acceptance' // LGPD compliance — bug v0.17.90: aparecia e
-                             // sumia rápido pq sweep removia .active
+    'modal-terms-acceptance', // LGPD compliance — bug v0.17.90: aparecia e
+                              // sumia rápido pq sweep removia .active
+    'live-scoring-overlay',   // partida casual ao vivo — ciclo de vida próprio,
+                              // nunca deve ser varrido pelo sweep genérico
+    'casual-match-overlay'    // lobby/join de partida casual — idem
   ];
   ALWAYS_KEEP.forEach(function(id) {
     if (keep.indexOf(id) === -1) keep.push(id);
