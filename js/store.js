@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.3.37-beta';
+window.SCOREPLACE_VERSION = '1.3.38-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -22,30 +22,22 @@ window.SCOREPLACE_VERSION = '1.3.37-beta';
     dataKeys.forEach(function (k) {
       try { localStorage.removeItem(k); } catch (_e) {}
     });
-    // v1.0.0-beta: também apagar IndexedDB do Firebase Auth — assim o user
-    // PRECISA escolher como logar (Google / SMS / Email / Link mágico) em vez
-    // do app auto-restaurar sessão antiga. Sem isso, mesmo com Firestore
-    // zerado o Firebase Auth lembra da conta Google e re-loga sem prompt.
-    try {
-      if (typeof indexedDB !== 'undefined' && indexedDB.databases) {
-        indexedDB.databases().then(function (dbs) {
-          (dbs || []).forEach(function (db) {
-            if (db.name && /firebase|firestore|firebaseauth/i.test(db.name)) {
-              try { indexedDB.deleteDatabase(db.name); } catch (_e) {}
-            }
-          });
-        }).catch(function () {});
-      }
-      // Fallback pra browsers que não suportam .databases() (Safari < 14)
-      ['firebaseLocalStorageDb', 'firebase-installations-database',
-       'firebaseHeartbeatDatabase', 'firestore/[DEFAULT]/scoreplace-app/main']
-        .forEach(function (n) { try { indexedDB.deleteDatabase(n); } catch (_e) {} });
-    } catch (_e) {}
+    // v1.0.0-beta: A deleção do IndexedDB do Firebase Auth foi removida na
+    // v1.3.38-beta. Causa de bug: em iOS Safari + ITP / PWA com limpeza
+    // agressiva de storage, o localStorage é zerado periodicamente, o que
+    // resetava a flag scoreplace_beta_cleanup_v1. Na próxima visita o cleanup
+    // rodava de novo e deletava a sessão Firebase do usuário já logado —
+    // forçando re-login em loop. A deleção era necessária apenas na transição
+    // alpha→beta (2026-04-29); oito dias depois todos os usuários existentes
+    // já passaram pelo re-login único. Novos usuários não têm sessão alpha
+    // para limpar. Sem a deleção, mesmo que o cleanup rode novamente (por
+    // perda do flag), o onAuthStateChanged ainda restaura a sessão do Firebase
+    // via IndexedDB — não precisa de re-login.
     // Preferências preservadas: theme, lang, dashView, debug, emailForSignIn,
     // fcm_dismissed, gsm_prefs, loginPhoneCountry, sentry_dsn.
     localStorage.setItem('scoreplace_beta_cleanup_v1', '1');
     if (typeof console !== 'undefined' && console.log) {
-      console.log('[scoreplace-beta] one-time cleanup done — ' + dataKeys.length + ' data keys + Firebase IndexedDB cleared');
+      console.log('[scoreplace-beta] one-time cleanup done — ' + dataKeys.length + ' data keys cleared (Firebase IndexedDB preserved)');
     }
   } catch (e) {
     // localStorage pode estar indisponível em modo private; não bloqueia o boot
