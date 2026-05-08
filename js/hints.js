@@ -42,7 +42,7 @@
     { id: 'help', selector: 'button[onclick*="\'#help\'"], a[href="#help"]', text: 'Dúvidas? Aqui tem o manual completo com todas as funcionalidades!', context: 'global', priority: 5, position: 'bottom' },
     { id: 'quick-search', selector: '.hamburger-btn', text: 'Dica: use Ctrl+K para buscar torneios e jogadores rapidamente!', context: 'global', priority: 3, position: 'bottom', requiresLogin: true },
     { id: 'notifications', selector: 'a[href="#notifications"]', text: 'Fique por dentro! Aqui você recebe avisos de torneios e convites.', context: 'global', priority: 5, position: 'bottom', requiresLogin: true },
-    { id: 'explore-nav', selector: 'a[href="#explore"]', text: 'Descubra torneios públicos da comunidade e participe!', context: 'global', priority: 6, position: 'bottom' },
+    { id: 'explore-nav', selector: '#btn-people', text: 'Explore jogadores da comunidade, veja amigos em comum e descubra torneios abertos para inscrição!', context: 'dashboard', priority: 6, position: 'bottom' },
 
     // ═══════════════════════════════════════════════════════════════════════════
     // STRATEGIC (Apoie / Pro)
@@ -238,7 +238,7 @@
     // ═══════════════════════════════════════════════════════════════════════════
     { id: 'profile-gender', selector: '#profile-edit-gender', text: 'Selecione seu gênero para ser distribuído automaticamente nas categorias corretas ao se inscrever.', context: 'global', priority: 5, position: 'bottom' },
     { id: 'profile-language', selector: '#profile-lang-flags button, [onclick*="_setLang"]', text: 'Escolha o idioma do app: Português (🇧🇷) ou English (🇺🇸).', context: 'global', priority: 4, position: 'bottom' },
-    { id: 'profile-sports', selector: '#profile-edit-sports', text: 'Informe seus esportes preferidos para receber sugestões de torneios relevantes.', context: 'global', priority: 4, position: 'bottom' },
+    { id: 'profile-sports', selector: '#profile-edit-sports', text: 'Marque seus esportes: filtra torneios na dashboard, locais no 📍 Place e pré-seleciona modalidades no check-in. Após marcar cada esporte, escolha seu nível (A/B/C/D/FUN) — você pode ter nível diferente por modalidade!', context: 'global', priority: 4, position: 'bottom' },
     { id: 'profile-location', selector: '#profile-location-search', text: 'Adicione sua localização para encontrar torneios perto de você e receber notificações.', context: 'global', priority: 5, position: 'bottom' },
     { id: 'profile-notify-level', selector: '[onclick*="_toggleNotifyFilter"]', text: 'Configure o nível de notificações: Todas, Só Importantes ou Só Fundamentais.', context: 'global', priority: 4, position: 'top' },
     { id: 'profile-hints-toggle', selector: '[onclick*="hintSystem"]', text: 'Ative ou desative as dicas visuais que aparecem quando você fica parado.', context: 'global', priority: 3, position: 'top' },

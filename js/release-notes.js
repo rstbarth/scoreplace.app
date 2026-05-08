@@ -8,6 +8,19 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">📖 v1.3.42-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
+      '<p><b>Manual e dicas contextuais revisados linha a linha.</b> Auditoria completa do manual de ajuda e do sistema de dicas para garantir precisão com o app atual:<br>' +
+      '• <b>Explorar → 👥 Pessoas:</b> todas as referências à antiga aba "Explorar" (removida do menu em v0.17.44) atualizadas — agora aparece como botão "👥 Pessoas" na segunda linha da dashboard. Seção do manual renomeada e reescrita para descrever cards horizontais, grid 2–4 colunas e todos os tipos de listas (amigos, conhecidos, outros usuários).<br>' +
+      '• <b>Barra de ações da dashboard:</b> descrição atualizada para refletir as duas linhas de botões atuais (⚡ Casual · 🏆 Novo Torneio · 📍 Place | 👥 Pessoas · Convidar · Pro · Apoie).<br>' +
+      '• <b>Esportes preferidos — descrição completa:</b> reescrita para cobrir TODOS os efeitos downstream: filtra feed de torneios, filtra locais no 📍 Place, pré-seleciona modalidades no check-in, e desbloqueia o <b>nível por esporte (skillBySport)</b> — você pode ser A em Beach Tennis e C em Tênis ao mesmo tempo.<br>' +
+      '• <b>Data de nascimento:</b> corrigida de "exibida na aba Explorar" (incorreto desde v1.3.18) para "usada para categorias por faixa etária (40+/50+/60+/70+)".<br>' +
+      '• <b>Avatar:</b> atualizado de "avatares pré-definidos" (removidos em v1.0.23) para "iniciais do nome em círculo índigo".<br>' +
+      '• <b>Atalho E:</b> label mudou de "Explorar torneios" para "Ir para Pessoas".<br>' +
+      '• <b>Dica explore-nav:</b> seletor corrigido de <code>a[href="#explore"]</code> (não existe mais no DOM) para <code>#btn-people</code> com texto atualizado.<br>' +
+      '• <b>Dica profile-sports:</b> texto expandido para explicar filtros, check-in pré-selecionado e skillBySport.<br>' +
+      'Alteração em <code>js/main.js</code>, <code>js/hints.js</code>.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #25d366;border-radius:12px;padding:14px 16px;background:rgba(37,211,102,0.10);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">💬 v1.3.41-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
       '<p><b>WhatsApp ON por padrão quando há celular cadastrado.</b> O toggle "💬 WhatsApp" em Canais de notificação agora inicia ligado automaticamente se o usuário já tem telefone preenchido no perfil (e nunca escolheu OFF explicitamente). Ao cadastrar um número novo no campo Celular, o toggle ativa sozinho ao digitar ≥8 dígitos — sem precisar ir manualmente até Canais de notificação. Quem quer receber: basta ter o celular cadastrado. Quem não quer: desativa o toggle manualmente e a escolha é respeitada. Alteração em <code>js/views/auth.js</code>.</p>' +

@@ -145,7 +145,7 @@ function setupHelpModal() {
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Passo 3: Criar ou Participar de um Torneio</div>' +
           '<ol style="padding-left:20px;margin:6px 0;">' +
             '<li><b>Criar:</b> Na dashboard, clique em <b>"+ Novo Torneio"</b>, escolha o esporte e clique em "Criar Torneio"</li>' +
-            '<li><b>Participar:</b> Navegue pelos torneios públicos em <b>"Explorar"</b> e clique em <b>"Inscrever-se"</b></li>' +
+            '<li><b>Participar:</b> Na dashboard o <b>feed de descoberta</b> já lista torneios públicos abertos — clique em <b>"Inscrever-se"</b> direto do card. Para encontrar jogadores e ver os torneios deles, use o botão <b>👥 Pessoas</b> na dashboard</li>' +
             '<li><b>Convite:</b> Se recebeu um link de convite, clique nele, faça login e você será inscrito automaticamente</li>' +
           '</ol>' +
         '</div>' +
@@ -166,7 +166,7 @@ function setupHelpModal() {
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Hero e Ações Rápidas</div>' +
           '<p><b>Welcome para usuário novo</b> — Sem nenhum torneio criado ou disponível, você vê um card de boas-vindas com 4 CTAs coloridos: 🏆 Criar torneio, 🏢 Descobrir locais, 📍 Registrar presença, 👥 Encontrar amigos. Some assim que existir qualquer torneio visível pra você.</p>' +
-          '<p><b>Barra de ações</b> — +Novo Torneio, Convidar amigos (QR Code do app), Pro, Apoie, Locais, Presença.</p>' +
+          '<p><b>Barra de ações (linha 1)</b> — ⚡ <b>Partida Casual</b> (placar ao vivo sem criar torneio), 🏆 <b>Novo Torneio</b>, 📍 <b>Place</b> (descobre locais, faz check-in, planeja ida). <b>Linha 2:</b> 👥 <b>Pessoas</b> (explorar jogadores, amigos, torneios da comunidade), <b>Convidar</b> (QR Code do app), <b>Pro</b>, <b>Apoie</b>.</p>' +
           '<p><b>Contadores de resumo</b> — Todos, Organizados, Participando, <b>Inscrições Abertas</b>, Favoritos, Encerrados. Clique para filtrar.</p>' +
           '<p><b>"Inscrições Abertas"</b> — União dos <i>seus</i> torneios com inscrição aberta + torneios públicos do feed de descoberta que você ainda não entrou. Clicar "Inscrever-se" num card de descoberta aqui mesmo inscreve em 1 clique (sem precisar abrir a página do torneio).</p>' +
           '<p><b>Filtros secundários</b> — Pills coloridas por modalidade (roxo), local (verde), formato (amarelo). "✕ Limpar filtros" reseta.</p>' +
@@ -348,13 +348,19 @@ function setupHelpModal() {
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Informações Pessoais</div>' +
           '<p><b>Nome</b> — Exibido em torneios, chaveamentos e classificações.</p>' +
           '<p><b>Gênero</b> — Usado para atribuição automática de categorias (Fem/Masc).</p>' +
-          '<p><b>Data de nascimento</b> — Exibida na aba Explorar para outros jogadores.</p>' +
+          '<p><b>Data de nascimento</b> — Usada para atribuição automática de categorias por faixa etária (40+, 50+, 60+, 70+) nos torneios. Não é exibida publicamente para outros jogadores.</p>' +
           '<p><b>Cidade e localização</b> — Busca automática no mapa. Botão 📍 usa GPS.</p>' +
-          '<p><b>Esportes preferidos</b> — <b>Botões toggleáveis</b> (Beach Tennis, Pickleball, Tênis, Tênis de Mesa, Padel). Clique pra marcar/desmarcar. Antes era campo de texto livre — agora são pills consistentes com os filtros de discovery e o picker de presença. Selecionados ficam em âmbar. Usado pra sugerir torneios e parceiros.</p>' +
+          '<p><b>Esportes preferidos</b> — <b>Pills toggleáveis</b> com 9 modalidades (Beach Tennis, Pickleball, Tênis, Tênis de Mesa, Padel, Squash, Badminton, Vôlei de Praia, Futevôlei). Marcar seu(s) esporte(s) tem efeito em várias partes do app:<br>' +
+            '&nbsp;&nbsp;• <b>Feed de torneios</b> — a dashboard só exibe torneios do(s) esporte(s) marcado(s). Sem esporte marcado, mostra tudo.<br>' +
+            '&nbsp;&nbsp;• <b>📍 Place (locais)</b> — filtro de modalidade pré-aplicado; só aparecem venues que oferecem o esporte.<br>' +
+            '&nbsp;&nbsp;• <b>Check-in e Planejar ida</b> — as pills de modalidade já vêm pré-selecionadas com o(s) seu(s) esporte(s); não precisa escolher toda vez.<br>' +
+            '&nbsp;&nbsp;• <b>Nível por esporte (skillBySport)</b> — ao marcar uma modalidade, aparecem 5 mini-pills de habilidade (A / B / C / D / FUN) específicas para ela. Você pode ser nível A em Beach Tennis e C em Tênis ao mesmo tempo; o app usa o nível correto ao inscrevê-lo em torneios com categorias.<br>' +
+            '&nbsp;&nbsp;• <b>👥 Pessoas</b> — matching com jogadores que praticam os mesmos esportes; aparece como subtítulo nos cards.<br>' +
+            '&nbsp;&nbsp;• <b>Sugestões de torneios e parceiros</b> — base para notificações de torneios próximos da sua modalidade.</p>' +
           '<p><b>Locais de preferência</b> — Busca <b>dinâmica</b> conforme você digita (2+ caracteres, debounce de 150ms). Dropdown de sugestões do Google Places aparece automaticamente. Botão 📍 ao lado usa GPS. Adicione múltiplos locais no mapa — eles aparecem no widget "🏟️ Meus locais" da dashboard pra check-in rápido.</p>' +
           '<p><b>Categoria/nível</b> — Seu nível de jogo (A, B, C, etc.).</p>' +
           '<p><b>Telefone</b> — Com código do país para notificações por WhatsApp.</p>' +
-          '<p><b>Avatar</b> — Escolha entre avatares pré-definidos ou use sua foto do Google.</p>' +
+          '<p><b>Avatar</b> — Círculo com as iniciais do seu nome (índigo). Se você fez login com Google e tem foto de perfil, ela é usada automaticamente no lugar das iniciais.</p>' +
         '</div>' +
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Configurações</div>' +
@@ -390,13 +396,14 @@ function setupHelpModal() {
     {
       id: 'explorar',
       title: _t('help.explore'),
-      icon: '🌐',
-      content: '<p><b>Aba Explorar</b> — Encontre jogadores e expanda sua rede na comunidade.</p>' +
+      icon: '👥',
+      content: '<p><b>Botão 👥 Pessoas</b> (segunda linha da dashboard) — Encontre jogadores, expanda sua rede e descubra torneios da comunidade. Acessível também via busca rápida (Ctrl+K) ou rota <code>#explore</code>.</p>' +
         '<p><b>Pedidos pendentes</b> — No topo, aceite ou recuse pedidos de amizade recebidos.</p>' +
-        '<p><b>Seus amigos</b> — Lista com avatar, cidade, esportes e idade. Remova amigos se quiser.</p>' +
-        '<p><b>Conhecidos</b> — Jogadores de torneios que você participou mas que ainda não são amigos. Envie convite de amizade.</p>' +
+        '<p><b>Seus amigos</b> — Cards horizontais com avatar, cidade (quando diferente da sua) e modalidades preferidas. Remova amigos pelo ✕ no card.</p>' +
+        '<p><b>Conhecidos</b> — Jogadores de torneios que você participou mas que ainda não são amigos. Envie convite de amizade com 1 toque.</p>' +
+        '<p><b>Outros usuários</b> — Grid 2–4 colunas com todos os usuários cadastrados. Nomes abreviados no primeiro token. Envie pedido de amizade diretamente.</p>' +
         '<p><b>Busca</b> — Encontre jogadores por nome, cidade ou esporte. Envie convites diretamente.</p>' +
-        '<p><b>Cancelar</b> — Cancele um pedido de amizade enviado que ainda está pendente.</p>'
+        '<p><b>Cancelar pedido</b> — Cancele um pedido de amizade enviado que ainda está pendente.</p>'
     },
     {
       id: 'organizador',
@@ -691,7 +698,7 @@ function setupHelpModal() {
         '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">Ctrl+K</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Abrir busca rápida global</span>' +
         '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">/</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Abrir busca rápida</span>' +
         '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">D</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Ir para Dashboard</span>' +
-        '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">E</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Explorar torneios</span>' +
+        '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">E</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Ir para Pessoas (explorar jogadores e torneios)</span>' +
         '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">N</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Criar novo torneio</span>' +
         '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">?</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Abrir/fechar esta ajuda</span>' +
         '<kbd style="background:rgba(255,255,255,0.1);padding:4px 8px;border-radius:6px;text-align:center;font-family:monospace;color:var(--text-bright);font-size:0.8rem;">ESC</kbd><span style="color:var(--text-main);display:flex;align-items:center;">Fechar modal atual</span>' +
@@ -755,7 +762,7 @@ function setupHelpModal() {
 
         // ── Global / Topbar ──
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:#818cf8;margin-bottom:8px;">🔝 Barra Superior (8)</div>' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#818cf8;margin-bottom:8px;">🔝 Barra Superior (7)</div>' +
           '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
             '• <b>Login</b> — Faça login para criar e gerenciar torneios<br>' +
             '• <b>Menu ☰</b> — Abra o menu para navegar pelo app<br>' +
@@ -763,8 +770,7 @@ function setupHelpModal() {
             '• <b>Tema</b> — Noturno, Claro, Pôr do Sol e Oceano<br>' +
             '• <b>Ajuda (?)</b> — Manual completo com todas as funcionalidades<br>' +
             '• <b>Busca rápida</b> — Ctrl+K para buscar torneios e jogadores<br>' +
-            '• <b>Notificações</b> — Avisos de torneios e convites<br>' +
-            '• <b>Explorar</b> — Torneios públicos da comunidade' +
+            '• <b>Notificações</b> — Avisos de torneios e convites' +
           '</p>' +
         '</div>' +
 
@@ -994,10 +1000,10 @@ function setupHelpModal() {
 
         // ── Explore ──
         '<div style="background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:#22d3ee;margin-bottom:8px;">🌐 Explorar (2)</div>' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#22d3ee;margin-bottom:8px;">👥 Pessoas / Explorar (2)</div>' +
           '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
-            '• <b>Busca</b> — Nome, esporte, formato, cidade<br>' +
-            '• <b>Pedido de amizade</b> — Conectar para convites futuros' +
+            '• <b>Busca / Outros usuários</b> — Encontrar por nome, cidade ou esporte<br>' +
+            '• <b>Pedido de amizade</b> — Conectar para convites e presença futura' +
           '</p>' +
         '</div>' +
 
@@ -1016,7 +1022,7 @@ function setupHelpModal() {
           '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
             '• <b>Gênero</b> — Atribuição automática de categorias<br>' +
             '• <b>Idioma</b> — 🇧🇷 Português / 🇺🇸 English<br>' +
-            '• <b>Esportes</b> — Para sugestões de torneios<br>' +
+            '• <b>Esportes + nível por modalidade</b> — Filtra torneios, locais e check-in; desbloqueia nível A/B/C/D/FUN por esporte<br>' +
             '• <b>Localização</b> — Torneios perto de você<br>' +
             '• <b>Notificações</b> — Todas, Importantes, Fundamentais<br>' +
             '• <b>Dicas visuais</b> — Ativar/desativar este sistema' +
@@ -1067,13 +1073,14 @@ function setupHelpModal() {
 
         // ── Dashboard Widgets ──
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
-          '<div style="font-weight:700;font-size:0.85rem;color:#34d399;margin-bottom:8px;">📊 Widgets da Dashboard (5)</div>' +
+          '<div style="font-weight:700;font-size:0.85rem;color:#34d399;margin-bottom:8px;">📊 Widgets da Dashboard (6)</div>' +
           '<p style="margin:0;font-size:0.8rem;line-height:1.7;">' +
-            '• <b>Meus locais</b> — Check-in em 1 tap nos venues<br>' +
-            '• <b>Amigos no local</b> — Até 6 amigos com presença<br>' +
-            '• <b>Complete seu perfil</b> — Nudge quando faltam campos<br>' +
-            '• <b>Presença (hero)</b> — Botão 📍 pra #presence<br>' +
-            '• <b>Locais (hero)</b> — Botão 🏢 pra descobrir' +
+            '• <b>Meus locais</b> — Check-in em 1 tap nos venues preferidos<br>' +
+            '• <b>Amigos no local</b> — Até 6 amigos com presença ativa hoje<br>' +
+            '• <b>Complete seu perfil</b> — Nudge quando faltam campos-chave<br>' +
+            '• <b>📍 Place (hero)</b> — Botão para descobrir locais e registrar presença<br>' +
+            '• <b>👥 Pessoas (hero)</b> — Botão para explorar jogadores e torneios da comunidade<br>' +
+            '• <b>⚡ Partida Casual (hero)</b> — Criar sala de placar ao vivo' +
           '</p>' +
         '</div>' +
 
