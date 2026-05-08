@@ -7196,12 +7196,24 @@ window._openCasualMatch = function() {
       // Setup screen: neutral cards, or team-colored when teams formed via drag-and-drop
       var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
       var inputPlaceholders = [p1Name || 'Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
+      // Canonical names: registered participants always come from the data source,
+      // never from a previously-rendered DOM value (prevents photoURL corruption).
       var inputValues = [p1Name, '', '', ''];
-
-      // Preserve input values across re-renders (drag-and-drop triggers _renderSetup)
+      // Slots 1–3: if there's a registered lobby participant, seed from their displayName
+      for (var _ri = 1; _ri < _lobbyParticipants.length && _ri < 4; _ri++) {
+        if (_lobbyParticipants[_ri] && _lobbyParticipants[_ri].displayName) {
+          inputValues[_ri] = _lobbyParticipants[_ri].displayName;
+        }
+      }
+      // Preserve input values across re-renders ONLY for unregistered (editable) slots
       for (var _ii = 0; _ii < inputIds.length; _ii++) {
-        var _el = document.getElementById(inputIds[_ii]);
-        if (_el) inputValues[_ii] = _el.value;
+        var _isRegSlot = (_ii === 0) ||
+          (_ii < _lobbyParticipants.length && _lobbyParticipants[_ii] &&
+           (_lobbyParticipants[_ii].uid || _lobbyParticipants[_ii].photoURL));
+        if (!_isRegSlot) {
+          var _el = document.getElementById(inputIds[_ii]);
+          if (_el) inputValues[_ii] = _el.value;
+        }
       }
 
       function _buildSetupCard(ci) {
@@ -7217,9 +7229,18 @@ window._openCasualMatch = function() {
         }
         var isDraggable = true;
         var dragStyle = 'cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;';
+        // Registered users (lobby participant with uid/photo, or the host): textarea
+        // must be readonly so a stray touch-focus can't let the user edit their name.
+        // pointer-events:none on the textarea directs all touch events to the outer
+        // div (which carries draggable="true"), so drag-start never fights focus.
+        var _isRegCard = (ci === 0) ||
+          (ci < _lobbyParticipants.length && _lobbyParticipants[ci] &&
+           (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL));
+        var _readonlyAttr = _isRegCard ? 'readonly ' : '';
+        var _regExtraStyle = _isRegCard ? 'pointer-events:none;cursor:inherit;' : '';
         return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
           avatar +
-          '<textarea id="' + inputIds[ci] + '" rows="1" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput();window._autosizeCasualInput && window._autosizeCasualInput(this);window._equalizeCasualCards && window._equalizeCasualCards();" style="' + _inputStyle + 'color:' + textClr + ';">' + window._safeHtml(inputValues[ci]) + '</textarea>' +
+          '<textarea id="' + inputIds[ci] + '" ' + _readonlyAttr + 'rows="1" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput();window._autosizeCasualInput && window._autosizeCasualInput(this);window._equalizeCasualCards && window._equalizeCasualCards();" style="' + _inputStyle + _regExtraStyle + 'color:' + textClr + ';">' + window._safeHtml(inputValues[ci]) + '</textarea>' +
         '</div>';
       }
 
@@ -7487,9 +7508,13 @@ window._openCasualMatch = function() {
     var _touchIdx = null;
     cards.forEach(function(card) {
       card.addEventListener('touchstart', function(e) {
+        // preventDefault stops the browser from focusing the textarea inside the
+        // card before the drag gesture begins — fixes "drag enables name editing"
+        // bug on iOS/Android. Must be {passive:false} for preventDefault to work.
+        e.preventDefault();
         _touchIdx = parseInt(card.getAttribute('data-casual-idx'));
         card.style.opacity = '0.6';
-      }, { passive: true });
+      }, { passive: false });
       card.addEventListener('touchmove', function(e) {
         if (_touchIdx === null) return;
         e.preventDefault();

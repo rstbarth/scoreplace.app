@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.43-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — drag-and-drop corrigido em duplas.</b> Dois bugs no lobby de duplas foram corrigidos:<br>' +
+      '• <b>Nome com URL da foto:</b> o nome de um jogador cadastrado podia aparecer corrompido (URL da foto do Google inserida no meio do nome) durante re-renders do lobby. Agora o nome sempre vem da fonte canônica (dados do perfil), nunca do DOM.<br>' +
+      '• <b>Arrastar ativava edição de nome:</b> ao arrastar um card no mobile, o toque inicial focava o campo de nome do jogador, abrindo o teclado. Jogadores cadastrados (com login) não podem ter o nome editado — seus campos agora são <code>readonly</code> + <code>pointer-events:none</code>. Além disso, o evento <code>touchstart</code> passou a usar <code>{passive:false}</code> + <code>preventDefault()</code> para impedir o foco do browser antes do gesto de drag começar.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">📖 v1.3.42-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
       '<p><b>Manual e dicas contextuais revisados linha a linha.</b> Auditoria completa do manual de ajuda e do sistema de dicas para garantir precisão com o app atual:<br>' +
       '• <b>Explorar → 👥 Pessoas:</b> todas as referências à antiga aba "Explorar" (removida do menu em v0.17.44) atualizadas — agora aparece como botão "👥 Pessoas" na segunda linha da dashboard. Seção do manual renomeada e reescrita para descrever cards horizontais, grid 2–4 colunas e todos os tipos de listas (amigos, conhecidos, outros usuários).<br>' +
