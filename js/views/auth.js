@@ -2069,6 +2069,7 @@ async function simulateLoginSuccess(user) {
       { id: 'profile-accept-friends', val: cu.acceptFriendRequests !== false },
       { id: 'profile-notify-platform', val: cu.notifyPlatform !== false },
       { id: 'profile-notify-email', val: cu.notifyEmail !== false },
+      { id: 'profile-notify-whatsapp', val: cu.notifyWhatsApp === true },
       { id: 'profile-hints-enabled', val: _hintsEnabled },
       { id: 'profile-presence-auto-checkin', val: !!cu.presenceAutoCheckin }
     ].forEach(function(t) { var el = document.getElementById(t.id); if (el) el.checked = t.val; });
@@ -3785,6 +3786,7 @@ function setupProfileModal() {
                 '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;">' + _t('profile.notifChannels') + '</div>' +
                 (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-platform', label: _t('profile.notifPlatform'), icon: '🔔', checked: true }) : '') +
                 (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-email', label: _t('profile.notifEmail'), icon: '✉️', checked: true, color: '#3b82f6' }) : '') +
+                (window._toggleSwitch ? window._toggleSwitch({ id: 'profile-notify-whatsapp', label: _t('profile.notifWhatsApp'), icon: '💬', checked: false, color: '#25d366' }) : '') +
               '</div>' +
             '</div>' +
             // Presença — visibilidade + silenciar
@@ -4561,6 +4563,7 @@ function setupProfileModal() {
       var acceptFriends = _chk('profile-accept-friends', true);
       var notifyPlatform = _chk('profile-notify-platform', true);
       var notifyEmail = _chk('profile-notify-email', true);
+      var notifyWhatsApp = _chk('profile-notify-whatsapp', false);
       var presenceAutoCheckin = _chk('profile-presence-auto-checkin', false);
       var hintsEnabled = _chk('profile-hints-enabled', true);
 
@@ -4655,6 +4658,7 @@ function setupProfileModal() {
       payload.acceptFriendRequests = acceptFriends;
       payload.notifyPlatform = notifyPlatform;
       payload.notifyEmail = notifyEmail;
+      payload.notifyWhatsApp = notifyWhatsApp;
       payload.notifyLevel = notifyLevel;
       payload.presenceVisibility = presenceVisibility;
       payload.presenceMuteDays = muteDays;

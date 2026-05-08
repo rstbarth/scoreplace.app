@@ -609,6 +609,7 @@ window._translations['en'] = {
   'profile.notifChannels': 'Notification channels:',
   'profile.notifPlatform': 'Platform',
   'profile.notifEmail': 'Email',
+  'profile.notifWhatsApp': 'WhatsApp',
   'profile.labelLocations': 'Preferred playing locations',
   'profile.locationsDesc': 'Add locations where you usually play. You will be notified of nearby tournaments.',
   'profile.searchLocation': 'Search address, venue, or ZIP...',

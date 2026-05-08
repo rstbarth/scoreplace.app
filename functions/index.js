@@ -484,7 +484,11 @@ exports.processWhatsAppQueue = onDocumentCreated(
         continue;
       }
       const result = await _sendWhatsAppText(apiUrl, apiKey, instance, phone, data.message);
-      deliveries.push({ phone: phone, ok: result.ok, messageId: result.messageId, error: result.error });
+      // Omitir campos undefined — Firestore rejeita undefined como valor
+      const delivery = { phone: phone, ok: result.ok };
+      if (result.messageId !== undefined) delivery.messageId = result.messageId;
+      if (result.error !== undefined) delivery.error = result.error;
+      deliveries.push(delivery);
       // Pequena pausa entre msgs múltiplas — Evolution já tem delay interno
       // mas adicional 200ms reduz chance de rate-limit do WhatsApp Web.
       if (data.phones.length > 1) await new Promise((r) => setTimeout(r, 200));
