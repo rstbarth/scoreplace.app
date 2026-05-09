@@ -8242,7 +8242,10 @@ window._openCasualMatch = function() {
   var _chdr = typeof window._renderBackHeader === 'function'
     ? window._renderBackHeader({
         label: _t('btn.back'),
-        onClickOverride: 'window._casualSetupClose && window._casualSetupClose();',
+        // Use registered callback (not inline string) so iOS Safari executes it
+        // reliably — inline JS strings go through new Function() which can fail
+        // silently when the attribute value is ambiguous after HTML encoding.
+        onClickOverride: function() { window._casualSetupClose && window._casualSetupClose(); },
         middleHtml: '<div style="flex:1;display:flex;align-items:center;gap:8px;justify-content:center;"><span style="font-size:1rem;">⚡</span><span style="font-size:0.95rem;font-weight:800;color:#38bdf8;">' + _t('casual.title') + '</span></div>',
         rightHtml: '<button id="casual-header-start" onclick="window._casualStart()" style="background:linear-gradient(135deg,#10b981,#059669);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:10px;padding:7px 16px;font-size:0.85rem;font-weight:800;cursor:pointer;box-shadow:0 2px 10px rgba(16,185,129,0.35);-webkit-tap-highlight-color:transparent;flex-shrink:0;">' + _t('casual.start') + '</button>'
       })
@@ -8327,7 +8330,15 @@ window._openCasualMatch = function() {
         clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; return;
       }
       window.FirestoreDB.loadCasualMatch(_sessionRoomCode).then(function(fresh) {
-        if (!fresh) return;
+        if (!fresh) {
+          // Doc deleted externally (another device cancelled) — evacuate creator
+          clearInterval(_setupRefreshInterval); _setupRefreshInterval = null;
+          var _ov = document.getElementById('casual-match-overlay');
+          if (_ov) _ov.remove();
+          if (typeof showNotification === 'function') showNotification(_t('casual.matchCancelled'), _t('casual.matchCancelledMsg'), 'info');
+          try { window.location.hash = '#dashboard'; } catch(e) {}
+          return;
+        }
         var newParts = Array.isArray(fresh.participants) ? fresh.participants : [];
         if (newParts.length !== _lobbyParticipants.length) {
           var countDecreased = newParts.length < _lobbyParticipants.length;
@@ -8390,35 +8401,67 @@ window._openCasualMatch = function() {
     if (_setupRefreshInterval) { clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; }
   };
 
-  // Fully close the setup overlay: cancel the match in Firestore so invited
-  // players aren't stuck in a ghost lobby, clear the active-room marker on the
-  // user's profile, stop the poller, and remove the overlay so the dashboard
-  // shows underneath.
+  // Fully close the setup overlay: cancel the match in Firestore so guests
+  // aren't stuck in a ghost lobby, clear the active-room marker on the user's
+  // profile, stop the poller, remove the overlay, and navigate to dashboard.
   window._casualSetupClose = function() {
+    // 1. Stop polling interval
     try { if (window._casualSetupCleanup) window._casualSetupCleanup(); } catch(e) {}
+
+    // 2. Cancel match in Firestore — use docId when available; fall back to
+    //    roomCode lookup when the async save is still in-flight (race window).
+    //    Guests' _startLobbyRefresh detects the deleted doc within 3s and evacuates.
     try {
-      if (_sessionDocId && window.FirestoreDB && typeof window.FirestoreDB.cancelCasualMatch === 'function') {
-        var p = window.FirestoreDB.cancelCasualMatch(_sessionDocId);
-        if (p && typeof p.catch === 'function') p.catch(function(){});
+      if (window.FirestoreDB && typeof window.FirestoreDB.cancelCasualMatch === 'function') {
+        if (_sessionDocId) {
+          window.FirestoreDB.cancelCasualMatch(_sessionDocId).catch(function(){});
+        } else if (_sessionRoomCode && typeof window.FirestoreDB.loadCasualMatch === 'function') {
+          // DocId race: Firestore save still in-flight — look up by roomCode, then delete
+          window.FirestoreDB.loadCasualMatch(_sessionRoomCode).then(function(m) {
+            if (m && m._docId) window.FirestoreDB.cancelCasualMatch(m._docId).catch(function(){});
+          }).catch(function(){});
+        }
       }
     } catch(e) {}
+
+    // 3. Clear active-room marker on profile so no device auto-resumes this room
     try {
       var _cu2 = window.AppStore && window.AppStore.currentUser;
       var _uid2 = _cu2 && (_cu2.uid || _cu2.email);
       if (_uid2 && window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
-        // Suppress profile-listener resume for 6s — the user deliberately
-        // clicked Fechar; a stale ABC snapshot delivered after this write
-        // must not re-open the match.
+        // Suppress profile-listener resume for 6s — user deliberately closed.
         window._suppressCasualResumeUntil = Date.now() + 6000;
         window.FirestoreDB.saveUserProfile(_uid2, { activeCasualRoom: null }).catch(function() {});
       }
-      // v0.17.48: limpa sessionStorage backup também
       sessionStorage.removeItem('_activeCasualRoom');
     } catch(e) {}
+
+    // 4. Remove overlays
     var ov = document.getElementById('casual-match-overlay');
     if (ov) ov.remove();
     var qrOv = document.getElementById('casual-qr-overlay');
     if (qrOv) qrOv.remove();
+
+    // 5. Feedback + navigate to dashboard.
+    //    Guests will be evacuated by their own polling within 3s when the doc disappears.
+    try {
+      if (typeof showNotification === 'function') {
+        showNotification(
+          _t('casual.matchCancelled') || 'Partida encerrada',
+          _t('casual.matchCancelledByYouMsg') || 'Todos os participantes voltaram ao dashboard.',
+          'info'
+        );
+      }
+    } catch(e) {}
+    try {
+      // If already at #dashboard the router won't fire — force re-render directly.
+      if (window.location.hash === '#dashboard' || window.location.hash === '') {
+        var _vc = document.getElementById('view-container');
+        if (_vc && typeof window.renderDashboard === 'function') window.renderDashboard(_vc);
+      } else {
+        window.location.hash = '#dashboard';
+      }
+    } catch(e) {}
   };
 
   setTimeout(function() {

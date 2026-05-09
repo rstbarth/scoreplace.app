@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.44-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — botão Voltar do criador encerra a partida para todos.</b> Três correções no fluxo de encerramento do lobby pelo organizador:<br>' +
+      '• <b>Voltar agora fecha e cancela:</b> o botão Voltar do criador foi migrado de inline JS para callback registrado, eliminando falha silenciosa em iOS Safari onde o handler não disparava.<br>' +
+      '• <b>Encerramento propagado aos convidados:</b> ao clicar Voltar o documento Firestore é deletado; o polling dos convidados (<code>_startLobbyRefresh</code>) detecta o doc ausente em até 3 s e os evacuaciona automaticamente para o dashboard com toast "Partida cancelada".<br>' +
+      '• <b>Fallback de corrida (race):</b> se o Voltar for clicado antes de <code>_sessionDocId</code> ser preenchido (save em flight), o lookup por <code>roomCode</code> garante que o documento é encontrado e deletado assim mesmo.<br>' +
+      '• <b>Cancelamento externo:</b> se outro dispositivo cancelar a partida, o polling do criador também detecta e o expulsa ao dashboard.<br>' +
+      '• <b>Feedback visual:</b> toast "Partida encerrada" + navegação de volta ao dashboard após o fechamento.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.43-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — drag-and-drop corrigido em duplas.</b> Dois bugs no lobby de duplas foram corrigidos:<br>' +
       '• <b>Nome com URL da foto:</b> o nome de um jogador cadastrado podia aparecer corrompido (URL da foto do Google inserida no meio do nome) durante re-renders do lobby. Agora o nome sempre vem da fonte canônica (dados do perfil), nunca do DOM.<br>' +
