@@ -4988,34 +4988,24 @@ window._openLiveScoring = function(tId, matchId, opts) {
         document.body.appendChild(modal);
       };
 
-      // Clickable player chip builder — avatar+name taps stats; 🔗 taps unpair
+      // Clickable player chip builder — avatar+name taps stats only.
+      // v1.3.60-beta: 🔗 unpair removed from inside chip; standalone dashed
+      // pill placed between winner/loser sections (matches setup screen style).
       var _playerChip = function(name, bigSize, accentClr) {
         var sz = bigSize ? 32 : 26;
         var fs = bigSize ? 'clamp(0.92rem,3vw,1.15rem)' : 'clamp(0.8rem,2.6vw,0.95rem)';
         var pad = bigSize ? '8px 10px' : '6px 8px';
         var borderClr = bigSize ? accentClr + '66' : 'rgba(255,255,255,0.10)';
         var escName = String(name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        // Stat area (left, grows)
-        var statBtn =
+        return (
           '<button type="button" onclick="window._showPlayerMatchStats(\'' + escName + '\')" title="Ver estatísticas" ' +
-            'style="display:flex;align-items:center;gap:8px;padding:' + pad + ';background:none;border:none;cursor:pointer;color:#fff;font-family:inherit;flex:1;min-width:0;transition:opacity 0.15s;" ' +
-            'onmouseover="this.style.opacity=\'0.8\'" onmouseout="this.style.opacity=\'1\'">' +
+            'style="display:flex;align-items:center;gap:8px;padding:' + pad + ';background:rgba(255,255,255,0.05);border:1px solid ' + borderClr + ';border-radius:10px;cursor:pointer;color:#fff;font-family:inherit;width:100%;min-width:0;transition:all 0.15s;" ' +
+            'onmouseover="this.style.background=\'rgba(255,255,255,0.09)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.05)\'">' +
             _liveAvatarHtml(name, sz) +
-            '<span style="font-size:' + fs + ';font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</span>' +
+            '<span style="font-size:' + fs + ';font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">' + window._safeHtml(name) + '</span>' +
             '<span style="font-size:0.55rem;color:var(--text-muted);margin-left:2px;flex-shrink:0;" aria-hidden="true">📊</span>' +
-          '</button>';
-        // Unpair link (right, fixed)
-        var unpairBtn =
-          '<button type="button" onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" ' +
-            'style="display:flex;align-items:center;justify-content:center;padding:' + (bigSize ? '8px 10px' : '6px 8px') + ';background:none;border:none;border-left:1px solid rgba(255,255,255,0.10);cursor:pointer;flex-shrink:0;transition:background 0.15s;" ' +
-            'onmouseover="this.style.background=\'rgba(245,158,11,0.12)\'" onmouseout="this.style.background=\'none\'" ' +
-            'ontouchstart="this.style.background=\'rgba(245,158,11,0.18)\'" ontouchend="this.style.background=\'none\'">' +
-            '<span style="font-size:' + (bigSize ? '1rem' : '0.88rem') + ';line-height:1;" title="Desparear">🔗</span>' +
-          '</button>';
-        return '<div style="display:flex;align-items:stretch;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid ' + borderClr + ';overflow:hidden;transition:background 0.15s;" ' +
-          'onmouseover="this.style.background=\'rgba(255,255,255,0.09)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.05)\'">' +
-          statBtn + unpairBtn +
-        '</div>';
+          '</button>'
+        );
       };
 
       var winChipsHtml = '';
@@ -5308,6 +5298,23 @@ window._openLiveScoring = function(tId, matchId, opts) {
       // não há candidatos ou não é casual.
       var linkSuggestionsSlot = isCasual ? '<div id="casual-link-suggestions-slot" style="width:100%;max-width:380px;"></div>' : '';
 
+      // v1.3.60-beta: standalone dashed-border 🔗 pill between winner and loser
+      // sections — matches setup screen _chainBtn style exactly (user request:
+      // "use a forma da segunda tela sempre"). Only shown in casual doubles.
+      var unpairChainHtml = (isCasual && isDoubles)
+        ? '<div style="display:flex;justify-content:center;width:100%;max-width:380px;">' +
+            '<button type="button" onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" ' +
+              'style="margin:4px auto;display:flex;align-items:center;justify-content:center;width:40px;height:28px;' +
+              'border-radius:14px;border:1px dashed rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);' +
+              'cursor:pointer;font-size:0.95rem;line-height:1;color:var(--text-muted);transition:all 0.18s;' +
+              '-webkit-tap-highlight-color:transparent;padding:0;" ' +
+              'onmouseover="this.style.background=\'rgba(239,68,68,0.15)\';this.style.borderColor=\'rgba(239,68,68,0.45)\';this.style.color=\'#f87171\';this.style.transform=\'scale(1.08)\'" ' +
+              'onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.18)\';this.style.color=\'var(--text-muted)\';this.style.transform=\'\'" ' +
+              'ontouchstart="this.style.background=\'rgba(239,68,68,0.2)\';this.style.transform=\'scale(0.94)\'" ' +
+              'ontouchend="this.style.background=\'rgba(255,255,255,0.04)\';this.style.transform=\'\'">🔗</button>' +
+          '</div>'
+        : '';
+
       // Action section pinned at the TOP — "Jogar Novamente" (and optional
       // shuffle toggle for doubles) are always within thumb-reach. Clicking
       // "Jogar Novamente" or "✕ Fechar" both persist the result as confirmed.
@@ -5317,6 +5324,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         '</div>' +
         '<div style="flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;align-items:center;width:100%;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px) calc(8px + env(safe-area-inset-bottom, 0px));gap:clamp(8px,1.5vh,14px);">' +
           winnerSection +
+          unpairChainHtml +
           momentumSection +
           comparativeSection +
           loserSection +
@@ -7592,7 +7600,7 @@ window._openCasualMatch = function(restoreOpts) {
       });
 
       slot.innerHTML =
-        '<div style="font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;text-align:left;">📊 Últimas ' + matches.length + ' partida' + (matches.length === 1 ? '' : 's') + '</div>' +
+        '<div style="font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;text-align:left;">📊 Últimas Partidas</div>' +
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + cardsHtml + '</div>' +
         '<div style="text-align:center;font-size:0.54rem;color:var(--text-muted);opacity:0.7;font-style:italic;margin-top:5px;">Toque pra ver as estatísticas</div>';
     } catch (e) {

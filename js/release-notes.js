@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.60-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — 🔗 consistente nas duas telas de formação e resultado.</b><br>' +
+      '• <b>Botão 🔗 como pill dashed-border:</b> a tela de resultado agora exibe o ícone de desparear com o mesmo estilo da tela de configuração — pill independente com borda pontilhada, fundo transparente e hover vermelho — em vez de integrado dentro do chip do jogador.<br>' +
+      '• <b>Posição:</b> centralizado entre a seção "Vencedor" e a seção "Perdedor", espelhando o posicionamento do botão entre os dois times na tela de configuração.<br>' +
+      '• <b>Chips de jogador mais limpos:</b> o chip volta a ser apenas toque-para-estatísticas (avatar + nome + ícone 📊), sem o 🔗 acoplado dentro.<br>' +
+      '• <b>Header "Últimas Partidas":</b> label agora é fixo independente da quantidade de partidas carregadas (era dinâmico "Últimas N partida(s)" — bug de regressão).<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.59-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — histórico não exibe mais nomes genéricos de slot vazio.</b><br>' +
       '• Slots não preenchidos por jogadores reais ("Parceiro", "Adversário 1/2", "Jogador N") eram salvos com esses nomes genéricos no Firestore e apareciam no histórico de partidas.<br>' +
