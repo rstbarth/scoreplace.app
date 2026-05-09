@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.57-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — ícone 🔗 por jogador na tela de resultado.</b><br>' +
+      '• Cada chip de jogador na tela de resultado (vencedor e perdedor) agora tem um botão 🔗 à direita do nome.<br>' +
+      '• Toque/clique no 🔗 chama o mesmo fluxo de "Desparear" — salva o resultado e volta para a tela de formação de times para reparear livremente.<br>' +
+      '• Toque no avatar/nome continua abrindo as estatísticas detalhadas do jogador.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.56-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — histórico não some mais ao clicar "Jogar" nas stats de partida passada.</b><br>' +
       '• <b>Bug raiz:</b> ao abrir uma partida do histórico (viewOnly), o overlay ficava com <code>_casualDocId</code> apontando para o doc já finalizado. Ao clicar "🔄 Jogar" e sair sem pontuar, <code>_closeLiveScoring</code> chamava <code>cancelCasualMatch(_casualDocId)</code> — deletando o doc original do histórico.<br>' +

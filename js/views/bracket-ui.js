@@ -4988,17 +4988,34 @@ window._openLiveScoring = function(tId, matchId, opts) {
         document.body.appendChild(modal);
       };
 
-      // Clickable player chip builder
+      // Clickable player chip builder — avatar+name taps stats; 🔗 taps unpair
       var _playerChip = function(name, bigSize, accentClr) {
         var sz = bigSize ? 32 : 26;
         var fs = bigSize ? 'clamp(0.92rem,3vw,1.15rem)' : 'clamp(0.8rem,2.6vw,0.95rem)';
-        var pad = bigSize ? '8px 12px' : '6px 10px';
+        var pad = bigSize ? '8px 10px' : '6px 8px';
+        var borderClr = bigSize ? accentClr + '66' : 'rgba(255,255,255,0.10)';
         var escName = String(name).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        return '<button type="button" onclick="window._showPlayerMatchStats(\'' + escName + '\')" title="Ver estatísticas detalhadas" style="display:flex;align-items:center;gap:8px;padding:' + pad + ';border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid ' + (bigSize ? accentClr + '66' : 'rgba(255,255,255,0.10)') + ';cursor:pointer;color:#fff;font-family:inherit;transition:background 0.15s,transform 0.1s;" onmouseover="this.style.background=\'rgba(255,255,255,0.1)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.05)\'" ontouchstart="this.style.transform=\'scale(0.97)\'" ontouchend="this.style.transform=\'\'">' +
-          _liveAvatarHtml(name, sz) +
-          '<span style="font-size:' + fs + ';font-weight:700;color:#fff;white-space:nowrap;">' + window._safeHtml(name) + '</span>' +
-          '<span style="font-size:0.55rem;color:var(--text-muted);margin-left:2px;" aria-hidden="true">📊</span>' +
-        '</button>';
+        // Stat area (left, grows)
+        var statBtn =
+          '<button type="button" onclick="window._showPlayerMatchStats(\'' + escName + '\')" title="Ver estatísticas" ' +
+            'style="display:flex;align-items:center;gap:8px;padding:' + pad + ';background:none;border:none;cursor:pointer;color:#fff;font-family:inherit;flex:1;min-width:0;transition:opacity 0.15s;" ' +
+            'onmouseover="this.style.opacity=\'0.8\'" onmouseout="this.style.opacity=\'1\'">' +
+            _liveAvatarHtml(name, sz) +
+            '<span style="font-size:' + fs + ';font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(name) + '</span>' +
+            '<span style="font-size:0.55rem;color:var(--text-muted);margin-left:2px;flex-shrink:0;" aria-hidden="true">📊</span>' +
+          '</button>';
+        // Unpair link (right, fixed)
+        var unpairBtn =
+          '<button type="button" onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" ' +
+            'style="display:flex;align-items:center;justify-content:center;padding:' + (bigSize ? '8px 10px' : '6px 8px') + ';background:none;border:none;border-left:1px solid rgba(255,255,255,0.10);cursor:pointer;flex-shrink:0;transition:background 0.15s;" ' +
+            'onmouseover="this.style.background=\'rgba(245,158,11,0.12)\'" onmouseout="this.style.background=\'none\'" ' +
+            'ontouchstart="this.style.background=\'rgba(245,158,11,0.18)\'" ontouchend="this.style.background=\'none\'">' +
+            '<span style="font-size:' + (bigSize ? '1rem' : '0.88rem') + ';line-height:1;" title="Desparear">🔗</span>' +
+          '</button>';
+        return '<div style="display:flex;align-items:stretch;border-radius:10px;background:rgba(255,255,255,0.05);border:1px solid ' + borderClr + ';overflow:hidden;transition:background 0.15s;" ' +
+          'onmouseover="this.style.background=\'rgba(255,255,255,0.09)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.05)\'">' +
+          statBtn + unpairBtn +
+        '</div>';
       };
 
       var winChipsHtml = '';
