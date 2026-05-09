@@ -5263,8 +5263,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
       } else if (isDoubles) {
         restartSection =
           '<div style="display:flex;align-items:center;gap:8px;width:100%;">' +
-            '<button onclick="window._liveScoreRestart()" title="Jogar novamente" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);white-space:nowrap;">🔄 Jogar</button>' +
-            '<button onclick="window._liveScoreShareCasual()" title="Compartilhar resultado" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:#25d366;color:white;box-shadow:0 4px 20px rgba(37,211,102,0.3);white-space:nowrap;">📤 Compartilhar</button>' +
+            '<button onclick="window._liveScoreRestart()" title="Jogar novamente com os mesmos times" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);white-space:nowrap;">🔄 Jogar</button>' +
+            '<button onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;box-shadow:0 4px 20px rgba(245,158,11,0.35);white-space:nowrap;">↔ Desparear</button>' +
             '<label style="flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;">' +
               '<span style="font-size:0.68rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">Re-sortear</span>' +
               '<span class="toggle-switch toggle-sm" style="flex-shrink:0;">' +
@@ -6404,6 +6404,34 @@ window._openLiveScoring = function(tId, matchId, opts) {
         _courtLeft = 1;
         _reinitServeOrderForNewMatch();
         _render();
+      }
+    );
+  };
+
+  // Desparear: salva resultado, fecha o placar e volta à tela de formação
+  // de times com os mesmos jogadores mas sem duplas definidas — permite
+  // re-parear manualmente ou re-sortear. Ideal para séries Rei/Rainha e
+  // re-equilíbrio de forças entre partidas.
+  window._liveScoreUnpair = function() {
+    showConfirmDialog(
+      'Desparear jogadores?',
+      'O resultado será salvo. As duplas serão desfeitas e você poderá montar novos times livremente.',
+      function() {
+        // Persiste resultado antes de fechar
+        if (state.isFinished && !_resultSaved) {
+          try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
+        }
+        // Cleanup (espelha _closeLiveScoring)
+        if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
+        try { window.removeEventListener('resize', _onResize); } catch(e) {}
+        try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+        try { _releaseWakeLock(); } catch(e) {}
+        var ov = document.getElementById('live-scoring-overlay');
+        if (ov) ov.remove();
+        // Reseta times na tela de setup (ainda no DOM por baixo)
+        if (typeof window._casualResetTeams === 'function') {
+          window._casualResetTeams();
+        }
       }
     );
   };
