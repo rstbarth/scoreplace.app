@@ -4226,8 +4226,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
         if (hist.length > 50) hist = hist.slice(0, 50);
         localStorage.setItem('scoreplace_casual_history', JSON.stringify(hist));
       } catch(e) {}
-      // Save to Firestore if we have a doc ID
-      var _casualDocId = opts && opts.casualDocId;
+      // Save to Firestore if we have a doc ID.
+      // IMPORTANT: do NOT declare a local `var _casualDocId` here — that would
+      // shadow the outer closure variable (set at _openLiveScoring call time)
+      // and cause the Firestore update to be skipped whenever _saveResult is
+      // called without opts.casualDocId (e.g. from _liveScoreRestart / Desparear).
+      // Use the outer _casualDocId from the _openLiveScoring closure directly.
       if (_casualDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db) {
         var resultData = {
           winner: state.winner, // 1, 2, or 0
@@ -4236,9 +4240,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
           p2Score: useSets ? null : state.currentGameP2
         };
         if (setsData) resultData.sets = setsData;
-        // Collect all uids from players for indexed query
-        var casualPlayers = (opts.players || []).slice();
-        var playerUids = casualPlayers.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; });
+        // Collect uids from opts.players (when available) or fall back to
+        // _casualPlayers which is populated from opts when _openLiveScoring starts.
+        var _plForUids = (opts && opts.players && opts.players.length) ? opts.players : _casualPlayers;
+        var playerUids = _plForUids.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; });
         window.FirestoreDB.updateCasualMatch(_casualDocId, {
           status: 'finished',
           finishedAt: new Date().toISOString(),
