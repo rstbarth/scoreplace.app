@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.61-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — nomes no histórico sempre visíveis.</b><br>' +
+      '• <b>Regressão corrigida:</b> a v1.3.59 suprimia nomes genéricos ("Jogador 2", "Jogador 3", etc.) nos cards do histórico, exibindo "—" no lugar. O comportamento correto é mostrar todos os nomes salvos na partida, mesmo os genéricos.<br>' +
+      '• Removida a lógica de supressão de <code>_pname</code>: qualquer nome salvo no doc da partida é exibido normalmente.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.60-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — 🔗 consistente nas duas telas de formação e resultado.</b><br>' +
       '• <b>Botão 🔗 como pill dashed-border:</b> a tela de resultado agora exibe o ícone de desparear com o mesmo estilo da tela de configuração — pill independente com borda pontilhada, fundo transparente e hover vermelho — em vez de integrado dentro do chip do jogador.<br>' +
