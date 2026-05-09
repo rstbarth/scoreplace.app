@@ -9,12 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
-      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.53-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
-      '<p><b>Partida Casual — últimas partidas com cards compactos lado a lado.</b> Os cards de "Últimas partidas" foram redesenhados:<br>' +
-      '• <b>Layout em 3 colunas:</b> os cards agora ocupam 1/3 da largura cada, exibidos lado a lado em vez de empilhados.<br>' +
-      '• <b>Nomes reais:</b> o próprio usuário aparece com seu nome de perfil (não mais "Jogador 1/2/3/4"); outros jogadores aparecem com primeiro nome.<br>' +
-      '• <b>Visual estilo bracket:</b> cada card exibe as duas equipes em linhas coloridas — verde com borda para o vencedor, opaca para o perdedor — com placar à direita.<br>' +
-      '• <b>Sem badge de vencedor:</b> linha de rodapé com troféu/vencedores removida, informação já está nas cores das linhas.<br>' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.54-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — últimas partidas: grid 3 colunas, nomes reais, sem badge de vencedor.</b><br>' +
+      '• <b>Grid fixo 3 colunas:</b> <code>grid-template-columns:repeat(3,1fr)</code> — cards sempre em 1/3 da largura, independente de quantos existem.<br>' +
+      '• <b>Nomes reais (multicamada):</b> (1) uid match → usa <code>cu.displayName</code> fresco; (2) match criado pelo usuário (campo <code>createdBy</code>) → fallback pra <code>cu.displayName</code> mesmo em docs antigos sem uid salvo; (3) <code>p.displayName</code> → nome salvo; (4) <code>p.name</code> como último recurso.<br>' +
+      '• <b>displayName salvo na criação:</b> partidas novas salvam <code>displayName</code> no objeto player — garante resolução correta em futuras sessões.<br>' +
+      '• <b>Sem badge de vencedor:</b> linha de troféu/vencedor removida; resultado visível pelas cores das linhas (verde = vencedor).<br>' +
       'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
     '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +

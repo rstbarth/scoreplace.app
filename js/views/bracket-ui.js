@@ -7423,6 +7423,7 @@ window._openCasualMatch = function() {
   // e renderiza 3 botões. Click → abre overlay de live scoring com o
   // liveState salvo (mesma tela de stats que aparece no fim de cada
   // partida). Sem histórico = seção fica oculta.
+  // v1.3.54-beta: grid fixo 3 colunas, nome via uid+createdBy, sem badge vencedor
   window._casualLoadLastMatches = async function() {
     var slot = document.getElementById('casual-last-matches-slot');
     if (!slot) return;
@@ -7437,16 +7438,21 @@ window._openCasualMatch = function() {
         slot.innerHTML = '';
         return;
       }
-      // Helper: resolve best display name for a player object.
-      // If the player is the current user (uid match), use cu.displayName for freshness.
-      // First word only to keep it compact in narrow cards.
-      function _pname(p) {
-        var nm = (p.uid && cu && cu.uid && p.uid === cu.uid && cu.displayName)
-          ? cu.displayName
-          : (p.displayName || p.name || '');
-        if (!nm) nm = '?';
-        // First word/token only
-        return nm.split(/[\s.@_\-]/)[0] || nm;
+
+      // Resolve first name token only — used for compact cards
+      function _firstToken(s) { return s ? (s.split(/[\s.@_\-]/)[0] || s) : ''; }
+      // Best display name for a player in a match doc:
+      // 1) uid match → use fresh cu.displayName
+      // 2) match createdBy === cu.uid AND first team-1 slot → use cu.displayName (for old docs without uid)
+      // 3) p.displayName → saved display name
+      // 4) p.name → saved name (may be "Jogador N" if user left default)
+      function _pname(p, mDoc, isFirstT1) {
+        if (p.uid && cu.uid && p.uid === cu.uid && cu.displayName)
+          return _firstToken(cu.displayName);
+        if (isFirstT1 && mDoc.createdBy === cu.uid && cu.displayName)
+          return _firstToken(cu.displayName);
+        var nm = p.displayName || p.name || '';
+        return nm ? _firstToken(nm) : '?';
       }
 
       var cardsHtml = '';
@@ -7455,37 +7461,31 @@ window._openCasualMatch = function() {
         var dateStr = '';
         if (m.createdAt) {
           var d = (typeof m.createdAt === 'string') ? new Date(m.createdAt) : null;
-          if (d && !isNaN(d.getTime())) {
+          if (d && !isNaN(d.getTime()))
             dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-          }
         }
-        // Sport icon from closure sports[]
         var icon = '🎾';
         for (var ssi = 0; ssi < sports.length; ssi++) {
           if (sports[ssi].label === sport || sports[ssi].key === sport) { icon = sports[ssi].icon; break; }
         }
         var safeRoomCode = (m.roomCode || '').replace(/'/g, "\\'");
 
-        // Build per-team player name lists
-        var t1Players = [], t2Players = [];
+        // Build per-team player name lists; track first-T1 slot for createdBy fallback
+        var t1Players = [], t2Players = [], t1Idx = 0;
         if (Array.isArray(m.players)) {
           m.players.forEach(function(p) {
-            var nm = _pname(p);
+            var isFirstT1 = (p.team !== 2 && t1Players.length === 0);
+            var nm = _pname(p, m, isFirstT1);
             if (p.team === 2) t2Players.push(nm);
-            else t1Players.push(nm);
+            else { t1Players.push(nm); t1Idx++; }
           });
         }
-        // Singles without team field: first is T1, second is T2
-        if (!m.isDoubles && t2Players.length === 0 && t1Players.length >= 2) {
+        if (!m.isDoubles && t2Players.length === 0 && t1Players.length >= 2)
           t2Players = t1Players.splice(1);
-        }
 
         var winner = (m.result && m.result.winner) || 0;
-        var t1Win = (winner === 1);
-        var t2Win = (winner === 2);
-        var isDecided = (winner === 1 || winner === 2);
+        var t1Win = (winner === 1), t2Win = (winner === 2), isDecided = (t1Win || t2Win);
 
-        // Extract individual scores
         var p1ScoreStr = '', p2ScoreStr = '';
         if (m.result) {
           if (m.result.p1Score != null && m.result.p2Score != null) {
@@ -7495,48 +7495,43 @@ window._openCasualMatch = function() {
             p1ScoreStr = m.result.sets.map(function(s) { return s.gamesP1; }).join(' ');
             p2ScoreStr = m.result.sets.map(function(s) { return s.gamesP2; }).join(' ');
           } else if (m.result.summary) {
-            var sumParts = m.result.summary.split(/\s*[×]\s*/);
-            if (sumParts.length === 2) { p1ScoreStr = sumParts[0].trim(); p2ScoreStr = sumParts[1].trim(); }
+            var sp = m.result.summary.split(/\s*[×]\s*/);
+            if (sp.length === 2) { p1ScoreStr = sp[0].trim(); p2ScoreStr = sp[1].trim(); }
           }
         }
 
-        // Row styles mirroring bracket.js rowStyle() — compact padding for narrow cards
-        var winnerRowStyle = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;background:rgba(16,185,129,0.18);border-left:3px solid #10b981;';
-        var loserRowStyle  = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.2);border-left:3px solid rgba(255,255,255,0.08);opacity:0.5;';
-        var openP1Style    = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.25);border-left:3px solid rgba(16,185,129,0.4);';
-        var openP2Style    = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.25);border-left:3px solid rgba(239,68,68,0.4);';
-        var p1RowStyle = isDecided ? (t1Win ? winnerRowStyle : loserRowStyle) : openP1Style;
-        var p2RowStyle = isDecided ? (t2Win ? winnerRowStyle : loserRowStyle) : openP2Style;
+        var wRow = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;background:rgba(16,185,129,0.18);border-left:3px solid #10b981;';
+        var lRow = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.2);border-left:3px solid rgba(255,255,255,0.08);opacity:0.5;';
+        var oRow = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.25);border-left:3px solid rgba(99,102,241,0.5);';
+        var p1Style = isDecided ? (t1Win ? wRow : lRow) : oRow;
+        var p2Style = isDecided ? (t2Win ? wRow : lRow) : oRow;
 
-        // Team labels — first names joined with /
-        var t1Label = t1Players.join('/') || '?';
-        var t2Label = t2Players.join('/') || '?';
-
-        function _row(rowStyle, label, scoreStr, isWin) {
-          var nameColor = isWin ? '#ffffff' : 'rgba(255,255,255,0.72)';
-          var nameFw = isWin ? '700' : '600';
-          var scoreColor = isWin ? '#4ade80' : 'var(--text-muted)';
-          return '<div style="' + rowStyle + '">' +
-            '<div style="flex:1;overflow:hidden;min-width:0;font-size:0.75rem;font-weight:' + nameFw + ';color:' + nameColor + ';white-space:nowrap;text-overflow:ellipsis;">' + window._safeHtml(label) + '</div>' +
-            (scoreStr ? '<span style="font-weight:800;font-size:0.88rem;color:' + scoreColor + ';font-variant-numeric:tabular-nums;flex-shrink:0;padding-left:4px;">' + window._safeHtml(scoreStr) + '</span>' : '') +
+        function _row(st, label, score, win) {
+          return '<div style="' + st + '">' +
+            '<div style="flex:1;overflow:hidden;min-width:0;font-size:0.74rem;font-weight:' + (win ? '700' : '600') + ';color:' + (win ? '#fff' : 'rgba(255,255,255,0.72)') + ';white-space:nowrap;text-overflow:ellipsis;">' + window._safeHtml(label) + '</div>' +
+            (score ? '<span style="font-weight:800;font-size:0.85rem;color:' + (win ? '#4ade80' : 'var(--text-muted)') + ';font-variant-numeric:tabular-nums;flex-shrink:0;padding-left:4px;">' + window._safeHtml(score) + '</span>' : '') +
           '</div>';
         }
 
         cardsHtml +=
-          '<button onclick="window._casualOpenPastMatch(\'' + safeRoomCode + '\')" style="flex:1;min-width:0;display:block;text-align:left;border-radius:12px;padding:10px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:var(--text-bright);cursor:pointer;transition:all 0.15s;font-family:inherit;" onmouseover="this.style.background=\'rgba(251,191,36,0.07)\';this.style.borderColor=\'rgba(251,191,36,0.30)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.10)\'">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:4px;">' +
-              '<span style="font-size:0.65rem;font-weight:700;color:#38bdf8;">' + icon + '</span>' +
-              '<span style="font-size:0.58rem;color:var(--text-muted);font-weight:600;">' + window._safeHtml(dateStr || '—') + '</span>' +
+          '<button onclick="window._casualOpenPastMatch(\'' + safeRoomCode + '\')" ' +
+            'style="display:block;text-align:left;border-radius:12px;padding:9px 9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:var(--text-bright);cursor:pointer;transition:all 0.15s;font-family:inherit;min-width:0;" ' +
+            'onmouseover="this.style.background=\'rgba(251,191,36,0.07)\';this.style.borderColor=\'rgba(251,191,36,0.30)\'" ' +
+            'onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.10)\'">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:4px;">' +
+              '<span style="font-size:0.72rem;">' + icon + '</span>' +
+              '<span style="font-size:0.57rem;color:var(--text-muted);font-weight:600;">' + window._safeHtml(dateStr || '—') + '</span>' +
             '</div>' +
-            _row(p1RowStyle, t1Label, p1ScoreStr, t1Win) +
-            '<div style="text-align:center;font-size:0.55rem;color:var(--text-muted);font-weight:800;letter-spacing:1.5px;padding:2px 0;">VS</div>' +
-            _row(p2RowStyle, t2Label, p2ScoreStr, t2Win) +
+            _row(p1Style, t1Players.join('/') || '?', p1ScoreStr, t1Win) +
+            '<div style="text-align:center;font-size:0.52rem;color:var(--text-muted);font-weight:800;letter-spacing:1.5px;padding:2px 0;">VS</div>' +
+            _row(p2Style, t2Players.join('/') || '?', p2ScoreStr, t2Win) +
           '</button>';
       });
+
       slot.innerHTML =
-        '<div style="font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;text-align:center;">📊 Últimas ' + matches.length + ' partida' + (matches.length === 1 ? '' : 's') + '</div>' +
-        '<div style="display:flex;gap:6px;align-items:stretch;">' + cardsHtml + '</div>' +
-        '<div style="text-align:center;font-size:0.55rem;color:var(--text-muted);opacity:0.7;font-style:italic;margin-top:6px;">Toque pra ver as estatísticas</div>';
+        '<div style="font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;text-align:center;">📊 Últimas ' + matches.length + ' partida' + (matches.length === 1 ? '' : 's') + '</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + cardsHtml + '</div>' +
+        '<div style="text-align:center;font-size:0.54rem;color:var(--text-muted);opacity:0.7;font-style:italic;margin-top:5px;">Toque pra ver as estatísticas</div>';
     } catch (e) {
       console.warn('[Casual] _casualLoadLastMatches err:', e);
       slot.innerHTML = '';
@@ -7988,9 +7983,9 @@ window._openCasualMatch = function() {
         }
         return { uid: null, photoURL: null };
       };
-      players.push({ slot: 0, name: n1, team: 1, uid: (cu && cu.uid) ? cu.uid : null, photoURL: cu ? cu.photoURL || null : null });
+      players.push({ slot: 0, name: n1, displayName: cu ? (cu.displayName || n1) : n1, team: 1, uid: (cu && cu.uid) ? cu.uid : null, photoURL: cu ? cu.photoURL || null : null });
       var _n2Match = _findLobbyMatch2(n2);
-      players.push({ slot: 1, name: n2, team: 2, uid: _n2Match.uid, photoURL: _n2Match.photoURL });
+      players.push({ slot: 1, name: n2, displayName: _n2Match.displayName || n2, team: 2, uid: _n2Match.uid, photoURL: _n2Match.photoURL });
     }
     return players;
   }
