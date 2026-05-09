@@ -7485,25 +7485,38 @@ window._openCasualMatch = function(restoreOpts) {
 
       // Resolve first name token only — used for compact cards
       function _firstToken(s) { return s ? (s.split(/[\s.@_\-]/)[0] || s) : ''; }
+      // Generic role/placeholder names assigned when no real player filled the slot.
+      // Used by _pname to return null so _teamBlock can skip them.
+      var _PLACEHOLDER_NAMES = [
+        'Parceiro', 'Adversário 1', 'Adversário 2', 'Adversário',
+        'Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4',
+        'Jogador', 'Bot'
+      ];
       // Best display name for a player in a match doc:
       // 1) uid match → use fresh cu.displayName
       // 2) match createdBy === cu.uid AND first team-1 slot → use cu.displayName (for old docs without uid)
-      // 3) p.displayName → saved display name
-      // 4) p.name → saved name (may be "Jogador N" if user left default)
+      // 3) p.displayName / p.name → saved name, BUT if it's a generic role name
+      //    AND there's no uid (= slot was never filled by a real person) → return null
+      //    so the history card won't show "Parceiro" / "Adversário" for solo matches.
       function _pname(p, mDoc, isFirstT1) {
         if (p.uid && cu.uid && p.uid === cu.uid && cu.displayName)
           return _firstToken(cu.displayName);
         if (isFirstT1 && mDoc.createdBy === cu.uid && cu.displayName)
           return _firstToken(cu.displayName);
         var nm = p.displayName || p.name || '';
-        return nm ? _firstToken(nm) : '?';
+        if (!nm) return null;
+        // Suppress generic placeholder names for slots without a real user
+        if (!p.uid && _PLACEHOLDER_NAMES.indexOf(nm) !== -1) return null;
+        return _firstToken(nm) || null;
       }
 
-      // Renders a team block with stacked player names + score on the right
+      // Renders a team block with stacked player names + score on the right.
+      // Null entries in `players` are skipped (placeholder slots).
       function _teamBlock(st, players, score, win) {
         var nameColor = win ? '#fff' : 'rgba(255,255,255,0.72)';
         var nameWeight = win ? '700' : '600';
-        var namesHtml = (players.length ? players : ['?']).map(function(nm) {
+        var realNames = players.filter(function(nm) { return nm != null; });
+        var namesHtml = (realNames.length ? realNames : ['—']).map(function(nm) {
           return '<div style="font-size:0.73rem;font-weight:' + nameWeight + ';color:' + nameColor + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;line-height:1.3;">' + window._safeHtml(nm) + '</div>';
         }).join('');
         return '<div style="' + st + '">' +

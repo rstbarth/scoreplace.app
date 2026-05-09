@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.59-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — histórico não exibe mais nomes genéricos de slot vazio.</b><br>' +
+      '• Slots não preenchidos por jogadores reais ("Parceiro", "Adversário 1/2", "Jogador N") eram salvos com esses nomes genéricos no Firestore e apareciam no histórico de partidas.<br>' +
+      '• Fix: <code>_pname</code> retorna <code>null</code> quando o slot não tem uid E o nome é um dos nomes-padrão. <code>_teamBlock</code> filtra os nulls e exibe "—" quando nenhum nome real resta no time.<br>' +
+      '• Resultado: partidas solo mostram só o nome real do criador (ex: "Rodrigo") sem os placeholders.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.58-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — atualização automática devolve o criador à tela de configuração.</b><br>' +
       '• <b>Problema corrigido:</b> quando o SW detectava uma nova versão e recarregava a página enquanto o criador estava na tela de configuração da partida, ele era redirecionado para o lobby de espera (tela de convidados) — onde não podia fazer nada além de fechar e começar uma nova partida.<br>' +
