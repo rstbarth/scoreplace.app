@@ -7388,8 +7388,12 @@ window._openCasualMatch = function() {
       // v1.3.32-beta: slot pra "Últimas três partidas" — populado async
       // após render. Helper window._casualLoadLastMatches roda 1× e
       // injeta os 3 botões aqui (ou esconde a seção se não há histórico).
+      // v1.3.48-beta: movido para imediatamente abaixo da seção "Sua Sala"
+      // (QR + código da sala + entrar na sala de amigo), conforme pedido.
       '<div id="casual-last-matches-slot" style="margin-top:1.2rem;"></div>' +
 
+      // espaço extra no fim da tela
+      '<div style="height:0.5rem;"></div>' +
       '';
 
     // Attach drag-and-drop for team building (Doubles — always, regardless of
@@ -7540,9 +7544,14 @@ window._openCasualMatch = function() {
     var _touchIdx = null;
     cards.forEach(function(card) {
       card.addEventListener('touchstart', function(e) {
-        // preventDefault stops the browser from focusing the textarea inside the
-        // card before the drag gesture begins — fixes "drag enables name editing"
-        // bug on iOS/Android. Must be {passive:false} for preventDefault to work.
+        // Se o toque foi direto numa textarea editável (jogador não-cadastrado),
+        // deixa o browser focar o campo — não inicia drag nesse caso.
+        if (e.target && e.target.tagName === 'TEXTAREA' && !e.target.readOnly) {
+          _touchIdx = null;
+          return;
+        }
+        // preventDefault impede o browser de focar elementos dentro do card
+        // antes do gesto de drag começar. Deve ser {passive:false} para funcionar.
         e.preventDefault();
         _touchIdx = parseInt(card.getAttribute('data-casual-idx'));
         card.style.opacity = '0.6';
