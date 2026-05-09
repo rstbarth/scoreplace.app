@@ -5542,12 +5542,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var gamesCenter = '';
     if (showGamesBox) {
       gamesCenter =
-        '<div class="live-games-box" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(4px,1vh,10px) clamp(10px,2vw,20px);">' +
-          '<span style="font-size:0.55rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Games</span>' +
-          '<div style="display:flex;align-items:center;gap:clamp(6px,2vw,12px);">' +
-            '<span style="font-size:clamp(1.6rem,5vw,2.5rem);font-weight:900;color:' + _gamesLeftClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesLeftStr + '</span>' +
-            '<span style="font-size:clamp(0.9rem,2vw,1.3rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
-            '<span style="font-size:clamp(1.6rem,5vw,2.5rem);font-weight:900;color:' + _gamesRightClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesRightStr + '</span>' +
+        '<div class="live-games-box" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px);">' +
+          '<span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Games</span>' +
+          '<div style="display:flex;align-items:center;gap:clamp(8px,2.5vw,16px);">' +
+            '<span style="font-size:clamp(2.6rem,8vw,4rem);font-weight:900;color:' + _gamesLeftClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesLeftStr + '</span>' +
+            '<span style="font-size:clamp(1.4rem,4vw,2.2rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
+            '<span style="font-size:clamp(2.6rem,8vw,4rem);font-weight:900;color:' + _gamesRightClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesRightStr + '</span>' +
           '</div>' +
         '</div>';
     }
@@ -5659,9 +5659,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
           // Games box — above plates for guaranteed visibility
           // v1.3.67-beta: undo button beside games box (outside), not inside it
           // v1.3.68-beta: SVG undo icon in white, games box centered via symmetric flex spacers
+          // v1.3.70-beta: games numbers bigger — spacer pushes court to bottom
           (showGamesBox ? '<div style="flex-shrink:0;margin-bottom:clamp(4px,1vh,8px);display:flex;align-items:center;width:100%;"><div style="flex:1;"></div>' + gamesCenter + '<div style="flex:1;display:flex;align-items:center;padding-left:10px;"><button onclick="window._liveScoreUndoLastPoint()" title="Desfazer último ponto" style="flex-shrink:0;width:38px;height:38px;border-radius:50%;border:none;background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent;display:flex;align-items:center;justify-content:center;padding:0;opacity:0.75;"><svg viewBox="0 0 24 24" width="28" height="28" fill="white" xmlns="http://www.w3.org/2000/svg"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg></button></div></div>' : '') +
+          // Flexible spacer: pushes court content toward the bottom, freeing space above for bigger games box
+          '<div style="flex:1;min-height:0;"></div>' +
           // Two-column score plates with team-colored backgrounds
-          '<div id="live-court-container" style="display:flex;align-items:stretch;width:100%;gap:4px;justify-content:center;flex:1;min-height:0;">' +
+          '<div id="live-court-container" style="display:flex;align-items:stretch;width:100%;gap:4px;justify-content:center;flex-shrink:0;">' +
             // Left column
             '<div class="court-side" data-court-side="left" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:clamp(3px,0.8vh,6px);padding:clamp(4px,1vh,10px) clamp(4px,1vw,8px);border-radius:14px;background:' + leftBg + ';border:1px solid ' + leftBdr + ';cursor:grab;touch-action:none;-webkit-user-select:none;user-select:none;transition:transform 0.15s,opacity 0.15s;">' +
               _buildNameStack(leftTeam) +

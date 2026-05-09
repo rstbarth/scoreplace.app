@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.70-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Placar ao vivo portrait — números de Games maiores + espaço melhor aproveitado.</b><br>' +
+      '• Os números do placar de Games cresceram de <code>clamp(1.6rem,5vw,2.5rem)</code> para <code>clamp(2.6rem,8vw,4rem)</code> — ficam bem maiores e visíveis de longe.<br>' +
+      '• O espaço que sobrava abaixo dos botões ▼ foi eliminado: um espaçador <code>flex:1</code> foi inserido entre o box de Games e as colunas de placar, empurrando as colunas (nomes + placas + botões) para o fundo da tela enquanto o box de Games usa o espaço liberado no topo.<br>' +
+      '• O "Games" label também foi levemente aumentado (<code>0.55rem → 0.7rem</code>) e o padding interno do box ficou mais generoso.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.69-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual duplas — 🔗 na tela de estatísticas retorna ao setup com os mesmos jogadores despareados.</b><br>' +
       '• Clicar no 🔗 fecha a tela de estatísticas e abre a tela de organização da partida com os <b>mesmos 4 jogadores já no lobby, sem duplas definidas</b> — prontos para reparear por arrastar ou sortear.<br>' +
