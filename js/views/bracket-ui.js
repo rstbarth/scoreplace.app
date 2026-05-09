@@ -5913,6 +5913,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
   var _casualDocId = isCasual && opts ? opts.casualDocId : null;
   var _casualCreatedBy = isCasual && opts ? (opts.createdBy || null) : null;
   var _casualRoomCode = isCasual && opts ? (opts.roomCode || null) : null;
+  // v1.3.56-beta: flag para saber se o overlay foi aberto sobre uma partida
+  // já finalizada (viewOnly=true). Quando o usuário clica "Jogar" a partir
+  // do histórico, precisamos desvincullar o novo jogo do doc antigo para
+  // que _closeLiveScoring não chame cancelCasualMatch no doc original.
+  var _viewOnly = !!(opts && opts.viewOnly);
   // v1.3.33-beta: cópia local dos players da partida casual (mesmo shape
   // do match.players[] no Firestore). Usado pra render das sugestões de
   // vínculo guest→friend. Mantido sincronizado via _applyRemoteState.
@@ -6366,6 +6371,18 @@ window._openLiveScoring = function(tId, matchId, opts) {
         // Persist the finished result as confirmed before wiping state.
         if (state.isFinished && !_resultSaved) {
           try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
+        }
+        // v1.3.56-beta: se o overlay foi aberto sobre uma partida já finalizada
+        // (viewOnly — histórico), desvincula o novo jogo do doc antigo ANTES de
+        // resetar o estado. Sem isso, _closeLiveScoring chama cancelCasualMatch
+        // no doc original e deleta a partida do histórico do usuário.
+        if (_viewOnly) {
+          _casualDocId = null;
+          _casualRoomCode = null;
+          _viewOnly = false;
+          // Cancela o listener Firestore do doc antigo — não queremos mais
+          // receber updates desse doc no novo jogo.
+          if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
         }
         // Allow next completed match to be saved again.
         _resultSaved = false;

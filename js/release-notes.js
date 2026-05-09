@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.56-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — histórico não some mais ao clicar "Jogar" nas stats de partida passada.</b><br>' +
+      '• <b>Bug raiz:</b> ao abrir uma partida do histórico (viewOnly), o overlay ficava com <code>_casualDocId</code> apontando para o doc já finalizado. Ao clicar "🔄 Jogar" e sair sem pontuar, <code>_closeLiveScoring</code> chamava <code>cancelCasualMatch(_casualDocId)</code> — deletando o doc original do histórico.<br>' +
+      '• <b>Fix:</b> novo flag <code>_viewOnly</code> capturado na closure. Quando "Jogar" é clicado a partir de viewOnly, <code>_casualDocId</code> e <code>_casualRoomCode</code> são zerados e o listener Firestore do doc antigo é desconectado <em>antes</em> do reset de estado — o novo jogo não tem vínculo com o doc original, que fica intocado.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.55-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — últimas partidas: header à esquerda, nomes empilhados, filtro por modalidade.</b><br>' +
       '• <b>Header alinhado à esquerda:</b> "Últimas N partida(s)" deixou de ser centralizado.<br>' +
