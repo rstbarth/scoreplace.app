@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.71-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Placar ao vivo portrait — números de Games e de Set ainda maiores.</b><br>' +
+      '• <b>Games:</b> <code>clamp(2.6rem,8vw,4rem)</code> → <code>clamp(4rem,14vw,7rem)</code> — quase o dobro.<br>' +
+      '• <b>Placar do Set (placas brancas):</b> <code>clamp(5.5rem,24vw,12rem)</code> → <code>clamp(7rem,30vw,15rem)</code> — números maiores e mais fáceis de ler de longe.<br>' +
+      '• Dash separador e padding interno do box de Games também ajustados proporcionalmente.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.70-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Placar ao vivo portrait — números de Games maiores + espaço melhor aproveitado.</b><br>' +
       '• Os números do placar de Games cresceram de <code>clamp(1.6rem,5vw,2.5rem)</code> para <code>clamp(2.6rem,8vw,4rem)</code> — ficam bem maiores e visíveis de longe.<br>' +

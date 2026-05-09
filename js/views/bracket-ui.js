@@ -5542,12 +5542,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var gamesCenter = '';
     if (showGamesBox) {
       gamesCenter =
-        '<div class="live-games-box" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(8px,2vh,16px) clamp(12px,3vw,24px);">' +
-          '<span style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Games</span>' +
-          '<div style="display:flex;align-items:center;gap:clamp(8px,2.5vw,16px);">' +
-            '<span style="font-size:clamp(2.6rem,8vw,4rem);font-weight:900;color:' + _gamesLeftClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesLeftStr + '</span>' +
-            '<span style="font-size:clamp(1.4rem,4vw,2.2rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
-            '<span style="font-size:clamp(2.6rem,8vw,4rem);font-weight:900;color:' + _gamesRightClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesRightStr + '</span>' +
+        '<div class="live-games-box" style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:clamp(12px,3vh,24px) clamp(16px,4vw,36px);">' +
+          '<span style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">Games</span>' +
+          '<div style="display:flex;align-items:center;gap:clamp(12px,4vw,24px);">' +
+            '<span style="font-size:clamp(4rem,14vw,7rem);font-weight:900;color:' + _gamesLeftClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesLeftStr + '</span>' +
+            '<span style="font-size:clamp(2rem,6vw,3.5rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
+            '<span style="font-size:clamp(4rem,14vw,7rem);font-weight:900;color:' + _gamesRightClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesRightStr + '</span>' +
           '</div>' +
         '</div>';
     }
@@ -5560,7 +5560,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var plateBg = _isDeuce ? '#f97316' : '#fff';
       var plateClr = _isDeuce ? '#fff' : '#111';
       return '<div style="width:100%;background:' + plateBg + ';border-radius:18px;padding:clamp(22px,7vh,48px) 8px;box-shadow:0 6px 36px rgba(0,0,0,0.5),0 0 0 4px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
-        '<span style="font-size:clamp(5.5rem,24vw,12rem);font-weight:900;color:' + plateClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
+        '<span style="font-size:clamp(7rem,30vw,15rem);font-weight:900;color:' + plateClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
       '</div>';
     };
 
