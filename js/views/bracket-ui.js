@@ -5044,10 +5044,29 @@ window._openLiveScoring = function(tId, matchId, opts) {
         );
       };
 
+      // v1.3.65-beta: in casual doubles, insert a 🔗 pill between the two
+      // player chips inside winner AND loser sections (centered, calls
+      // _liveScoreUnpair). No separate section — the chain sits right between
+      // the partners' names where the user expects it.
+      var _chainBetweenChips = (isCasual && isDoubles)
+        ? '<div style="display:flex;justify-content:center;padding:1px 0;">' +
+            '<button type="button" onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" ' +
+              'style="display:flex;align-items:center;justify-content:center;width:40px;height:22px;' +
+              'border-radius:11px;border:1px dashed rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);' +
+              'cursor:pointer;font-size:0.85rem;line-height:1;color:var(--text-muted);transition:all 0.18s;' +
+              '-webkit-tap-highlight-color:transparent;padding:0;">🔗</button>' +
+          '</div>'
+        : '';
       var winChipsHtml = '';
-      for (var wi = 0; wi < winPlayers.length; wi++) winChipsHtml += _playerChip(winPlayers[wi], true, winClr);
+      for (var wi = 0; wi < winPlayers.length; wi++) {
+        winChipsHtml += _playerChip(winPlayers[wi], true, winClr);
+        if (wi === 0 && winPlayers.length > 1) winChipsHtml += _chainBetweenChips;
+      }
       var loseChipsHtml = '';
-      for (var li = 0; li < losePlayers.length; li++) loseChipsHtml += _playerChip(losePlayers[li], false, loseClr);
+      for (var li = 0; li < losePlayers.length; li++) {
+        loseChipsHtml += _playerChip(losePlayers[li], false, loseClr);
+        if (li === 0 && losePlayers.length > 1) loseChipsHtml += _chainBetweenChips;
+      }
 
       // Comparative stats bar builder.
       // v1.0.33-beta: barras agora são SHARE-OF-TOTAL pra raw counts (sum=100%)
@@ -5336,36 +5355,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
       // não há candidatos ou não é casual.
       var linkSuggestionsSlot = isCasual ? '<div id="casual-link-suggestions-slot" style="width:100%;max-width:380px;"></div>' : '';
 
-      // v1.3.64-beta: 2-column team grid between winner/loser sections —
-      // mirrors the setup screen pairing layout (user request). Each column
-      // shows player-chip + 🔗 pill (calls _liveScoreUnpair) + partner-chip.
-      // Blue = Team 1 (p1Players), Red = Team 2 (p2Players).
-      var unpairChainHtml = (isCasual && isDoubles)
-        ? '<div style="width:100%;max-width:380px;border-radius:14px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.02);padding:10px 10px 8px;">' +
-            '<div style="font-size:0.57rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;text-align:center;margin-bottom:8px;">Times</div>' +
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-              '<div style="display:flex;flex-direction:column;align-items:stretch;gap:0;">' +
-                '<div style="padding:7px 8px;border-radius:8px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.2);text-align:center;font-size:0.78rem;font-weight:700;color:#93c5fd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p1Players[0] || '') + '</div>' +
-                '<button type="button" onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" ' +
-                  'style="margin:0 auto;display:flex;align-items:center;justify-content:center;width:40px;height:24px;' +
-                  'border-radius:12px;border:1px dashed rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);' +
-                  'cursor:pointer;font-size:0.9rem;line-height:1;color:var(--text-muted);transition:all 0.18s;' +
-                  '-webkit-tap-highlight-color:transparent;padding:0;">🔗</button>' +
-                '<div style="padding:7px 8px;border-radius:8px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.2);text-align:center;font-size:0.78rem;font-weight:700;color:#93c5fd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p1Players[1] || '') + '</div>' +
-              '</div>' +
-              '<div style="display:flex;flex-direction:column;align-items:stretch;gap:0;">' +
-                '<div style="padding:7px 8px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2);text-align:center;font-size:0.78rem;font-weight:700;color:#fca5a5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p2Players[0] || '') + '</div>' +
-                '<button type="button" onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" ' +
-                  'style="margin:0 auto;display:flex;align-items:center;justify-content:center;width:40px;height:24px;' +
-                  'border-radius:12px;border:1px dashed rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);' +
-                  'cursor:pointer;font-size:0.9rem;line-height:1;color:var(--text-muted);transition:all 0.18s;' +
-                  '-webkit-tap-highlight-color:transparent;padding:0;">🔗</button>' +
-                '<div style="padding:7px 8px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2);text-align:center;font-size:0.78rem;font-weight:700;color:#fca5a5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p2Players[1] || '') + '</div>' +
-              '</div>' +
-            '</div>' +
-            '<div style="text-align:center;margin-top:7px;font-size:0.6rem;color:var(--text-muted);opacity:0.7;">Toque no 🔗 para desparear</div>' +
-          '</div>'
-        : '';
+      // Chain pill is now injected inline between chips — no separate section.
+      var unpairChainHtml = '';
 
       // Action section pinned at the TOP — "Jogar Novamente" (and optional
       // shuffle toggle for doubles) are always within thumb-reach. Clicking
