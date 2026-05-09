@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.69-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual duplas — 🔗 na tela de estatísticas retorna ao setup com os mesmos jogadores despareados.</b><br>' +
+      '• Clicar no 🔗 fecha a tela de estatísticas e abre a tela de organização da partida com os <b>mesmos 4 jogadores já no lobby, sem duplas definidas</b> — prontos para reparear por arrastar ou sortear.<br>' +
+      '• <b>Sem dialog de confirmação</b> — a partida já foi encerrada e salva, não há nada a confirmar.<br>' +
+      '• Funciona tanto para partida recém-encerrada quanto para histórico (abrindo partida passada via "Últimas Partidas"): usa <code>_casualPlayers</code> (lista de jogadores da partida) como fonte de verdade para repopular o lobby, evitando usar o estado antigo do setup.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.68-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Placar ao vivo — ícone SVG circular para o botão Desfazer + placar de Games centralizado.</b><br>' +
       '• O botão ↶ foi substituído pelo ícone circular branco (seta circular no estilo replay/undo).<br>' +

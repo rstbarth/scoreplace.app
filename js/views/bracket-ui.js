@@ -5048,9 +5048,11 @@ window._openLiveScoring = function(tId, matchId, opts) {
       // player chips inside winner AND loser sections (centered, calls
       // _liveScoreUnpair). No separate section — the chain sits right between
       // the partners' names where the user expects it.
+      // v1.3.69-beta: usa _liveScoreUnpairFromStats (sem confirm, reabre setup
+      // com jogadores corretos mesmo em viewOnly/histórico)
       var _chainBetweenChips = (isCasual && isDoubles)
         ? '<div style="display:flex;justify-content:center;padding:1px 0;">' +
-            '<button type="button" onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" ' +
+            '<button type="button" onclick="window._liveScoreUnpairFromStats()" title="Desparear — volta à tela de formação de times" ' +
               'style="display:flex;align-items:center;justify-content:center;width:40px;height:22px;' +
               'border-radius:11px;border:1px dashed rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);' +
               'cursor:pointer;font-size:0.85rem;line-height:1;color:var(--text-muted);transition:all 0.18s;' +
@@ -6544,6 +6546,54 @@ window._openLiveScoring = function(tId, matchId, opts) {
         }
       }
     );
+  };
+
+  // v1.3.69-beta: versão SEM confirm dialog para a tela de estatísticas
+  // (a partida já foi encerrada e salva — não há nada a confirmar).
+  // Extrai jogadores de _casualPlayers e chama _openCasualMatch com todos
+  // eles despareados, prontos para nova formação de duplas ou sorteio.
+  // Funciona tanto para partida recém-encerrada quanto para histórico
+  // (viewOnly=true via _casualOpenPastMatch), onde _casualReopenSetup não
+  // pode ser usado (closure do setup IIFE pode ter players diferentes).
+  window._liveScoreUnpairFromStats = function() {
+    // 1. Salva resultado silenciosamente se ainda não foi salvo
+    if (state.isFinished && !_resultSaved) {
+      try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
+    }
+    // 2. Cleanup (espelha _closeLiveScoring)
+    if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
+    try { window.removeEventListener('resize', _onResize); } catch(e) {}
+    try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+    try { _releaseWakeLock(); } catch(e) {}
+    var ov = document.getElementById('live-scoring-overlay');
+    if (ov) ov.remove();
+    // 3. Mapeia _casualPlayers → formato de participants do _openCasualMatch
+    //    { uid, displayName, photoURL, joinedAt }
+    var participants = [];
+    if (_casualPlayers && _casualPlayers.length > 0) {
+      _casualPlayers.forEach(function(p) {
+        if (!p) return;
+        participants.push({
+          uid: p.uid || '',
+          displayName: p.name || p.displayName || '',
+          photoURL: p.photoURL || '',
+          joinedAt: new Date().toISOString()
+        });
+      });
+    }
+    // Fallback: extrai de p1Name / p2Name (format "A / B") quando _casualPlayers vazio
+    if (!participants.length) {
+      var allNames = (p1Name + ' / ' + p2Name).split(' / ')
+        .map(function(n) { return n.trim(); }).filter(Boolean);
+      allNames.forEach(function(name) {
+        participants.push({ uid: '', displayName: name, photoURL: '', joinedAt: new Date().toISOString() });
+      });
+    }
+    // 4. Re-abre o setup com os mesmos jogadores, sem times definidos
+    var matchSport = (opts && (opts.sportName || opts.title)) || 'Beach Tennis';
+    if (typeof window._openCasualMatch === 'function') {
+      window._openCasualMatch({ sport: matchSport, isDoubles: !!isDoubles, participants: participants });
+    }
   };
 
   // Compartilhar resultado da partida casual — tournament match já tem o
