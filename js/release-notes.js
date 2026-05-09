@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.66-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Placar ao vivo — botão ↶ Desfazer + destaque laranja no 40-40.</b><br>' +
+      '• <b>↶ Desfazer:</b> botão aparece dentro do box de Games (ao lado do placar de games), em portrait e landscape. Cada toque desfaz o último ponto registrado — funciona inclusive após fechar um game (o undo restaura o estado exato antes do ponto que fechou o game).<br>' +
+      '• <b>Killing point (40-40):</b> quando o placar chega em 40 igual (deuce), os dois painéis de ponto mudam o fundo para laranja <code>#f97316</code> e o número "40" fica branco — destaque visual para indicar que o próximo ponto é decisivo.<br>' +
+      '• A detecção de deuce usa <code>currentGameP1 >= 3 &amp;&amp; currentGameP2 >= 3 &amp;&amp; iguais</code> — não dispara em vantagem (AD) nem em tie-break.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.65-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual dupla — 🔗 entre os parceiros dentro de cada seção.</b><br>' +
       '• <b>Sem seção extra:</b> o elo 🔗 aparece diretamente entre os dois chips de jogadores nas seções "Vencedor" e "Perdedor" — exatamente onde os nomes dos parceiros já estavam. Sem repetição de nomes, sem seção separada.<br>' +

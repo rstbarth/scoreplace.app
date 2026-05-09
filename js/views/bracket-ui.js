@@ -5433,6 +5433,13 @@ window._openLiveScoring = function(tId, matchId, opts) {
       p2Display = _formatGamePoint(state.currentGameP2, state.currentGameP1, false);
     }
 
+    // v1.3.66-beta: killing point (40-40 / deuce) detection — plates turn
+    // orange with white text. Only in GSM tennis mode when both players have
+    // 3+ raw points AND are equal (pure deuce, not advantage state).
+    var _isDeuce = useSets && !state.isFixedSet && !state.isTiebreak && !_isDecidingSet() &&
+      state.currentGameP1 >= 3 && state.currentGameP2 >= 3 &&
+      state.currentGameP1 === state.currentGameP2 && !state.isFinished;
+
     // Games in current set
     var gamesP1Str = '', gamesP2Str = '';
     var showGamesBox = useSets && !state.isFixedSet && !state.isFinished;
@@ -5540,15 +5547,23 @@ window._openLiveScoring = function(tId, matchId, opts) {
             '<span style="font-size:clamp(0.9rem,2vw,1.3rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
             '<span style="font-size:clamp(1.6rem,5vw,2.5rem);font-weight:900;color:' + _gamesRightClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesRightStr + '</span>' +
           '</div>' +
+          // v1.3.66-beta: undo button next to games score (user request)
+          '<button onclick="window._liveScoreUndoLastPoint()" title="Desfazer último ponto" ' +
+            'style="margin-top:3px;padding:2px 10px;border-radius:6px;border:1px solid rgba(99,102,241,0.35);' +
+            'background:rgba(99,102,241,0.12);color:#818cf8;font-size:0.72rem;font-weight:800;cursor:pointer;' +
+            '-webkit-tap-highlight-color:transparent;line-height:1.4;">↶</button>' +
         '</div>';
     }
 
-    // Score plate builder — extra large for visibility from afar
+    // Score plate builder — extra large for visibility from afar.
+    // v1.3.66-beta: orange background + white text at deuce (40-40).
     var _buildPlate = function(player) {
       var clr = player === 1 ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)';
       var display = player === 1 ? p1Display : p2Display;
-      return '<div style="width:100%;background:#fff;border-radius:18px;padding:clamp(22px,7vh,48px) 8px;box-shadow:0 6px 36px rgba(0,0,0,0.5),0 0 0 4px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
-        '<span style="font-size:clamp(5.5rem,24vw,12rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
+      var plateBg = _isDeuce ? '#f97316' : '#fff';
+      var plateClr = _isDeuce ? '#fff' : '#111';
+      return '<div style="width:100%;background:' + plateBg + ';border-radius:18px;padding:clamp(22px,7vh,48px) 8px;box-shadow:0 6px 36px rgba(0,0,0,0.5),0 0 0 4px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
+        '<span style="font-size:clamp(5.5rem,24vw,12rem);font-weight:900;color:' + plateClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
       '</div>';
     };
 
@@ -5573,8 +5588,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
       var _lsPlate = function(player) {
         var clr = player === 1 ? 'rgba(59,130,246,0.25)' : 'rgba(239,68,68,0.25)';
         var display = player === 1 ? p1Display : p2Display;
-        return '<div style="width:100%;background:#fff;border-radius:14px;padding:clamp(10px,4vh,28px) 4px;box-shadow:0 4px 24px rgba(0,0,0,0.5),0 0 0 3px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
-          '<span style="font-size:clamp(3.5rem,14vw,7rem);font-weight:900;color:#111;font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
+        var plateBg = _isDeuce ? '#f97316' : '#fff';
+        var plateClr = _isDeuce ? '#fff' : '#111';
+        return '<div style="width:100%;background:' + plateBg + ';border-radius:14px;padding:clamp(10px,4vh,28px) 4px;box-shadow:0 4px 24px rgba(0,0,0,0.5),0 0 0 3px ' + clr + ';display:flex;align-items:center;justify-content:center;">' +
+          '<span style="font-size:clamp(3.5rem,14vw,7rem);font-weight:900;color:' + plateClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + display + '</span>' +
         '</div>';
       };
       var _lsUpBtn = function(player) {
@@ -5599,6 +5616,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
               '<span style="font-size:clamp(0.7rem,1.5vw,1rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
               '<span style="font-size:clamp(1.1rem,3.5vw,1.8rem);font-weight:900;color:' + _gamesRightClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesRightStr + '</span>' +
             '</div>' +
+            '<button onclick="window._liveScoreUndoLastPoint()" title="Desfazer último ponto" ' +
+              'style="margin-top:2px;padding:2px 8px;border-radius:5px;border:1px solid rgba(99,102,241,0.35);' +
+              'background:rgba(99,102,241,0.12);color:#818cf8;font-size:0.6rem;font-weight:800;cursor:pointer;' +
+              '-webkit-tap-highlight-color:transparent;line-height:1.4;">↶</button>' +
           '</div>';
       }
 
