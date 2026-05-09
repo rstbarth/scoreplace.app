@@ -5336,20 +5336,34 @@ window._openLiveScoring = function(tId, matchId, opts) {
       // não há candidatos ou não é casual.
       var linkSuggestionsSlot = isCasual ? '<div id="casual-link-suggestions-slot" style="width:100%;max-width:380px;"></div>' : '';
 
-      // v1.3.60-beta: standalone dashed-border 🔗 pill between winner and loser
-      // sections — matches setup screen _chainBtn style exactly (user request:
-      // "use a forma da segunda tela sempre"). Only shown in casual doubles.
+      // v1.3.64-beta: 2-column team grid between winner/loser sections —
+      // mirrors the setup screen pairing layout (user request). Each column
+      // shows player-chip + 🔗 pill (calls _liveScoreUnpair) + partner-chip.
+      // Blue = Team 1 (p1Players), Red = Team 2 (p2Players).
       var unpairChainHtml = (isCasual && isDoubles)
-        ? '<div style="display:flex;justify-content:center;width:100%;max-width:380px;">' +
-            '<button type="button" onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" ' +
-              'style="margin:4px auto;display:flex;align-items:center;justify-content:center;width:40px;height:28px;' +
-              'border-radius:14px;border:1px dashed rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);' +
-              'cursor:pointer;font-size:0.95rem;line-height:1;color:var(--text-muted);transition:all 0.18s;' +
-              '-webkit-tap-highlight-color:transparent;padding:0;" ' +
-              'onmouseover="this.style.background=\'rgba(239,68,68,0.15)\';this.style.borderColor=\'rgba(239,68,68,0.45)\';this.style.color=\'#f87171\';this.style.transform=\'scale(1.08)\'" ' +
-              'onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.18)\';this.style.color=\'var(--text-muted)\';this.style.transform=\'\'" ' +
-              'ontouchstart="this.style.background=\'rgba(239,68,68,0.2)\';this.style.transform=\'scale(0.94)\'" ' +
-              'ontouchend="this.style.background=\'rgba(255,255,255,0.04)\';this.style.transform=\'\'">🔗</button>' +
+        ? '<div style="width:100%;max-width:380px;border-radius:14px;border:1px solid rgba(255,255,255,0.10);background:rgba(255,255,255,0.02);padding:10px 10px 8px;">' +
+            '<div style="font-size:0.57rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.2px;text-align:center;margin-bottom:8px;">Times</div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+              '<div style="display:flex;flex-direction:column;align-items:stretch;gap:0;">' +
+                '<div style="padding:7px 8px;border-radius:8px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.2);text-align:center;font-size:0.78rem;font-weight:700;color:#93c5fd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p1Players[0] || '') + '</div>' +
+                '<button type="button" onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" ' +
+                  'style="margin:0 auto;display:flex;align-items:center;justify-content:center;width:40px;height:24px;' +
+                  'border-radius:12px;border:1px dashed rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);' +
+                  'cursor:pointer;font-size:0.9rem;line-height:1;color:var(--text-muted);transition:all 0.18s;' +
+                  '-webkit-tap-highlight-color:transparent;padding:0;">🔗</button>' +
+                '<div style="padding:7px 8px;border-radius:8px;background:rgba(59,130,246,0.12);border:1px solid rgba(59,130,246,0.2);text-align:center;font-size:0.78rem;font-weight:700;color:#93c5fd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p1Players[1] || '') + '</div>' +
+              '</div>' +
+              '<div style="display:flex;flex-direction:column;align-items:stretch;gap:0;">' +
+                '<div style="padding:7px 8px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2);text-align:center;font-size:0.78rem;font-weight:700;color:#fca5a5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p2Players[0] || '') + '</div>' +
+                '<button type="button" onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" ' +
+                  'style="margin:0 auto;display:flex;align-items:center;justify-content:center;width:40px;height:24px;' +
+                  'border-radius:12px;border:1px dashed rgba(255,255,255,0.18);background:rgba(255,255,255,0.04);' +
+                  'cursor:pointer;font-size:0.9rem;line-height:1;color:var(--text-muted);transition:all 0.18s;' +
+                  '-webkit-tap-highlight-color:transparent;padding:0;">🔗</button>' +
+                '<div style="padding:7px 8px;border-radius:8px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.2);text-align:center;font-size:0.78rem;font-weight:700;color:#fca5a5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + window._safeHtml(p2Players[1] || '') + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div style="text-align:center;margin-top:7px;font-size:0.6rem;color:var(--text-muted);opacity:0.7;">Toque no 🔗 para desparear</div>' +
           '</div>'
         : '';
 

@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.64-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual dupla — grid de times com 🔗 na tela de estatísticas.</b><br>' +
+      '• <b>Nova seção entre Vencedor e Perdedor:</b> em partidas duplas, a tela de estatísticas exibe um grid de 2 colunas espelhando a tela de formação de times. Coluna esquerda = Time 1 (azul) com jogador + 🔗 + parceiro; coluna direita = Time 2 (vermelho) com a mesma estrutura.<br>' +
+      '• <b>Desparear diretamente:</b> tocar no 🔗 de qualquer time abre o fluxo de desparear (<code>_liveScoreUnpair</code>) — volta à tela de formação para reparear ou sortear antes do próximo jogo.<br>' +
+      '• <b>Hint:</b> "Toque no 🔗 para desparear" abaixo do grid.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.63-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — histórico e estatísticas ignoram partidas abandonadas.</b><br>' +
       '• <b>"Últimas Partidas":</b> só aparecem partidas com vencedor definido (time 1 ou time 2). Partidas encerradas sem vencedor (force-finish com placar empatado ou sem conclusão real) são excluídas dos cards.<br>' +
