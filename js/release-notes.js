@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.58-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — atualização automática devolve o criador à tela de configuração.</b><br>' +
+      '• <b>Problema corrigido:</b> quando o SW detectava uma nova versão e recarregava a página enquanto o criador estava na tela de configuração da partida, ele era redirecionado para o lobby de espera (tela de convidados) — onde não podia fazer nada além de fechar e começar uma nova partida.<br>' +
+      '• <b>Fix:</b> <code>_renderCasualJoin</code> agora detecta que o usuário é o criador quando <code>status=\'waiting\'</code>. Nesse caso chama <code>_openCasualMatch(restoreOpts)</code> em vez de renderizar o lobby — reutilizando o <code>roomCode</code> e <code>docId</code> já existentes no Firestore, sem criar documento duplicado.<br>' +
+      '• Esporte, modo duplas e lista de participantes que já estavam na partida são restaurados automaticamente.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.57-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — ícone 🔗 por jogador na tela de resultado.</b><br>' +
       '• Cada chip de jogador na tela de resultado (vencedor e perdedor) agora tem um botão 🔗 à direita do nome.<br>' +

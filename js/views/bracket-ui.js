@@ -6949,7 +6949,7 @@ window._openScanQR = function() {
 // Opens from dashboard "Partida Casual" button. Shows sport picker, player
 // names, scoring config summary + gear icon, then launches live scoring.
 
-window._openCasualMatch = function() {
+window._openCasualMatch = function(restoreOpts) {
   // Remove existing
   var existing = document.getElementById('casual-match-overlay');
   if (existing) existing.remove();
@@ -7003,9 +7003,11 @@ window._openCasualMatch = function() {
   if (!initialSport) initialSport = 'Beach Tennis';
 
   // State — default to doubles ON, sortear ON (auto-drives from team formation)
-  var selectedSport = initialSport;
-  var spMatch = sports.find(function(s) { return s.key === initialSport; });
-  var isDoubles = (persistedDoubles !== null) ? persistedDoubles : (spMatch ? spMatch.defaultDoubles : true);
+  // restoreOpts overrides defaults when coming back from a SW-update reload
+  var selectedSport = (restoreOpts && restoreOpts.sport) || initialSport;
+  var spMatch = sports.find(function(s) { return s.key === selectedSport; });
+  var isDoubles = (restoreOpts && typeof restoreOpts.isDoubles === 'boolean') ? restoreOpts.isDoubles
+    : (persistedDoubles !== null) ? persistedDoubles : (spMatch ? spMatch.defaultDoubles : true);
   // autoShuffle mirrors team-formation state: ON until a team is formed via
   // drag-and-drop, then OFF; if the team is broken, it flips back to ON.
   var autoShuffle = true;
@@ -7015,7 +7017,10 @@ window._openCasualMatch = function() {
   var _participantGenders = {};
   if (cu && cu.uid) _participantGenders[cu.uid] = cu.gender || '';
   var p1Name = (cu && cu.displayName) ? cu.displayName : '';
-  var _lobbyParticipants = cu ? [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }] : [];
+  // Restore participants from the existing Firestore doc when re-entering after reload
+  var _lobbyParticipants = (restoreOpts && Array.isArray(restoreOpts.participants) && restoreOpts.participants.length > 0)
+    ? restoreOpts.participants
+    : (cu ? [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }] : []);
   var _setupRefreshInterval = null;
 
   // Async-load gender for any lobby participant we haven't seen yet, then
@@ -8035,10 +8040,11 @@ window._openCasualMatch = function() {
     return players;
   }
 
-  // Room code state for this session (persists across invite/start)
-  // Generate immediately so QR can be shown on setup screen
-  var _sessionRoomCode = _generateRoomCode();
-  var _sessionDocId = null;
+  // Room code state for this session (persists across invite/start).
+  // When restoring after a SW-update reload, reuse the existing room code
+  // and docId so we don't create a duplicate Firestore doc.
+  var _sessionRoomCode = (restoreOpts && restoreOpts.roomCode) || _generateRoomCode();
+  var _sessionDocId = (restoreOpts && restoreOpts.docId) || null;
 
   // True when the organizer has explicitly paired the 4 players into teams
   // (not autoShuffle, all 4 slots assigned via drag-and-drop). Guests use this
@@ -8926,6 +8932,24 @@ window._renderCasualJoin = function(container, roomCode) {
     // Status: waiting — auto-join + lobby
     var participants = Array.isArray(match.participants) ? match.participants : [];
     var _lobbyInterval = null;
+
+    // v1.3.58-beta: Se o usuário que abriu a tela é o criador da partida, volta
+    // pra tela de setup (casual-match-overlay) em vez de mostrar o lobby.
+    // Cenário principal: SW auto-update recarregou a página enquanto o criador
+    // estava configurando a partida. Sem isso ele ficava preso no lobby
+    // sem conseguir iniciar — tinha que fechar e criar uma nova partida.
+    // _openCasualMatch com restoreOpts reutiliza o roomCode + docId existente,
+    // não cria doc duplicado no Firestore.
+    if (cu && cu.uid && match.createdBy === cu.uid) {
+      window._openCasualMatch({
+        roomCode: roomCode,
+        docId: docId,
+        sport: match.sport || 'Beach Tennis',
+        isDoubles: typeof match.isDoubles === 'boolean' ? match.isDoubles : true,
+        participants: participants
+      });
+      return;
+    }
 
     // Remember that we want to auto-join this casual match after login
     if (!cu || !cu.uid) {
