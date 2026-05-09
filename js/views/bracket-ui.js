@@ -4040,6 +4040,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // registered player's matchHistory subcollection so the stats survive deletion
   // of the tournament / casual match. Used by both casual and tournament paths.
   function _buildAndPersistMatchRecord(extraContext) {
+    // v1.3.63-beta: abandoned/force-finished matches (no clear winner) are
+    // never persisted — they would pollute stats with incomplete data.
+    if (state.winner !== 1 && state.winner !== 2) return;
+
     // Record is built regardless of Firestore availability — the localStorage
     // v2 cache must be written for every casual match so the stats modal can
     // render the full detailed metric set even when Firestore writes fail.
@@ -7518,7 +7522,16 @@ window._openCasualMatch = function(restoreOpts) {
       var allMatches = await window.FirestoreDB.loadRecentCasualMatchesForUser(cu.uid, 15);
       if (!allMatches || allMatches.length === 0) { slot.innerHTML = ''; return; }
 
-      // v1.3.62-beta: cache ALL 15 before filtering so _casualOpenPastMatch
+      // v1.3.63-beta: só partidas CONCLUÍDAS (vencedor definido) — partidas
+      // abandonadas (force-finish sem vencedor, winner===0, ou sem result)
+      // são excluídas do histórico e do cache.
+      allMatches = allMatches.filter(function(m) {
+        var w = m.result && m.result.winner;
+        return w === 1 || w === 2;
+      });
+      if (allMatches.length === 0) { slot.innerHTML = ''; return; }
+
+      // v1.3.62-beta: cache concluded matches so _casualOpenPastMatch
       // can look up any card by roomCode without a Firestore round-trip.
       window._casualPastMatchesCache = {};
       allMatches.forEach(function(m) {

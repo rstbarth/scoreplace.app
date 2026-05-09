@@ -848,6 +848,9 @@ window._renderPersistentMatchStats = function(records, uid) {
         var curWinStreak = 0;
         for (var i = 0; i < sorted.length; i++) {
             var r = sorted[i];
+            // v1.3.63-beta: partidas sem vencedor definido (abandoned/force-finish
+            // com empate ou winner===0) não contam nas estatísticas.
+            if (r.winnerTeam !== 1 && r.winnerTeam !== 2) continue;
             var mySlot = (r.players || []).find(function(p) { return p.uid === uid; });
             if (!mySlot) continue;
             var myTeam = mySlot.team;

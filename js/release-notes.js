@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.63-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — histórico e estatísticas ignoram partidas abandonadas.</b><br>' +
+      '• <b>"Últimas Partidas":</b> só aparecem partidas com vencedor definido (time 1 ou time 2). Partidas encerradas sem vencedor (force-finish com placar empatado ou sem conclusão real) são excluídas dos cards.<br>' +
+      '• <b>Estatísticas:</b> registros sem vencedor definitivo (<code>winnerTeam === 0</code>) não são contabilizados em vitórias, derrotas, sets, games, pontos, saque, recepção, etc. Não são persistidos em Firestore nem no cache local.<br>' +
+      '• Alteração em três pontos: <code>_casualLoadLastMatches</code> (filtro no histórico), <code>_buildAndPersistMatchRecord</code> (não persiste), <code>_aggregate</code> (não conta).<br>' +
+      'Arquivos alterados: <code>js/views/bracket-ui.js</code>, <code>js/views/tournaments-analytics.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.62-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — histórico abre estatísticas (não novo jogo) + botão Desparear visual consistente.</b><br>' +
       '• <b>Regressão corrigida — histórico:</b> clicar em um card das "Últimas Partidas" agora abre as estatísticas da partida encerrada, idêntico ao que aparece quando a partida termina em tempo real. Antes, o clique abria um novo jogo diretamente com os mesmos jogadores.<br>' +
