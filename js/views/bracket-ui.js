@@ -5547,11 +5547,6 @@ window._openLiveScoring = function(tId, matchId, opts) {
             '<span style="font-size:clamp(0.9rem,2vw,1.3rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
             '<span style="font-size:clamp(1.6rem,5vw,2.5rem);font-weight:900;color:' + _gamesRightClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesRightStr + '</span>' +
           '</div>' +
-          // v1.3.66-beta: undo button next to games score (user request)
-          '<button onclick="window._liveScoreUndoLastPoint()" title="Desfazer último ponto" ' +
-            'style="margin-top:3px;padding:2px 10px;border-radius:6px;border:1px solid rgba(99,102,241,0.35);' +
-            'background:rgba(99,102,241,0.12);color:#818cf8;font-size:0.72rem;font-weight:800;cursor:pointer;' +
-            '-webkit-tap-highlight-color:transparent;line-height:1.4;">↶</button>' +
         '</div>';
     }
 
@@ -5616,10 +5611,6 @@ window._openLiveScoring = function(tId, matchId, opts) {
               '<span style="font-size:clamp(0.7rem,1.5vw,1rem);font-weight:300;color:rgba(255,255,255,0.25);">–</span>' +
               '<span style="font-size:clamp(1.1rem,3.5vw,1.8rem);font-weight:900;color:' + _gamesRightClr + ';font-variant-numeric:tabular-nums;line-height:1;">' + _gamesRightStr + '</span>' +
             '</div>' +
-            '<button onclick="window._liveScoreUndoLastPoint()" title="Desfazer último ponto" ' +
-              'style="margin-top:2px;padding:2px 8px;border-radius:5px;border:1px solid rgba(99,102,241,0.35);' +
-              'background:rgba(99,102,241,0.12);color:#818cf8;font-size:0.6rem;font-weight:800;cursor:pointer;' +
-              '-webkit-tap-highlight-color:transparent;line-height:1.4;">↶</button>' +
           '</div>';
       }
 
@@ -5628,7 +5619,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
           // Sets row
           setsRow +
           // Games box — ABOVE the plates to keep score numbers bigger
-          (showGamesBox ? '<div style="flex-shrink:0;margin-bottom:clamp(2px,0.6vh,6px);">' + lsGamesCenter + '</div>' : '') +
+          // v1.3.67-beta: undo button beside games box (outside), not inside it
+          (showGamesBox ? '<div style="flex-shrink:0;margin-bottom:clamp(2px,0.6vh,6px);display:flex;align-items:center;gap:6px;">' + lsGamesCenter + '<button onclick="window._liveScoreUndoLastPoint()" title="Desfazer último ponto" style="flex-shrink:0;padding:4px 8px;border-radius:7px;border:1px solid rgba(99,102,241,0.35);background:rgba(99,102,241,0.12);color:#818cf8;font-size:0.75rem;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;line-height:1;">↶</button></div>' : '') +
           // Special label (TIE-BREAK, winner)
           (gameLabel ? '<div style="text-align:center;font-size:clamp(0.6rem,1.5vw,0.75rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(2px,0.5vh,6px);">' + gameLabel + '</div>' : '') +
           // Main row — 4 columns: [Names+Btns Left] [Plate Left] [Plate Right] [Names+Btns Right]
@@ -5662,7 +5654,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
           // Special label (TIE-BREAK, winner)
           (gameLabel ? '<div style="text-align:center;font-size:clamp(0.65rem,2vw,0.8rem);font-weight:700;color:' + labelClr + ';text-transform:uppercase;letter-spacing:2px;margin-bottom:clamp(2px,0.5vh,6px);">' + gameLabel + '</div>' : '') +
           // Games box — above plates for guaranteed visibility
-          (showGamesBox ? '<div style="flex-shrink:0;margin-bottom:clamp(4px,1vh,8px);">' + gamesCenter + '</div>' : '') +
+          // v1.3.67-beta: undo button beside games box (outside), not inside it
+          (showGamesBox ? '<div style="flex-shrink:0;margin-bottom:clamp(4px,1vh,8px);display:flex;align-items:center;gap:8px;">' + gamesCenter + '<button onclick="window._liveScoreUndoLastPoint()" title="Desfazer último ponto" style="flex-shrink:0;padding:6px 12px;border-radius:8px;border:1px solid rgba(99,102,241,0.35);background:rgba(99,102,241,0.12);color:#818cf8;font-size:0.85rem;font-weight:800;cursor:pointer;-webkit-tap-highlight-color:transparent;line-height:1;">↶</button></div>' : '') +
           // Two-column score plates with team-colored backgrounds
           '<div id="live-court-container" style="display:flex;align-items:stretch;width:100%;gap:4px;justify-content:center;flex:1;min-height:0;">' +
             // Left column

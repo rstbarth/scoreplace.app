@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.67-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Placar ao vivo — botão ↶ movido para fora do box de Games.</b><br>' +
+      '• O botão ↶ (desfazer último ponto) agora aparece <b>ao lado</b> do box de Games — em linha com ele, fora do box — tanto em portrait quanto em landscape. Antes estava dentro do box, abaixo do placar.<br>' +
+      '• Layout: <code>display:flex; align-items:center; gap:8px</code> envolve o games-box + o botão ↶ juntos.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.66-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Placar ao vivo — botão ↶ Desfazer + destaque laranja no 40-40.</b><br>' +
       '• <b>↶ Desfazer:</b> botão aparece dentro do box de Games (ao lado do placar de games), em portrait e landscape. Cada toque desfaz o último ponto registrado — funciona inclusive após fechar um game (o undo restaura o estado exato antes do ponto que fechou o game).<br>' +
