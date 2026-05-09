@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.62-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — histórico abre estatísticas (não novo jogo) + botão Desparear visual consistente.</b><br>' +
+      '• <b>Regressão corrigida — histórico:</b> clicar em um card das "Últimas Partidas" agora abre as estatísticas da partida encerrada, idêntico ao que aparece quando a partida termina em tempo real. Antes, o clique abria um novo jogo diretamente com os mesmos jogadores.<br>' +
+      '• <b>Solução técnica:</b> matches carregados por <code>_casualLoadLastMatches</code> são armazenados em <code>window._casualPastMatchesCache</code>; <code>_casualOpenPastMatch</code> usa esse cache e chama <code>_openLiveScoring</code> com <code>opts.initialLiveState</code> — o estado do jogo encerrado é aplicado sincronicamente antes do primeiro render, sem flash de tela em branco.<br>' +
+      '• <b>Regressão corrigida — botão Desparear:</b> a tela de estatísticas de partida dupla não exibe mais o botão texto âmbar "↔ Desparear". O elo 🔗 com borda pontilhada (introduzido na v1.3.60-beta) já cumpre essa função no lugar correto e com o estilo visual consistente com a tela de configuração.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.61-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — nomes no histórico sempre visíveis.</b><br>' +
       '• <b>Regressão corrigida:</b> a v1.3.59 suprimia nomes genéricos ("Jogador 2", "Jogador 3", etc.) nos cards do histórico, exibindo "—" no lugar. O comportamento correto é mostrar todos os nomes salvos na partida, mesmo os genéricos.<br>' +

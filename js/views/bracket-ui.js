@@ -3492,6 +3492,38 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // Initialize first set
   state.sets.push({ gamesP1: 0, gamesP2: 0, tiebreak: null });
 
+  // v1.3.62-beta: synchronous initial state from history cache — avoids the
+  // blank-scoring flash when opening a past match in viewOnly mode.
+  // _casualOpenPastMatch passes opts.initialLiveState (already in memory),
+  // so the first _render() at the bottom of this function immediately shows
+  // the finished stats screen instead of the empty scoring UI.
+  if (opts && opts.initialLiveState && opts.initialLiveState._ts) {
+    var _ils = opts.initialLiveState;
+    if (_ils.sets && _ils.sets.length) state.sets = _ils.sets;
+    if (_ils.currentGameP1 != null) state.currentGameP1 = _ils.currentGameP1;
+    if (_ils.currentGameP2 != null) state.currentGameP2 = _ils.currentGameP2;
+    state.isTiebreak = !!_ils.isTiebreak;
+    state.isFinished = !!_ils.isFinished;
+    if (_ils.winner != null) state.winner = _ils.winner;
+    state.tieRulePending = !!_ils.tieRulePending;
+    if (_ils.totalGamesPlayed) state.totalGamesPlayed = _ils.totalGamesPlayed;
+    if (_ils.tieRule) state.tieRule = _ils.tieRule;
+    if (Array.isArray(_ils.serveOrder) && _ils.serveOrder.length) state.serveOrder = _ils.serveOrder;
+    state.serveSkipped = !!_ils.serveSkipped;
+    if (Array.isArray(_ils.gameLog)) state.gameLog = _ils.gameLog.slice();
+    if (Array.isArray(_ils.pointLog)) state.pointLog = _ils.pointLog.slice();
+    if (_ils.courtLeft) _courtLeft = _ils.courtLeft;
+    if (_ils.matchStartTime) _matchStartTime = _ils.matchStartTime;
+    if (_ils.matchEndTime) _matchEndTime = _ils.matchEndTime;
+    if (Array.isArray(_ils.p1Players)) {
+      for (var _ilsI = 0; _ilsI < _ils.p1Players.length && _ilsI < p1Players.length; _ilsI++) p1Players[_ilsI] = _ils.p1Players[_ilsI];
+    }
+    if (Array.isArray(_ils.p2Players)) {
+      for (var _ilsJ = 0; _ilsJ < _ils.p2Players.length && _ilsJ < p2Players.length; _ilsJ++) p2Players[_ilsJ] = _ils.p2Players[_ilsJ];
+    }
+    _localizeRoleLabels();
+  }
+
   // If joining an active match, try to load initial liveState from Firestore immediately
   var _initDocId = isCasual && opts ? opts.casualDocId : null;
   if (_initDocId && window.FirestoreDB && window.FirestoreDB.db) {
@@ -5273,10 +5305,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
         restartSection =
           '<button onclick="window._liveScoreConfirmTournament()" style="width:100%;padding:15px;border-radius:14px;font-size:1.05rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">✓ Confirmar Resultado</button>';
       } else if (isDoubles) {
+        // v1.3.62-beta: "↔ Desparear" texto amber removido — o elo 🔗
+        // com borda pontilhada (unpairChainHtml, abaixo no scroll) já
+        // representa a ação visualmente consistente com a tela de setup.
         restartSection =
           '<div style="display:flex;align-items:center;gap:8px;width:100%;">' +
             '<button onclick="window._liveScoreRestart()" title="Jogar novamente com os mesmos times" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);white-space:nowrap;">🔄 Jogar</button>' +
-            '<button onclick="window._liveScoreUnpair()" title="Desparear — volta à tela de formação de times" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;box-shadow:0 4px 20px rgba(245,158,11,0.35);white-space:nowrap;">↔ Desparear</button>' +
             '<label style="flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;">' +
               '<span style="font-size:0.68rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">Re-sortear</span>' +
               '<span class="toggle-switch toggle-sm" style="flex-shrink:0;">' +
@@ -7484,6 +7518,13 @@ window._openCasualMatch = function(restoreOpts) {
       var allMatches = await window.FirestoreDB.loadRecentCasualMatchesForUser(cu.uid, 15);
       if (!allMatches || allMatches.length === 0) { slot.innerHTML = ''; return; }
 
+      // v1.3.62-beta: cache ALL 15 before filtering so _casualOpenPastMatch
+      // can look up any card by roomCode without a Firestore round-trip.
+      window._casualPastMatchesCache = {};
+      allMatches.forEach(function(m) {
+        if (m.roomCode) window._casualPastMatchesCache[m.roomCode] = m;
+      });
+
       // Filter to the sport currently selected in the setup screen
       var curSport = selectedSport || '';
       var matches = allMatches.filter(function(m) {
@@ -7598,13 +7639,48 @@ window._openCasualMatch = function(restoreOpts) {
     }
   };
 
-  // Click handler: abre o overlay de live scoring no estado finished pra
-  // exibir as stats (mesma tela do fim de partida).
+  // v1.3.62-beta: Click handler — abre overlay de live scoring com o
+  // liveState final salvo, mostrando as stats do jogo encerrado (mesma
+  // tela do fim de partida). Usa cache pre-carregado por _casualLoadLastMatches
+  // e chama _openLiveScoring diretamente (sem hash navigation) para que:
+  // (a) o overlay de setup NÃO seja descartado pelo router; e
+  // (b) a tela de stats apareça imediatamente via opts.initialLiveState
+  //     (sem flash de scoring UI em branco).
+  // Clicar "Jogar" nas stats desvincula do doc antigo (_viewOnly flag) e
+  // inicia novo jogo com os mesmos jogadores. Clicar ✕ fecha as stats
+  // e retorna ao overlay de setup.
   window._casualOpenPastMatch = function(roomCode) {
     if (!roomCode) return;
-    // Reusa _renderCasualJoin que JÁ chama _openLiveScoring com viewOnly
-    // pra matches finalizados (v1.3.30-beta). Navega via hash.
-    try { window.location.hash = '#casual/' + roomCode; } catch (e) {}
+    var match = window._casualPastMatchesCache && window._casualPastMatchesCache[roomCode];
+    if (!match || match.status !== 'finished') {
+      // Cache miss ou match não-finalizado — fallback via hash
+      try { window.location.hash = '#casual/' + roomCode; } catch(e) {}
+      return;
+    }
+    var players = Array.isArray(match.players) ? match.players : [];
+    var sportName = match.sport || (typeof _t === 'function' ? _t('casual.title') : 'Partida Casual');
+    var p1Names = players.filter(function(p) { return p.team === 1; }).map(function(p) { return p.name; });
+    var p2Names = players.filter(function(p) { return p.team === 2; }).map(function(p) { return p.name; });
+    try {
+      window._openLiveScoring(null, null, {
+        casual: true,
+        scoring: match.scoring || {},
+        p1Name: p1Names.join(' / '),
+        p2Name: p2Names.join(' / '),
+        title: sportName,
+        sportName: sportName,
+        isDoubles: match.isDoubles || false,
+        casualDocId: match._docId,
+        createdBy: match.createdBy,
+        roomCode: roomCode,
+        players: players,
+        viewOnly: true,
+        initialLiveState: match.liveState || null
+      });
+    } catch(e) {
+      console.warn('[Casual] _casualOpenPastMatch err:', e);
+      try { window.location.hash = '#casual/' + roomCode; } catch(e2) {}
+    }
   };
 
   // Drag-and-drop to form teams: drag player A onto player B → they become Team 1
