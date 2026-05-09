@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.45-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — arrastar para formar times agora funciona sempre.</b><br>' +
+      '• <b>Bug corrigido:</b> o drag-and-drop nos cards de jogadores só era ativado quando o toggle "Sortear" estava desligado. Como o toggle começa ligado por padrão, os event listeners nunca eram registrados — os cards tinham <code>cursor:grab</code> mas não reagiam ao arraste.<br>' +
+      '• <b>Fix:</b> <code>_setupDragDrop()</code> agora é chamado sempre que a tela de duplas é renderizada, independente do estado do toggle. Arrastar dois jogadores juntos forma o time e automaticamente desliga o Sortear (comportamento já existente em <code>_formTeam</code>).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.44-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — botão Voltar do criador encerra a partida para todos.</b> Três correções no fluxo de encerramento do lobby pelo organizador:<br>' +
       '• <b>Voltar agora fecha e cancela:</b> o botão Voltar do criador foi migrado de inline JS para callback registrado, eliminando falha silenciosa em iOS Safari onde o handler não disparava.<br>' +

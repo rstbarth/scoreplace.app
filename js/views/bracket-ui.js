@@ -7364,8 +7364,12 @@ window._openCasualMatch = function() {
 
       '';
 
-    // Attach drag-and-drop for team building (Sortear OFF + Doubles)
-    if (isDoubles && !autoShuffle) {
+    // Attach drag-and-drop for team building (Doubles — always, regardless of
+    // autoShuffle state). Dragging to form a team automatically turns shuffle
+    // OFF via _formTeam(), so there is no reason to block the listeners when
+    // shuffle is still ON. Without this, the cards look draggable (cursor:grab)
+    // but fire no events — the bug reported in v1.3.44-beta.
+    if (isDoubles) {
       setTimeout(function() { _setupDragDrop(); }, 30);
     }
     // v1.3.32-beta: hidrata "Últimas três partidas"
