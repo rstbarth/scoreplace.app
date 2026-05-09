@@ -151,9 +151,8 @@
 
         var cu = window.AppStore && window.AppStore.currentUser;
         if (!cu || !cu.uid) {
-          if (typeof window._captureException === 'function') {
-            window._captureException(new Error('Terms accept attempted without uid'), { area: 'termsAccept' });
-          }
+          // Sem uid = sessão não autenticada (bot, pré-login, SW transition race).
+          // Não reportar ao Sentry — é um caminho esperado e inofensivo.
           cleanup();
           resolve(false);
           return;

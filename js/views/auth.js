@@ -234,7 +234,9 @@ window._updateTopbarForUser = function(user) {
       ? window._profileAvatarUrl(effectiveName || displayFirstName, effectivePhoto, 64)
       : (effectivePhoto || ('https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent(displayFirstName || '?') + '&backgroundColor=6366f1&textColor=ffffff&fontSize=42&size=64'));
 
-    btnLogin.setAttribute('onclick', 'window._onProfileBtnClick(event)');
+    // Defensive guard: evita TypeError se auth.js ainda não terminou de
+    // carregar durante transição de SW ou race de cache parcial.
+    btnLogin.setAttribute('onclick', 'if(typeof window._onProfileBtnClick==="function") window._onProfileBtnClick(event)');
     btnLogin.innerHTML =
       '<div style="display:flex; align-items:center; justify-content:center; gap:8px;" title="Meu Perfil">' +
         '<img src="' + _sh(photoUrl) + '" style="width:32px; height:32px; border-radius:50%; border: 2px solid var(--primary-color); object-fit:cover;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
