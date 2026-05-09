@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.55-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
+      '<p><b>Partida Casual — últimas partidas: header à esquerda, nomes empilhados, filtro por modalidade.</b><br>' +
+      '• <b>Header alinhado à esquerda:</b> "Últimas N partida(s)" deixou de ser centralizado.<br>' +
+      '• <b>Nomes empilhados por time:</b> cada jogador aparece em sua própria linha dentro do bloco do time, em vez de separados por "/". Parceiro do time 1 fica abaixo do jogador 1; idem para o time 2.<br>' +
+      '• <b>Filtro por modalidade:</b> apenas as últimas 3 partidas da modalidade atualmente selecionada na tela de configuração (⚙️) aparecem — outras modalidades são ignoradas. Carrega 15 partidas do servidor e filtra localmente.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.54-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(8 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — últimas partidas: grid 3 colunas, nomes reais, sem badge de vencedor.</b><br>' +
       '• <b>Grid fixo 3 colunas:</b> <code>grid-template-columns:repeat(3,1fr)</code> — cards sempre em 1/3 da largura, independente de quantos existem.<br>' +

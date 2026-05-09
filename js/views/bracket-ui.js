@@ -7423,7 +7423,7 @@ window._openCasualMatch = function() {
   // e renderiza 3 botões. Click → abre overlay de live scoring com o
   // liveState salvo (mesma tela de stats que aparece no fim de cada
   // partida). Sem histórico = seção fica oculta.
-  // v1.3.54-beta: grid fixo 3 colunas, nome via uid+createdBy, sem badge vencedor
+  // v1.3.55-beta: header alinhado à esq, nomes empilhados, filtro por modalidade
   window._casualLoadLastMatches = async function() {
     var slot = document.getElementById('casual-last-matches-slot');
     if (!slot) return;
@@ -7433,11 +7433,16 @@ window._openCasualMatch = function() {
       return;
     }
     try {
-      var matches = await window.FirestoreDB.loadRecentCasualMatchesForUser(cu.uid, 3);
-      if (!matches || matches.length === 0) {
-        slot.innerHTML = '';
-        return;
-      }
+      // Load 15 so we have enough after filtering by selected sport
+      var allMatches = await window.FirestoreDB.loadRecentCasualMatchesForUser(cu.uid, 15);
+      if (!allMatches || allMatches.length === 0) { slot.innerHTML = ''; return; }
+
+      // Filter to the sport currently selected in the setup screen
+      var curSport = selectedSport || '';
+      var matches = allMatches.filter(function(m) {
+        return m.sport === curSport || m.sport === (curSport.toLowerCase ? curSport.toLowerCase() : curSport);
+      }).slice(0, 3);
+      if (matches.length === 0) { slot.innerHTML = ''; return; }
 
       // Resolve first name token only — used for compact cards
       function _firstToken(s) { return s ? (s.split(/[\s.@_\-]/)[0] || s) : ''; }
@@ -7453,6 +7458,19 @@ window._openCasualMatch = function() {
           return _firstToken(cu.displayName);
         var nm = p.displayName || p.name || '';
         return nm ? _firstToken(nm) : '?';
+      }
+
+      // Renders a team block with stacked player names + score on the right
+      function _teamBlock(st, players, score, win) {
+        var nameColor = win ? '#fff' : 'rgba(255,255,255,0.72)';
+        var nameWeight = win ? '700' : '600';
+        var namesHtml = (players.length ? players : ['?']).map(function(nm) {
+          return '<div style="font-size:0.73rem;font-weight:' + nameWeight + ';color:' + nameColor + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;line-height:1.3;">' + window._safeHtml(nm) + '</div>';
+        }).join('');
+        return '<div style="' + st + '">' +
+          '<div style="flex:1;overflow:hidden;min-width:0;">' + namesHtml + '</div>' +
+          (score ? '<span style="font-weight:800;font-size:0.85rem;color:' + (win ? '#4ade80' : 'var(--text-muted)') + ';font-variant-numeric:tabular-nums;flex-shrink:0;padding-left:4px;align-self:center;">' + window._safeHtml(score) + '</span>' : '') +
+        '</div>';
       }
 
       var cardsHtml = '';
@@ -7471,13 +7489,13 @@ window._openCasualMatch = function() {
         var safeRoomCode = (m.roomCode || '').replace(/'/g, "\\'");
 
         // Build per-team player name lists; track first-T1 slot for createdBy fallback
-        var t1Players = [], t2Players = [], t1Idx = 0;
+        var t1Players = [], t2Players = [];
         if (Array.isArray(m.players)) {
           m.players.forEach(function(p) {
             var isFirstT1 = (p.team !== 2 && t1Players.length === 0);
             var nm = _pname(p, m, isFirstT1);
             if (p.team === 2) t2Players.push(nm);
-            else { t1Players.push(nm); t1Idx++; }
+            else t1Players.push(nm);
           });
         }
         if (!m.isDoubles && t2Players.length === 0 && t1Players.length >= 2)
@@ -7500,36 +7518,29 @@ window._openCasualMatch = function() {
           }
         }
 
-        var wRow = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;background:rgba(16,185,129,0.18);border-left:3px solid #10b981;';
-        var lRow = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.2);border-left:3px solid rgba(255,255,255,0.08);opacity:0.5;';
-        var oRow = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.25);border-left:3px solid rgba(99,102,241,0.5);';
+        var wRow = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:flex-start;background:rgba(16,185,129,0.18);border-left:3px solid #10b981;';
+        var lRow = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:flex-start;background:rgba(0,0,0,0.2);border-left:3px solid rgba(255,255,255,0.08);opacity:0.5;';
+        var oRow = 'padding:5px 6px;border-radius:7px;display:flex;justify-content:space-between;align-items:flex-start;background:rgba(0,0,0,0.25);border-left:3px solid rgba(99,102,241,0.5);';
         var p1Style = isDecided ? (t1Win ? wRow : lRow) : oRow;
         var p2Style = isDecided ? (t2Win ? wRow : lRow) : oRow;
 
-        function _row(st, label, score, win) {
-          return '<div style="' + st + '">' +
-            '<div style="flex:1;overflow:hidden;min-width:0;font-size:0.74rem;font-weight:' + (win ? '700' : '600') + ';color:' + (win ? '#fff' : 'rgba(255,255,255,0.72)') + ';white-space:nowrap;text-overflow:ellipsis;">' + window._safeHtml(label) + '</div>' +
-            (score ? '<span style="font-weight:800;font-size:0.85rem;color:' + (win ? '#4ade80' : 'var(--text-muted)') + ';font-variant-numeric:tabular-nums;flex-shrink:0;padding-left:4px;">' + window._safeHtml(score) + '</span>' : '') +
-          '</div>';
-        }
-
         cardsHtml +=
           '<button onclick="window._casualOpenPastMatch(\'' + safeRoomCode + '\')" ' +
-            'style="display:block;text-align:left;border-radius:12px;padding:9px 9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:var(--text-bright);cursor:pointer;transition:all 0.15s;font-family:inherit;min-width:0;" ' +
+            'style="display:block;text-align:left;border-radius:12px;padding:9px 9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:var(--text-bright);cursor:pointer;transition:all 0.15s;font-family:inherit;min-width:0;width:100%;" ' +
             'onmouseover="this.style.background=\'rgba(251,191,36,0.07)\';this.style.borderColor=\'rgba(251,191,36,0.30)\'" ' +
             'onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.10)\'">' +
             '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:4px;">' +
               '<span style="font-size:0.72rem;">' + icon + '</span>' +
               '<span style="font-size:0.57rem;color:var(--text-muted);font-weight:600;">' + window._safeHtml(dateStr || '—') + '</span>' +
             '</div>' +
-            _row(p1Style, t1Players.join('/') || '?', p1ScoreStr, t1Win) +
+            _teamBlock(p1Style, t1Players, p1ScoreStr, t1Win) +
             '<div style="text-align:center;font-size:0.52rem;color:var(--text-muted);font-weight:800;letter-spacing:1.5px;padding:2px 0;">VS</div>' +
-            _row(p2Style, t2Players.join('/') || '?', p2ScoreStr, t2Win) +
+            _teamBlock(p2Style, t2Players, p2ScoreStr, t2Win) +
           '</button>';
       });
 
       slot.innerHTML =
-        '<div style="font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;text-align:center;">📊 Últimas ' + matches.length + ' partida' + (matches.length === 1 ? '' : 's') + '</div>' +
+        '<div style="font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;text-align:left;">📊 Últimas ' + matches.length + ' partida' + (matches.length === 1 ? '' : 's') + '</div>' +
         '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;">' + cardsHtml + '</div>' +
         '<div style="text-align:center;font-size:0.54rem;color:var(--text-muted);opacity:0.7;font-style:italic;margin-top:5px;">Toque pra ver as estatísticas</div>';
     } catch (e) {
