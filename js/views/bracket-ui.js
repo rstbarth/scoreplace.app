@@ -7437,6 +7437,11 @@ window._openCasualMatch = function() {
         slot.innerHTML = '';
         return;
       }
+      // Local helper: first word/token of a name for compact display
+      function _nt(n) {
+        var s = (n || '?').split(/[\s.@_\-]/)[0];
+        return s || (n || '?');
+      }
       var btnsHtml = '';
       matches.forEach(function(m) {
         var sport = m.sport || '';
@@ -7454,11 +7459,48 @@ window._openCasualMatch = function() {
           if (sports[ssi].label === sport || sports[ssi].key === sport) { icon = sports[ssi].icon; break; }
         }
         var safeRoomCode = (m.roomCode || '').replace(/'/g, "\\'");
+
+        // Build per-team player name lists from m.players
+        var t1Players = [], t2Players = [];
+        if (Array.isArray(m.players)) {
+          m.players.forEach(function(p) {
+            var nm = p.name || p.displayName || '?';
+            if (p.team === 2) t2Players.push(nm);
+            else t1Players.push(nm); // singles players have no team field → all go to t1 initially
+          });
+        }
+        // Singles without team field: first player is T1, second is T2
+        if (!m.isDoubles && t2Players.length === 0 && t1Players.length >= 2) {
+          t2Players = t1Players.splice(1);
+        }
+        var winner = (m.result && m.result.winner) || 0;
+        var t1Win = (winner === 1);
+        var t2Win = (winner === 2);
+
+        // Render a team block: one row per player, winner gets amber + trophy
+        function _teamBlock(players, isWinner) {
+          if (!players.length) return '<div style="font-size:0.6rem;color:rgba(255,255,255,0.35);">?</div>';
+          var clr = isWinner ? '#fbbf24' : 'rgba(255,255,255,0.72)';
+          var fw = isWinner ? '800' : '700';
+          var rows = players.map(function(n) {
+            return '<div style="font-size:0.62rem;font-weight:' + fw + ';color:' + clr + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;line-height:1.35;">' + window._safeHtml(_nt(n)) + '</div>';
+          }).join('');
+          if (isWinner) rows += '<div style="font-size:0.5rem;line-height:1;">🏆</div>';
+          return rows;
+        }
+
         btnsHtml +=
-          '<button onclick="window._casualOpenPastMatch(\'' + safeRoomCode + '\')" style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:var(--text-bright);cursor:pointer;transition:all 0.15s;font-family:inherit;text-align:center;" onmouseover="this.style.background=\'rgba(251,191,36,0.10)\';this.style.borderColor=\'rgba(251,191,36,0.35)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.10)\'">' +
-            '<span style="font-size:1.2rem;line-height:1;">' + icon + '</span>' +
-            '<span style="font-size:0.65rem;color:var(--text-muted);font-weight:600;">' + window._safeHtml(dateStr || '—') + '</span>' +
-            (summary ? '<span style="font-size:0.7rem;color:#38bdf8;font-weight:700;letter-spacing:0.5px;font-variant-numeric:tabular-nums;">' + window._safeHtml(summary) + '</span>' : '') +
+          '<button onclick="window._casualOpenPastMatch(\'' + safeRoomCode + '\')" style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:0;padding:8px 5px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:var(--text-bright);cursor:pointer;transition:all 0.15s;font-family:inherit;text-align:center;" onmouseover="this.style.background=\'rgba(251,191,36,0.10)\';this.style.borderColor=\'rgba(251,191,36,0.35)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.10)\'">' +
+            '<div style="display:flex;gap:3px;align-items:center;justify-content:center;margin-bottom:5px;">' +
+              '<span style="font-size:0.85rem;line-height:1;">' + icon + '</span>' +
+              '<span style="font-size:0.55rem;color:var(--text-muted);font-weight:600;">' + window._safeHtml(dateStr || '—') + '</span>' +
+            '</div>' +
+            '<div style="width:100%;">' + _teamBlock(t1Players, t1Win) + '</div>' +
+            (summary ?
+              '<div style="font-size:0.7rem;color:#38bdf8;font-weight:800;margin:4px 0 3px;letter-spacing:0.5px;font-variant-numeric:tabular-nums;">' + window._safeHtml(summary) + '</div>' :
+              '<div style="font-size:0.55rem;color:rgba(255,255,255,0.3);margin:3px 0;">vs</div>'
+            ) +
+            '<div style="width:100%;">' + _teamBlock(t2Players, t2Win) + '</div>' +
           '</button>';
       });
       slot.innerHTML =
