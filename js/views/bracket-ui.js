@@ -7437,15 +7437,9 @@ window._openCasualMatch = function() {
         slot.innerHTML = '';
         return;
       }
-      // Local helper: first word/token of a name for compact display
-      function _nt(n) {
-        var s = (n || '?').split(/[\s.@_\-]/)[0];
-        return s || (n || '?');
-      }
-      var btnsHtml = '';
+      var cardsHtml = '';
       matches.forEach(function(m) {
         var sport = m.sport || '';
-        var summary = (m.result && m.result.summary) || '';
         var dateStr = '';
         if (m.createdAt) {
           var d = (typeof m.createdAt === 'string') ? new Date(m.createdAt) : null;
@@ -7453,59 +7447,91 @@ window._openCasualMatch = function() {
             dateStr = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
           }
         }
-        // Sport icon (pega do sports[] já existente neste closure)
+        // Sport icon from closure sports[]
         var icon = '🎾';
         for (var ssi = 0; ssi < sports.length; ssi++) {
           if (sports[ssi].label === sport || sports[ssi].key === sport) { icon = sports[ssi].icon; break; }
         }
         var safeRoomCode = (m.roomCode || '').replace(/'/g, "\\'");
 
-        // Build per-team player name lists from m.players
+        // Build per-team player lists
         var t1Players = [], t2Players = [];
         if (Array.isArray(m.players)) {
           m.players.forEach(function(p) {
             var nm = p.name || p.displayName || '?';
             if (p.team === 2) t2Players.push(nm);
-            else t1Players.push(nm); // singles players have no team field → all go to t1 initially
+            else t1Players.push(nm);
           });
         }
-        // Singles without team field: first player is T1, second is T2
+        // Singles without team field: first is T1, second is T2
         if (!m.isDoubles && t2Players.length === 0 && t1Players.length >= 2) {
           t2Players = t1Players.splice(1);
         }
+
         var winner = (m.result && m.result.winner) || 0;
         var t1Win = (winner === 1);
         var t2Win = (winner === 2);
+        var isDecided = (winner === 1 || winner === 2);
 
-        // Render a team block: one row per player, winner gets amber + trophy
-        function _teamBlock(players, isWinner) {
-          if (!players.length) return '<div style="font-size:0.6rem;color:rgba(255,255,255,0.35);">?</div>';
-          var clr = isWinner ? '#fbbf24' : 'rgba(255,255,255,0.72)';
-          var fw = isWinner ? '800' : '700';
-          var rows = players.map(function(n) {
-            return '<div style="font-size:0.62rem;font-weight:' + fw + ';color:' + clr + ';overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;line-height:1.35;">' + window._safeHtml(_nt(n)) + '</div>';
-          }).join('');
-          if (isWinner) rows += '<div style="font-size:0.5rem;line-height:1;">🏆</div>';
-          return rows;
+        // Extract individual scores: prefer saved p1Score/p2Score, else parse sets
+        var p1ScoreStr = '', p2ScoreStr = '';
+        if (m.result) {
+          if (m.result.p1Score != null && m.result.p2Score != null) {
+            p1ScoreStr = String(m.result.p1Score);
+            p2ScoreStr = String(m.result.p2Score);
+          } else if (m.result.sets && m.result.sets.length > 0) {
+            p1ScoreStr = m.result.sets.map(function(s) { return s.gamesP1; }).join(' ');
+            p2ScoreStr = m.result.sets.map(function(s) { return s.gamesP2; }).join(' ');
+          } else if (m.result.summary) {
+            // Parse "6 × 0" or "6-4" fallback
+            var sumParts = m.result.summary.split(/\s*[×]\s*/);
+            if (sumParts.length === 2) { p1ScoreStr = sumParts[0].trim(); p2ScoreStr = sumParts[1].trim(); }
+          }
         }
 
-        btnsHtml +=
-          '<button onclick="window._casualOpenPastMatch(\'' + safeRoomCode + '\')" style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:0;padding:8px 5px;border-radius:12px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:var(--text-bright);cursor:pointer;transition:all 0.15s;font-family:inherit;text-align:center;" onmouseover="this.style.background=\'rgba(251,191,36,0.10)\';this.style.borderColor=\'rgba(251,191,36,0.35)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.10)\'">' +
-            '<div style="display:flex;gap:3px;align-items:center;justify-content:center;margin-bottom:5px;">' +
-              '<span style="font-size:0.85rem;line-height:1;">' + icon + '</span>' +
-              '<span style="font-size:0.55rem;color:var(--text-muted);font-weight:600;">' + window._safeHtml(dateStr || '—') + '</span>' +
+        // Row style mirroring bracket.js rowStyle()
+        var winnerRowStyle = 'padding:7px 8px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;background:rgba(16,185,129,0.18);border-left:3px solid #10b981;';
+        var loserRowStyle  = 'padding:7px 8px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.2);border-left:3px solid rgba(255,255,255,0.08);opacity:0.55;';
+        var openP1Style    = 'padding:7px 8px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.25);border-left:3px solid rgba(16,185,129,0.4);';
+        var openP2Style    = 'padding:7px 8px;border-radius:8px;display:flex;justify-content:space-between;align-items:center;background:rgba(0,0,0,0.25);border-left:3px solid rgba(239,68,68,0.4);';
+        var p1RowStyle = isDecided ? (t1Win ? winnerRowStyle : loserRowStyle) : openP1Style;
+        var p2RowStyle = isDecided ? (t2Win ? winnerRowStyle : loserRowStyle) : openP2Style;
+
+        // Team label: join with " / " for doubles
+        var t1Label = t1Players.join(' / ') || '?';
+        var t2Label = t2Players.join(' / ') || '?';
+
+        // Build player rows (name left, score right)
+        function _playerRow(rowStyle, label, scoreStr, isWin) {
+          var nameColor = isWin ? '#ffffff' : 'rgba(255,255,255,0.75)';
+          var nameFw = isWin ? '700' : '600';
+          var scoreColor = isWin ? '#4ade80' : 'var(--text-muted)';
+          return '<div style="' + rowStyle + '">' +
+            '<div style="flex:1;overflow:hidden;min-width:0;font-size:0.82rem;font-weight:' + nameFw + ';color:' + nameColor + ';white-space:nowrap;text-overflow:ellipsis;">' + window._safeHtml(label) + '</div>' +
+            (scoreStr ? '<span style="font-weight:800;font-size:0.95rem;min-width:28px;text-align:right;color:' + scoreColor + ';font-variant-numeric:tabular-nums;flex-shrink:0;padding-left:6px;">' + window._safeHtml(scoreStr) + '</span>' : '') +
+          '</div>';
+        }
+
+        // Winner badge
+        var winnerBadge = isDecided
+          ? '<div style="text-align:center;font-size:0.72rem;color:#4ade80;font-weight:700;margin-top:6px;padding:4px 8px;background:rgba(16,185,129,0.10);border-radius:6px;">🏆 ' + window._safeHtml(t1Win ? t1Label : t2Label) + '</div>'
+          : '';
+
+        cardsHtml +=
+          '<button onclick="window._casualOpenPastMatch(\'' + safeRoomCode + '\')" style="width:100%;display:block;text-align:left;border-radius:12px;padding:12px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:var(--text-bright);cursor:pointer;transition:all 0.15s;font-family:inherit;" onmouseover="this.style.background=\'rgba(251,191,36,0.07)\';this.style.borderColor=\'rgba(251,191,36,0.30)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.04)\';this.style.borderColor=\'rgba(255,255,255,0.10)\'">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:5px;">' +
+              '<span style="font-size:0.7rem;font-weight:700;color:#38bdf8;">' + icon + ' ' + window._safeHtml(sport || 'Casual') + '</span>' +
+              '<span style="font-size:0.65rem;color:var(--text-muted);font-weight:600;">' + window._safeHtml(dateStr || '—') + '</span>' +
             '</div>' +
-            '<div style="width:100%;">' + _teamBlock(t1Players, t1Win) + '</div>' +
-            (summary ?
-              '<div style="font-size:0.7rem;color:#38bdf8;font-weight:800;margin:4px 0 3px;letter-spacing:0.5px;font-variant-numeric:tabular-nums;">' + window._safeHtml(summary) + '</div>' :
-              '<div style="font-size:0.55rem;color:rgba(255,255,255,0.3);margin:3px 0;">vs</div>'
-            ) +
-            '<div style="width:100%;">' + _teamBlock(t2Players, t2Win) + '</div>' +
+            _playerRow(p1RowStyle, t1Label, p1ScoreStr, t1Win) +
+            '<div style="text-align:center;font-size:0.6rem;color:var(--text-muted);font-weight:800;letter-spacing:2px;padding:2px 0;">VS</div>' +
+            _playerRow(p2RowStyle, t2Label, p2ScoreStr, t2Win) +
+            winnerBadge +
           '</button>';
       });
       slot.innerHTML =
         '<div style="font-size:0.6rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;text-align:center;">📊 Últimas ' + matches.length + ' partida' + (matches.length === 1 ? '' : 's') + '</div>' +
-        '<div style="display:flex;gap:6px;align-items:stretch;">' + btnsHtml + '</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;">' + cardsHtml + '</div>' +
         '<div style="text-align:center;font-size:0.55rem;color:var(--text-muted);opacity:0.7;font-style:italic;margin-top:6px;">Toque pra ver as estatísticas</div>';
     } catch (e) {
       console.warn('[Casual] _casualLoadLastMatches err:', e);
