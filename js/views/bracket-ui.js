@@ -6433,9 +6433,13 @@ window._openLiveScoring = function(tId, matchId, opts) {
         try { _releaseWakeLock(); } catch(e) {}
         var ov = document.getElementById('live-scoring-overlay');
         if (ov) ov.remove();
-        // Reseta times na tela de setup (ainda no DOM por baixo)
-        if (typeof window._casualResetTeams === 'function') {
-          window._casualResetTeams();
+        // Volta pra tela de setup com os mesmos jogadores, times desfeitos.
+        // _casualReopenSetup re-appenda o overlay (removido quando _casualStart
+        // foi chamado) e zera _teamAssignments para nova formação de duplas.
+        if (typeof window._casualReopenSetup === 'function') {
+          window._casualReopenSetup();
+        } else if (typeof window._casualResetTeams === 'function') {
+          window._casualResetTeams(); // fallback
         }
       }
     );
@@ -7649,6 +7653,36 @@ window._openCasualMatch = function() {
     autoShuffle = true;
     _renderSetup();
     _syncCasualSetupDebounced();
+  };
+
+  // v1.3.50-beta: chamado por _liveScoreUnpair para voltar à tela de setup
+  // mantendo os mesmos jogadores. A casual-match-overlay é removida quando
+  // _casualStart() é chamado (para dar lugar ao live-scoring-overlay), então
+  // precisamos re-appendá-la ao body. A referência `overlay` ainda existe no
+  // closure — só foi desanexada do DOM.
+  window._casualReopenSetup = function() {
+    // Zera times para formar novos pares livremente
+    _teamAssignments = {};
+    autoShuffle = true;
+    // Reseta sessão: próximo Iniciar cria novo doc no Firestore
+    _sessionDocId = null;
+    // Re-appenda overlay (ainda em memória no closure)
+    if (!document.getElementById('casual-match-overlay')) {
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+      if (_metaVp) {
+        _metaVp.setAttribute('content', 'width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no');
+      }
+      // Re-observa para restaurar scroll/viewport quando fechar
+      try { _ovObs.observe(document.body, { childList: true }); } catch(e) {}
+    }
+    // Renderiza setup com os jogadores já presentes
+    _renderSetup();
+    _syncCasualSetupDebounced();
+    // Hidrata "Últimas partidas" (pode ter nova partida agora)
+    setTimeout(function() {
+      if (typeof window._casualLoadLastMatches === 'function') window._casualLoadLastMatches();
+    }, 300);
   };
 
   // Track if config screen is open
