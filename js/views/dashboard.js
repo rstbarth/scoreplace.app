@@ -1805,6 +1805,12 @@ function renderDashboard(container) {
     <!-- Upcoming Matches -->
     ${_buildUpcomingMatchesHtml()}
 
+    <!-- Casual Link Request Banner (loaded async — prominent call-to-action when someone
+         suggested that a guest player in a casual match is actually this user.
+         v1.3.73-beta: user reported the notification only appears in the bell icon and
+         users often miss it — now also shown as a prominent amber banner on the dashboard.) -->
+    <div id="dashboard-casual-link-widget" style="margin-bottom:1rem;"></div>
+
     <!-- My Active Presence (loaded async — pill at top when user has a check-in/plan live) -->
     <div id="dashboard-myactive-widget" style="margin-bottom:1rem;"></div>
 
@@ -1882,6 +1888,9 @@ function renderDashboard(container) {
     proBtn.style.display = isPro ? 'none' : 'inline-flex';
   }
 
+  // ─── Casual link request banner (async load) ───
+  _hydrateCasualLinkWidget();
+
   // ─── Friends' presences widget (async load) ───
   _hydrateMyActivePresenceWidget();
   _hydrateFriendsPresenceWidget();
@@ -1935,6 +1944,8 @@ function renderDashboard(container) {
       if (nudgeSlot) {
         try { nudgeSlot.innerHTML = _buildProfileNudgeHtml(); } catch (e) {}
       }
+      // Re-hydrate casual link banner now that notifications are available.
+      _hydrateCasualLinkWidget();
       var box = document.getElementById('dashboard-presences-widget');
       if (!box) return;
       _setupPresenceListeners(true); // force re-setup with new friends list
@@ -2010,6 +2021,127 @@ function _teardownPresenceListeners() {
   }
 }
 window._teardownPresenceListeners = _teardownPresenceListeners;
+
+// ─── Casual link request dashboard banner ─────────────────────────────────
+// v1.3.73-beta: quando o organizador de uma partida casual sugere que um
+// nome genérico (ex: "Kelly") é um usuário cadastrado (Kelly Barth), o
+// sistema envia uma notificação casual_link_request para esse usuário.
+// Antes, o único ponto de resposta era o ícone 🔔 de notificações — que
+// muitos usuários nunca abrem. Agora exibe banner âmbar proeminente
+// diretamente na dashboard com botões ✅/❌ inline.
+// Reutiliza o mesmo handler window._confirmCasualLinkRequest de bracket-ui.js
+// que já alimenta os botões na tela de notificações (single source of truth).
+function _hydrateCasualLinkWidget() {
+  var box = document.getElementById('dashboard-casual-link-widget');
+  if (!box) return;
+  var cu = window.AppStore && window.AppStore.currentUser;
+  if (!cu || !cu.uid) { box.innerHTML = ''; return; }
+  if (!window.FirestoreDB || !window.FirestoreDB.db) { box.innerHTML = ''; return; }
+
+  var _safe = window._safeHtml || function(s) { return String(s || ''); };
+
+  window.FirestoreDB.db
+    .collection('users').doc(cu.uid).collection('notifications')
+    .where('type', '==', 'casual_link_request')
+    .where('read', '==', false)
+    .limit(5)
+    .get()
+    .then(function(snap) {
+      var pending = [];
+      snap.forEach(function(doc) {
+        var d = doc.data();
+        d._id = doc.id;
+        if (d.casualMatchDocId) pending.push(d);
+      });
+
+      var widgetBox = document.getElementById('dashboard-casual-link-widget');
+      if (!widgetBox) return;
+
+      if (pending.length === 0) { widgetBox.innerHTML = ''; return; }
+
+      // Cache notifications keyed by id so the confirm handler can look
+      // them up without DOM serialization.
+      window._dashCasualLinkNotifCache = window._dashCasualLinkNotifCache || {};
+      pending.forEach(function(n) { window._dashCasualLinkNotifCache[n._id] = n; });
+
+      var cards = pending.map(function(n) {
+        var guestName = _safe(n.casualGuestName || 'você');
+        var sport = _safe(n.casualSport || '');
+        var sportLabel = sport ? ' de <b>' + sport + '</b>' : '';
+        var safeId = (n._id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        var organizer = _safe(n.senderName || n.senderEmail || 'O organizador');
+        var roomBadge = n.casualRoomCode
+          ? ' · <span style="font-family:monospace;color:#fbbf24;letter-spacing:1px;font-size:0.78rem;">' + _safe(n.casualRoomCode) + '</span>'
+          : '';
+
+        return '<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 16px;' +
+          'background:linear-gradient(135deg,rgba(251,191,36,0.18),rgba(245,158,11,0.07));' +
+          'border:1px solid rgba(251,191,36,0.45);border-radius:14px;flex-wrap:wrap;">' +
+          '<span style="font-size:1.4rem;flex-shrink:0;margin-top:2px;">🤝</span>' +
+          '<div style="flex:1;min-width:180px;">' +
+            '<div style="font-weight:800;color:#fbbf24;font-size:0.92rem;margin-bottom:4px;">Você jogou esta partida?</div>' +
+            '<div style="font-size:0.82rem;color:var(--text-bright);margin-bottom:10px;line-height:1.45;">' +
+              organizer + ' sugeriu que <b>' + guestName + '</b>' + sportLabel + roomBadge +
+              ' era você. Confirme para vincular as estatísticas ao seu perfil.' +
+            '</div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+              '<button onclick="window._dashConfirmCasualLink(\'' + safeId + '\', true)" ' +
+                'style="background:linear-gradient(135deg,#10b981,#059669);border:none;color:#fff;' +
+                'border-radius:8px;padding:7px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;' +
+                'display:inline-flex;align-items:center;gap:5px;">' +
+                '✅ Sim, era eu' +
+              '</button>' +
+              '<button onclick="window._dashConfirmCasualLink(\'' + safeId + '\', false)" ' +
+                'style="background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.4);' +
+                'color:#f87171;border-radius:8px;padding:7px 16px;font-size:0.8rem;font-weight:700;cursor:pointer;">' +
+                '❌ Não, era outra pessoa' +
+              '</button>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      });
+
+      widgetBox.innerHTML = '<div style="display:flex;flex-direction:column;gap:10px;">' + cards.join('') + '</div>';
+    })
+    .catch(function(e) {
+      console.warn('[casual-link-widget] error loading notifs:', e);
+      var widgetBox = document.getElementById('dashboard-casual-link-widget');
+      if (widgetBox) widgetBox.innerHTML = '';
+    });
+}
+
+// Confirm or deny a casual link request from the dashboard banner.
+// Looks up the cached notification by id (set during _hydrateCasualLinkWidget)
+// and delegates to window._confirmCasualLinkRequest (bracket-ui.js).
+// After the action, re-hydrates the banner so it disappears immediately.
+window._dashConfirmCasualLink = async function(notifId, accept) {
+  if (!notifId) return;
+  var cache = window._dashCasualLinkNotifCache || {};
+  var notif = cache[notifId];
+  if (!notif) {
+    // Fallback: load directly from Firestore (cache miss / page reload case)
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (cu && cu.uid && window.FirestoreDB && window.FirestoreDB.db) {
+      try {
+        var docSnap = await window.FirestoreDB.db
+          .collection('users').doc(cu.uid)
+          .collection('notifications').doc(notifId).get();
+        if (docSnap.exists) { notif = docSnap.data(); notif._id = docSnap.id; }
+      } catch (e) {
+        console.warn('[casual-link-widget] notif fallback load failed:', e);
+      }
+    }
+  }
+  if (!notif) {
+    if (typeof showNotification === 'function') showNotification('Notificação não encontrada', 'Pode ter expirado.', 'warning');
+    return;
+  }
+  if (typeof window._confirmCasualLinkRequest === 'function') {
+    await window._confirmCasualLinkRequest(notif, accept);
+  }
+  // Clear banner immediately — don't wait for the next profile-loaded event
+  _hydrateCasualLinkWidget();
+};
 
 // Load the user's OWN active presences (check-in ativo ou plan no futuro)
 // e renderiza um pill status no topo da dashboard. Antes, o usuário fazia

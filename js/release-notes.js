@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.73-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(10 de Maio, 2026)</span></div>' +
+      '<p><b>Banner de vinculação de partida casual na dashboard.</b><br>' +
+      '• Quando o organizador de uma partida casual sugere que um nome genérico é você (ex: "Kelly" → Kelly Barth), agora aparece um <b>banner âmbar em destaque diretamente na dashboard</b> com os botões ✅ Sim, era eu / ❌ Não, era outra pessoa — não mais apenas no ícone 🔔 de notificações que muitos usuários não abrem.<br>' +
+      '• O banner desaparece imediatamente após a resposta e continua mostrando enquanto houver solicitações pendentes.<br>' +
+      '• Os botões reutilizam o mesmo handler <code>_confirmCasualLinkRequest</code> da tela de notificações (única fonte de verdade).<br>' +
+      'Alteração em <code>js/views/dashboard.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.72-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(10 de Maio, 2026)</span></div>' +
       '<p><b>Correções de estabilidade — 3 erros do Sentry resolvidos.</b><br>' +
       '• <b>Crash nas estatísticas de partida</b> (<code>winT.holdServed</code>): <code>winT</code>/<code>losT</code> agora default para <code>{}</code> quando <code>state.winner</code> é indefinido — todas as propriedades têm guards <code>&gt; 0</code> e produzem 0 em vez de crash.<br>' +
