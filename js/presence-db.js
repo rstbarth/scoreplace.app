@@ -277,7 +277,10 @@ window.PresenceDB = {
       return list;
     } catch (e) {
       console.error('[loadMyActive v0.16.79] erro:', e);
-      if (typeof window._captureException === 'function') {
+      // permission-denied = sessão expirada ou bot não autenticado — caminho
+      // esperado, não vale ruído no Sentry.
+      if (typeof window._captureException === 'function' &&
+          (!e || e.code !== 'permission-denied')) {
         window._captureException(e, { area: 'loadMyActive', code: e && e.code });
       }
       return [];

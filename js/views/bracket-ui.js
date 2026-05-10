@@ -4948,8 +4948,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
       };
 
       var _matchStats = _computeMatchStats();
-      var winT = _matchStats.teamStats[winTeam];
-      var losT = _matchStats.teamStats[winTeam === 1 ? 2 : 1];
+      var winT = _matchStats.teamStats[winTeam] || {};
+      var losT = _matchStats.teamStats[winTeam === 1 ? 2 : 1] || {};
       var hasServeData = state.gameLog && state.gameLog.length > 0 && !state.serveSkipped;
 
       // Player detail modal — called from chip onclick. Uses closure over _computeMatchStats + helpers.

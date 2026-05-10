@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.72-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(10 de Maio, 2026)</span></div>' +
+      '<p><b>Correções de estabilidade — 3 erros do Sentry resolvidos.</b><br>' +
+      '• <b>Crash nas estatísticas de partida</b> (<code>winT.holdServed</code>): <code>winT</code>/<code>losT</code> agora default para <code>{}</code> quando <code>state.winner</code> é indefinido — todas as propriedades têm guards <code>&gt; 0</code> e produzem 0 em vez de crash.<br>' +
+      '• <b>Sentry noise: <code>loadMyActive</code> permission-denied</b>: erros <code>permission-denied</code> do Firestore (sessão expirada ou bot não autenticado) não são mais enviados ao Sentry — caminho esperado e inofensivo.<br>' +
+      '• <b>Compartilhar torneio — <code>NotAllowedError</code> unhandled</b>: o fallback de clipboard dentro do <code>navigator.share().catch()</code> agora tem seu próprio <code>.catch()</code> com fallback <code>execCommand</code> — sem rejeições sem tratamento.<br>' +
+      'Alterações em <code>js/views/bracket-ui.js</code>, <code>js/presence-db.js</code>, <code>js/views/tournaments-sharing.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.71-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(9 de Maio, 2026)</span></div>' +
       '<p><b>Placar ao vivo portrait — números de Games e de Set ainda maiores.</b><br>' +
       '• <b>Games:</b> <code>clamp(2.6rem,8vw,4rem)</code> → <code>clamp(4rem,14vw,7rem)</code> — quase o dobro.<br>' +

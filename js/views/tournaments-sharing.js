@@ -38,6 +38,16 @@ window._shareTournament = function(tournamentId) {
             // Fallback to clipboard
             navigator.clipboard.writeText(url).then(function() {
                 if (typeof showNotification === 'function') showNotification(_t('share.copied'), _t('share.copiedMsg'), 'success');
+            }).catch(function() {
+                // Clipboard also blocked (browser policy / user denied) — execCommand fallback
+                try {
+                    var inp = document.createElement('input');
+                    inp.value = url; document.body.appendChild(inp); inp.select();
+                    document.execCommand('copy'); document.body.removeChild(inp);
+                    if (typeof showNotification === 'function') showNotification(_t('share.copied'), _t('share.copiedMsg'), 'success');
+                } catch (_e) {
+                    if (typeof showNotification === 'function') showNotification('Link', url, 'info');
+                }
             });
         });
     } else {
