@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.90-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>Liga — grupo no WhatsApp criado automaticamente a cada sorteio.</b><br>' +
+      '• Sempre que uma rodada da Liga é sorteada (sorteio manual, sorteio automático agendado ou 1ª rodada via "Sortear"), o app cria automaticamente um grupo no WhatsApp para cada partida da rodada.<br>' +
+      '• O grupo inclui os dois jogadores (ou duplas) sorteados para jogar juntos nessa rodada.<br>' +
+      '• Uma mensagem é enviada ao grupo informando: nome do torneio, número da rodada, partida, prazo para lançar o resultado e a data/hora do próximo sorteio agendado.<br>' +
+      '• Requisito: os jogadores precisam ter o número de WhatsApp cadastrado no perfil. Partidas sem pelo menos 2 números cadastrados são silenciosamente ignoradas.<br>' +
+      '• Nova Cloud Function <code>notifyLeagueRoundWhatsApp</code> + hooks em <code>bracket-logic.js</code> e <code>tournaments-draw.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.89-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>WhatsApp magic link — dispara em paralelo com o SMS (independente de rate-limit).</b><br>' +
       '• Antes, o link do WhatsApp era enviado dentro do <code>.then()</code> do <code>signInWithPhoneNumber</code>. Se o SMS falhava por "muitas tentativas" (rate-limit do Firebase), o <code>.then()</code> nunca disparava e o WhatsApp também não era enviado.<br>' +

@@ -269,6 +269,10 @@ window.generateDrawFunction = function (tId) {
 
         // Save immediately to Firestore, then navigate
         window.AppStore.syncImmediate(tId).then(function() {
+            // Notify Liga round via WhatsApp (fire-and-forget)
+            if (typeof _notifyLigaRoundWhatsApp === 'function') {
+                _notifyLigaRoundWhatsApp(t, 0);
+            }
             window.location.hash = `#bracket/${tId}`;
         });
         return;
@@ -590,6 +594,10 @@ window.generateDrawFunction = function (tId) {
             });
         }
         window.AppStore.syncImmediate(tId).then(function() {
+            // Notify Liga round via WhatsApp if this is a Liga/Suíço tournament (fire-and-forget)
+            if (typeof _notifyLigaRoundWhatsApp === 'function') {
+                _notifyLigaRoundWhatsApp(t, 0);
+            }
             window.location.hash = '#bracket/' + tId;
         });
         return;
