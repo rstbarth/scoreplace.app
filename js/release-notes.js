@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.78-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>Login por SMS — nome de exibição usa o telefone quando não há nome cadastrado.</b><br>' +
+      '• Ao entrar via SMS sem ter completado o perfil, o topbar e a saudação mostravam "usuário" em vez de qualquer identificação.<br>' +
+      '• Agora a cadeia de fallback do nome de exibição é: nome do perfil → email → <b>telefone formatado</b> → "usuário". O número é exibido no formato local, ex: <code>(11) 99972-3777</code> quando o perfil já carregou; o número bruto como fallback na inicialização rápida.<br>' +
+      'Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.77-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Login por SMS — telefone salvo corretamente no perfil.</b><br>' +
       '• Ao entrar com celular, o campo Telefone do perfil mostrava o DDI no lugar do DDD (ex: "(55) 11997-2377" em vez de "(11) 99972-3777").<br>' +

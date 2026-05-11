@@ -218,12 +218,25 @@ window._updateTopbarForUser = function(user) {
     var effectiveName = preferCU && cu.displayName ? cu.displayName : user.displayName;
     var effectivePhoto = preferCU && cu.photoURL ? cu.photoURL : user.photoURL;
 
-    // Fallback chain: displayName → email local-part → defaultUser
+    // Fallback chain: displayName → email local-part → phone number → defaultUser
     var displayFirstName;
     if (effectiveName) {
       displayFirstName = effectiveName.split(' ')[0];
     } else if (user.email) {
       displayFirstName = user.email.split('@')[0];
+    } else if (user.phoneNumber || (cu && cu.phone)) {
+      // SMS login sem nome — mostra o telefone formatado em vez de "usuário"
+      // Tenta usar o número local do perfil (já com DDI stripado) quando
+      // disponível (chamada tardia pós-loadUserProfile). Na chamada antecipada
+      // (antes do Firestore retornar), cai no E.164 direto.
+      var _phD = (cu && cu.phone) ? String(cu.phone).replace(/\D/g, '') : '';
+      if (_phD.length >= 8 && typeof _formatPhoneDisplay === 'function') {
+        displayFirstName = _formatPhoneDisplay(_phD, (cu && cu.phoneCountry) || '55');
+      } else {
+        // Chamada antecipada: perfil Firestore ainda não carregou
+        var _rawPh = (user.phoneNumber || '').replace(/^\+/, '');
+        displayFirstName = _rawPh || _t('auth.defaultUser');
+      }
     } else {
       displayFirstName = _t('auth.defaultUser');
     }
