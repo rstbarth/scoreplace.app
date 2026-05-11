@@ -86,66 +86,102 @@
     var bg = '#0f172a';
     var fg = '#25d366'; // verde WhatsApp
     document.documentElement.style.background = bg;
-    var showStatus = function(emoji, title, subtitle, isError) {
+
+    var showStatus = function(emoji, title, subtitle, isError, extraHtml) {
       document.body.innerHTML = '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:' + bg + ';color:#fff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;flex-direction:column;gap:14px;padding:24px;text-align:center;">' +
         '<div style="font-size:2.4rem;line-height:1;">' + emoji + '</div>' +
         '<div style="font-size:1.05rem;font-weight:700;color:' + (isError ? '#ef4444' : fg) + ';">' + title + '</div>' +
         (subtitle ? '<div style="font-size:0.85rem;color:#94a3b8;max-width:340px;line-height:1.5;">' + subtitle + '</div>' : '') +
         (isError ? '<a href="/" style="margin-top:8px;color:' + fg + ';font-size:0.85rem;text-decoration:none;border:1px solid ' + fg + ';padding:8px 18px;border-radius:8px;">Voltar ao início</a>' : '') +
+        (extraHtml || '') +
         '</div>';
     };
-    showStatus('💬', 'Entrando via WhatsApp...', 'Validando seu link de acesso seguro');
 
-    var tries = 0;
-    var resolve = function() {
-      var db = window.FirestoreDB && window.FirestoreDB.db;
-      var auth = window.firebase && window.firebase.auth && window.firebase.auth();
-      if (!db || !auth) {
-        if (tries++ < 80) return setTimeout(resolve, 100); // até 8s
-        showStatus('⚠️', 'Não foi possível carregar', 'Verifique sua conexão e tente abrir o link de novo.', true);
-        return;
-      }
-      db.collection('magicLinks').doc(token).get().then(function(doc) {
-        if (!doc.exists) {
-          showStatus('🔗', 'Link inválido ou expirado', 'Esse link não existe mais. Volte ao app e faça login novamente.', true);
+    // Detecta iOS + browser não-Safari (Chrome, Firefox, Edge no iPhone/iPad).
+    // No iPhone, apenas o Safari suporta instalação como PWA e tem melhor suporte
+    // a cookies/auth de terceiros. Se o link abriu em outro browser, oferecemos
+    // abrir no Safari via o scheme x-safari-https:// (abre o Safari diretamente).
+    var _ua = navigator.userAgent || '';
+    var _isIOS = /iPad|iPhone|iPod/.test(_ua) && !window.MSStream;
+    var _isSafari = /Safari/.test(_ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA/.test(_ua);
+    if (_isIOS && !_isSafari) {
+      var safarUri = 'x-safari-https://scoreplace.app/?wt=' + encodeURIComponent(token);
+      var btnStyle = 'display:inline-block;margin-top:6px;background:' + fg + ';color:#000;font-weight:700;font-size:0.9rem;padding:12px 22px;border-radius:10px;text-decoration:none;';
+      var skipStyle = 'display:inline-block;margin-top:10px;color:#64748b;font-size:0.78rem;text-decoration:underline;cursor:pointer;';
+      showStatus('🧭', 'Abra no Safari', 'No iPhone, o login pelo WhatsApp funciona melhor no Safari.',
+        false,
+        '<a href="' + safarUri + '" style="' + btnStyle + '">Abrir no Safari</a>' +
+        '<div style="' + skipStyle + '" onclick="document.getElementById(\'wt-continue\').style.display=\'block\';this.style.display=\'none\';">Continuar no Chrome mesmo assim</div>' +
+        '<div id="wt-continue" style="display:none;margin-top:10px;color:#94a3b8;font-size:0.78rem;">Aguarde...</div>'
+      );
+      // Ouve clique em "Continuar no Chrome" para disparar o fluxo normal
+      var waitContinue = setInterval(function() {
+        var el = document.getElementById('wt-continue');
+        if (el && el.style.display !== 'none') {
+          clearInterval(waitContinue);
+          continueLogin();
+        }
+      }, 200);
+      return;
+    }
+
+    showStatus('💬', 'Entrando via WhatsApp...', 'Validando seu link de acesso seguro');
+    continueLogin();
+
+    function continueLogin() {
+      var tries = 0;
+      var resolve = function() {
+        var db = window.FirestoreDB && window.FirestoreDB.db;
+        var auth = window.firebase && window.firebase.auth && window.firebase.auth();
+        if (!db || !auth) {
+          if (tries++ < 80) return setTimeout(resolve, 100); // até 8s
+          showStatus('⚠️', 'Não foi possível carregar', 'Verifique sua conexão e tente abrir o link de novo.', true);
           return;
         }
-        var data = doc.data() || {};
-        if (data.type !== 'customToken' || !data.customToken) {
-          showStatus('🔗', 'Link inválido', 'Formato de link não reconhecido. Peça um novo pelo app.', true);
-          return;
-        }
-        // Verifica expiração client-side (defense-in-depth)
-        if (data.expiresAt) {
-          var exp = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
-          if (exp < new Date()) {
-            showStatus('⏱️', 'Link expirado', 'O link de WhatsApp expirou. Abra o app e faça login novamente.', true);
+        db.collection('magicLinks').doc(token).get().then(function(doc) {
+          if (!doc.exists) {
+            showStatus('🔗', 'Link inválido ou expirado', 'Esse link não existe mais. Volte ao app e faça login novamente.', true);
             return;
           }
-        }
-        showStatus('💬', 'Quase lá...', 'Abrindo sua conta');
-        auth.signInWithCustomToken(data.customToken).then(function() {
-          // Limpa o ?wt= da URL e vai pro dashboard
-          try {
-            var clean = window.location.pathname;
-            window.history.replaceState({}, '', clean + '#dashboard');
-          } catch(e) {
-            window.location.replace('/#dashboard');
+          var data = doc.data() || {};
+          if (data.type !== 'customToken' || !data.customToken) {
+            showStatus('🔗', 'Link inválido', 'Formato de link não reconhecido. Peça um novo pelo app.', true);
+            return;
           }
-          // O onAuthStateChanged vai disparar e iniciar o app normalmente.
+          // Verifica expiração client-side (defense-in-depth)
+          if (data.expiresAt) {
+            var exp = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+            if (exp < new Date()) {
+              showStatus('⏱️', 'Link expirado', 'O link de WhatsApp expirou. Abra o app e faça login novamente.', true);
+              return;
+            }
+          }
+          showStatus('💬', 'Quase lá...', 'Abrindo sua conta');
+          auth.signInWithCustomToken(data.customToken).then(function() {
+            // IMPORTANTE: showStatus() substituiu todo o document.body.innerHTML,
+            // então o #view-container não existe mais. Não adianta só fazer
+            // replaceState — o router não acharia o container. Fazemos um reload
+            // completo para /#dashboard. O auth token foi persistido por
+            // signInWithCustomToken (IndexedDB), então Firebase Auth verá o
+            // usuário logado após o reload e o app abre normalmente.
+            showStatus('✅', 'Você entrou!', 'Carregando o app...');
+            setTimeout(function() {
+              window.location.replace('/#dashboard');
+            }, 400);
+          }).catch(function(err) {
+            console.error('[wtMagicLink] signInWithCustomToken failed:', err);
+            if (typeof window._captureException === 'function') {
+              window._captureException(err, { area: 'wtMagicLink', token: token.substring(0, 6) + '...' });
+            }
+            showStatus('⚠️', 'Não foi possível entrar', 'O link pode ter expirado. Tente fazer login pelo app normalmente.', true);
+          });
         }).catch(function(err) {
-          console.error('[wtMagicLink] signInWithCustomToken failed:', err);
-          if (typeof window._captureException === 'function') {
-            window._captureException(err, { area: 'wtMagicLink', token: token.substring(0, 6) + '...' });
-          }
-          showStatus('⚠️', 'Não foi possível entrar', 'O link pode ter expirado. Tente fazer login pelo app normalmente.', true);
+          console.error('[wtMagicLink] Firestore fetch failed:', err);
+          showStatus('⚠️', 'Erro ao validar o link', 'Tente abrir de novo. Se persistir, faça login pelo app.', true);
         });
-      }).catch(function(err) {
-        console.error('[wtMagicLink] Firestore fetch failed:', err);
-        showStatus('⚠️', 'Erro ao validar o link', 'Tente abrir de novo. Se persistir, faça login pelo app.', true);
-      });
-    };
-    resolve();
+      };
+      resolve();
+    }
   } catch (e) {
     console.error('[wtMagicLink] handler crashed:', e);
   }

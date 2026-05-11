@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.88-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>WhatsApp magic link — fix login no Chrome + "Abrir no Safari" no iPhone.</b><br>' +
+      '• <b>Bug corrigido:</b> ao clicar no link do WhatsApp, a tela ficava presa em "Validando seu link de acesso seguro" para sempre. Causa: <code>showStatus()</code> substitui todo o <code>document.body.innerHTML</code>, apagando o <code>#view-container</code>. Após o <code>signInWithCustomToken</code> ter sucesso, o router tentava renderizar o dashboard num container que não existia mais. Fix: em vez de <code>history.replaceState</code>, agora faz <code>window.location.replace(\'/#dashboard\')</code> — reload completo com auth já persistido no IndexedDB. A tela mostra "✅ Você entrou! Carregando o app..." antes do reload.<br>' +
+      '• <b>iOS + Chrome/não-Safari:</b> detectamos quando o link abriu num browser que não é Safari no iPhone. Mostramos uma tela "Abrir no Safari" com botão que usa o scheme <code>x-safari-https://</code> (abre diretamente no Safari). Se o usuário preferir continuar no Chrome, um link "Continuar no Chrome mesmo assim" dispara o login normalmente.<br>' +
+      'Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.87-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>WhatsApp magic link — funciona para novos usuários também.</b><br>' +
       '• Antes, a Cloud Function retornava <code>user-not-found</code> e desistia se o número não tivesse conta no Firebase Auth ainda — o link só chegava pra quem já tinha feito login por SMS antes.<br>' +
