@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.87-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>WhatsApp magic link — funciona para novos usuários também.</b><br>' +
+      '• Antes, a Cloud Function retornava <code>user-not-found</code> e desistia se o número não tivesse conta no Firebase Auth ainda — o link só chegava pra quem já tinha feito login por SMS antes.<br>' +
+      '• Agora, se não existe conta: cria automaticamente o Firebase Auth user com o número de telefone, gera o custom token e envia o WhatsApp. Quem clica entra direto, independente de ser o primeiro acesso.<br>' +
+      '• Seguro: o reCAPTCHA do Firebase já validou o número antes da função ser chamada; o link vai pro WhatsApp do dono do número.<br>' +
+      'Alteração em <code>functions/index.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.86-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>WhatsApp magic link — fix real: fetch() direto em vez de httpsCallable.</b><br>' +
       '• A causa do WhatsApp nunca enviar foi identificada: <code>firebase.functions().httpsCallable()</code> internamente tenta inicializar o Firebase Messaging (que busca <code>/firebase-messaging-sw.js</code> no mobile) — como esse arquivo não existe, a inicialização falha antes do HTTP request sair, e a promise é rejeitada com erro de Messaging.<br>' +

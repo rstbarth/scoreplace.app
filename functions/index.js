@@ -430,17 +430,27 @@ exports.sendWhatsAppMagicLink = onCall(
       return { ok: false, reason: "invalid-phone" };
     }
 
-    // Verifica se já tem conta no Firebase Auth por este número.
+    // Busca conta existente ou cria nova — o link funciona pra novos usuários também.
+    // Seguro: o link WhatsApp vai pro dono do número; quem recebe no WhatsApp é quem
+    // tem o telefone, independente de já ter conta ou não.
     let userRecord;
     try {
       userRecord = await admin.auth().getUserByPhoneNumber("+" + phone);
     } catch (err) {
       if (err.code === "auth/user-not-found") {
-        // Primeiro login via telefone — ainda não existe conta. SMS é o caminho.
-        return { ok: false, reason: "user-not-found" };
+        // Novo usuário — cria conta Firebase Auth com o número para poder gerar custom token.
+        // O SMS do OTP já passou pelo reCAPTCHA do Firebase, então o número é válido.
+        try {
+          userRecord = await admin.auth().createUser({ phoneNumber: "+" + phone });
+          console.log("[sendWhatsAppMagicLink] new user created for phone:", phone, "uid:", userRecord.uid);
+        } catch (createErr) {
+          console.error("[sendWhatsAppMagicLink] createUser failed:", createErr.code || createErr.message);
+          return { ok: false, reason: "create-user-error" };
+        }
+      } else {
+        console.error("[sendWhatsAppMagicLink] getUserByPhoneNumber failed:", err.code || err.message);
+        return { ok: false, reason: "lookup-error" };
       }
-      console.error("[sendWhatsAppMagicLink] getUserByPhoneNumber failed:", err.code || err.message);
-      return { ok: false, reason: "lookup-error" };
     }
 
     // Gera custom token com validade de 1h (Firebase default é 1h pra custom tokens).
