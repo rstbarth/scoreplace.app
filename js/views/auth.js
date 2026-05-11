@@ -1105,25 +1105,36 @@ function handlePhoneVerifyCode() {
       // mas pelo menos a UX inicial fica coerente.
       if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
         var profileData = { authProvider: 'phone', updatedAt: new Date().toISOString() };
-        if (user.phoneNumber) profileData.phone = user.phoneNumber;
-        // v1.0.43-beta: persiste também o phoneCountry (DDI) lido do localStorage
-        // que handlePhoneLogin salvou quando o usuário enviou SMS. Pedido do user:
-        // "quando a pessoa entra com o telefone, já registra o telefone dela no
-        // perfil (assim se trocar o nome depois o telefone já fica no perfil)".
-        // Já gravávamos `phone` (E.164 completo), agora também `phoneCountry` pra
-        // o editor de perfil pré-popular o seletor de DDI corretamente.
-        try {
-          var savedCountry = localStorage.getItem('scoreplace_loginPhoneCountry');
-          if (savedCountry) profileData.phoneCountry = savedCountry;
-        } catch (_e) {}
+        // v1.3.77-beta: lê savedCountry ANTES de salvar phone para stripar o DDI
+        // do E.164 e armazenar só o número local (DDD+número). Antes salvava
+        // user.phoneNumber completo (+5511997237733) e _formatPhoneDisplay tratava
+        // os 2 dígitos do DDI como DDD → exibia "(55) 11997-2377" em vez de
+        // "(11) 99972-3777". phoneCountry continua salvo separado pra pré-popular
+        // o seletor de DDI no editor de perfil.
+        var savedCountry = null;
+        try { savedCountry = localStorage.getItem('scoreplace_loginPhoneCountry'); } catch (_e) {}
+        if (savedCountry) profileData.phoneCountry = savedCountry;
+        if (user.phoneNumber) {
+          // Strip DDI: '+5511997237733' → '5511997237733' → remove '55' → '11997237733'
+          var _e164d = user.phoneNumber.replace(/^\+/, '');
+          var _cc = savedCountry || '55';
+          profileData.phone = _e164d.startsWith(_cc) ? _e164d.slice(_cc.length) : _e164d;
+        }
 
         // Lookup cross-reference por telefone. Tenta achar um user EXISTENTE
         // (uid diferente) com este phone — pode ser conta Google/email do
         // mesmo human que já cadastrou o telefone no perfil.
         try {
           if (user.phoneNumber) {
+            // v1.3.77-beta: busca tanto o E.164 completo (perfis antigos que
+            // guardavam '+5511997237733') quanto o número local sem DDI (perfis
+            // novos que guardam '11997237733') para garantir backward-compat.
+            var _crossRefPhones = [user.phoneNumber];
+            if (profileData.phone && profileData.phone !== user.phoneNumber) {
+              _crossRefPhones.push(profileData.phone);
+            }
             var snap = await window.FirestoreDB.db.collection('users')
-              .where('phone', '==', user.phoneNumber)
+              .where('phone', 'in', _crossRefPhones)
               .limit(5).get();
             var matches = [];
             snap.forEach(function(doc) {

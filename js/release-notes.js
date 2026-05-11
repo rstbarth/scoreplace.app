@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.77-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>Login por SMS — telefone salvo corretamente no perfil.</b><br>' +
+      '• Ao entrar com celular, o campo Telefone do perfil mostrava o DDI no lugar do DDD (ex: "(55) 11997-2377" em vez de "(11) 99972-3777").<br>' +
+      '• <b>Causa</b>: o Firebase retorna o número em formato E.164 (<code>+5511997237733</code>) que era salvo diretamente no perfil. O formatador brasileiro interpretava os dois primeiros dígitos <code>55</code> como DDD em vez do DDI.<br>' +
+      '• <b>Fix</b>: antes de gravar no Firestore, o DDI é stripado do número — fica só a parte local (<code>11997237733</code>), consistente com o que o usuário digita manualmente. O DDI já fica separado no campo <code>phoneCountry</code>. A busca de cross-referência agora pesquisa ambos os formatos (antigo E.164 e novo local) para compatibilidade retroativa.<br>' +
+      'Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.76-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Login por SMS — reCAPTCHA invisível corrigido no iOS Safari.</b><br>' +
       '• <b>Causa raiz</b>: o container <code>recaptcha-container</code> ficava dentro do modal de login (<code>.modal</code> com <code>overflow:hidden</code>), clippando o iframe do reCAPTCHA no iOS Safari e causando falha silenciosa sem código de erro.<br>' +
