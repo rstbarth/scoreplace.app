@@ -350,6 +350,18 @@ if (firebase && firebase.auth) {
     if (!hadSession) {
       console.log('[scoreplace-auth] _commitSignOut: skipping — no prior session');
       try { localStorage.removeItem('scoreplace_authCache'); } catch(e) {}
+      // v1.3.80-beta: usuários com authCache stale (sessão expirada) ficavam
+      // presos no spinner para sempre. O _authNullRouterTimer (300ms) chama
+      // initRouter() mas o cache ainda existe naquele momento → spinner de
+      // novo. Só em _commitSignOut (2500ms) o cache é removido, mas o early
+      // return aqui evitava qualquer novo initRouter. Resultado: spinner infinito
+      // e botão da landing page nunca acessível. Fix: chamar initRouter() aqui
+      // após limpar o cache, para o router ver authCache=false + resolved=true
+      // e renderizar a landing. Guard do v0.17.92 mantido: não chamar quando
+      // modal-login estiver aberto (dismissAllOverlays fecharia o modal).
+      if (!loginModalActive && typeof initRouter === 'function') {
+        initRouter();
+      }
       return;
     }
 

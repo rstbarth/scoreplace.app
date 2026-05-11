@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.80-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>Landing page — botão "Entrar" funcionando para sessões expiradas.</b><br>' +
+      '• Usuários com sessão anterior expirada ficavam presos em um spinner infinito ao abrir o app, e o botão da landing page nunca aparecia.<br>' +
+      '• <b>Causa</b>: o <code>authCache</code> stale no localStorage fazia o router exibir spinner na inicialização. Quando o Firebase confirmava null (2,5 s depois), a função <code>_commitSignOut</code> removia o cache mas retornava sem chamar <code>initRouter()</code> — ninguém mais renderizava a landing.<br>' +
+      '• <b>Fix</b>: <code>_commitSignOut</code> agora chama <code>initRouter()</code> após limpar o cache stale, permitindo ao router renderizar a landing com o botão funcional. Guard do v0.17.92 mantido: sem chamar initRouter quando o modal de login já está aberto.<br>' +
+      'Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.79-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Sentry — ruído de permission-denied eliminado da dashboard.</b><br>' +
       '• A query de contagem de usuários registrados (pill "Usuários" na dashboard) era disparada mesmo para visitantes anônimos e bots, gerando erros <code>permission-denied</code> no Sentry.<br>' +
