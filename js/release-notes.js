@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.84-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>WhatsApp magic link — diagnóstico + fix de silêncio excessivo.</b><br>' +
+      '• A v1.3.83 envolvia toda a chamada da Cloud Function em <code>try/catch</code> completamente silencioso — qualquer erro (de JS, de rede, de CORS) era descartado sem deixar rastro.<br>' +
+      '• Agora o caminho de diagnóstico usa <code>console.log</code> visível: <em>"[WA magic link] tentando enviar para ..."</em> no console do browser confirma se o código foi executado.<br>' +
+      '• Resultado da chamada também é logado (<em>"resultado: ..."</em> para sucesso ou <em>"falhou: ..."</em> para erros) — isso permite confirmar se o problema é no frontend ou no servidor.<br>' +
+      'Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.83-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Login por celular — link mágico no WhatsApp além do SMS.</b><br>' +
       '• Ao digitar o celular no login e clicar Enviar, além do SMS com o código de 6 dígitos o app agora tenta enviar um <b>link direto pelo WhatsApp</b>. Quem tiver o número cadastrado no WhatsApp recebe uma mensagem com um link de um clique — sem precisar digitar nenhum código.<br>' +

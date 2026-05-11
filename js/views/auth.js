@@ -1128,12 +1128,24 @@ function handlePhoneLogin() {
       showNotification(_t('auth.codeSent'), _t('auth.codeSentMsg', {phone: phone}), 'success');
       // v1.3.83-beta: best-effort WhatsApp magic link — se o número tiver
       // cadastro no WhatsApp (e conta Firebase), recebe link direto além do
-      // SMS OTP. Silencioso: se falhar por qualquer motivo, SMS continua
-      // sendo o caminho principal. Fire-and-forget.
-      try {
-        var sendWaMagicFn = firebase.functions().httpsCallable('sendWhatsAppMagicLink');
-        sendWaMagicFn({ phone: phone }).catch(function() { /* silencioso */ });
-      } catch(e) { /* silencioso */ }
+      // SMS OTP. Fire-and-forget (não bloqueia OTP, não exibe erro se falhar).
+      // v1.3.84-beta: added console.log for diagnostics; phone passed raw
+      // (E.164 com +) para a Cloud Function normalizar internamente.
+      (function() {
+        try {
+          console.log('[WA magic link] tentando enviar para', phone);
+          var sendWaMagicFn = firebase.functions().httpsCallable('sendWhatsAppMagicLink');
+          sendWaMagicFn({ phone: phone })
+            .then(function(res) {
+              console.log('[WA magic link] resultado:', JSON.stringify(res.data));
+            })
+            .catch(function(err) {
+              console.warn('[WA magic link] falhou (silencioso):', err && err.message);
+            });
+        } catch(e) {
+          console.warn('[WA magic link] exceção (silencioso):', e && e.message);
+        }
+      })();
     })
     .catch(function(error) {
       console.error('Phone sign-in error:', error);
