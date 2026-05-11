@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.81-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>Hamburger — menu não fecha mais sozinho no primeiro clique.</b><br>' +
+      '• Regressão da v1.3.80: ao clicar no hamburger para abrir o menu, ele abria e fechava automaticamente. Era necessário clicar uma segunda vez para mantê-lo aberto.<br>' +
+      '• <b>Causa</b>: a v1.3.80 adicionou uma chamada a <code>initRouter()</code> em <code>_commitSignOut</code> para corrigir o spinner infinito de sessões expiradas. Essa chamada acontecia ~2,5 s após o carregamento, disparava <code>handleRoute()</code> que chamava <code>_closeHamburger()</code> — fechando o menu se o usuário o tivesse aberto nessa janela.<br>' +
+      '• <b>Fix</b>: o <code>initRouter()</code> foi removido de <code>_commitSignOut</code>. O caso de cache stale agora é resolvido diretamente dentro do <code>router.js</code>: quando <code>_authStateResolved=true</code> e o cache ainda existe (contradição = sessão expirada), o router limpa o cache inline e renderiza a landing — sem precisar de chamada externa ao <code>initRouter()</code>.<br>' +
+      'Alterações em <code>js/views/auth.js</code> e <code>js/router.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.80-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Landing page — botão "Entrar" funcionando para sessões expiradas.</b><br>' +
       '• Usuários com sessão anterior expirada ficavam presos em um spinner infinito ao abrir o app, e o botão da landing page nunca aparecia.<br>' +

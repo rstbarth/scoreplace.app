@@ -167,13 +167,22 @@ function initRouter() {
     if (!_isLoggedInNow && (view === '' || view === 'dashboard') && typeof renderLanding === 'function') {
 
       if (_hasAuthCacheNow) {
-        // Tem cache de auth, Firebase ainda não resolveu → spinner
-        // (onAuthStateChanged vai chamar initRouter() quando resolver)
-        viewContainer.innerHTML = (typeof window._renderBallLoader === 'function')
-          ? window._renderBallLoader('Carregando…', { minHeight: '60vh' })
-          : '<div style="text-align:center;padding:60vh 0 0;">Carregando…</div>';
-        _firstRoute = false;
-        return;
+        if (window._authStateResolved) {
+          // v1.3.81-beta: authCache existe mas Firebase confirmou null (sessão
+          // expirada / stale cache). Limpar cache e cair para renderizar landing
+          // — sem precisar chamar initRouter() de fora, o que fecharia o hamburger.
+          try { localStorage.removeItem('scoreplace_authCache'); } catch(e) {}
+          // Não retorna — cai no bloco de renderização da landing abaixo.
+        } else {
+          // Cache presente, Firebase ainda não resolveu (pode ser sessão real
+          // no IndexedDB com localStorage limpo pelo iOS) → spinner.
+          // onAuthStateChanged chamará initRouter() quando resolver.
+          viewContainer.innerHTML = (typeof window._renderBallLoader === 'function')
+            ? window._renderBallLoader('Carregando…', { minHeight: '60vh' })
+            : '<div style="text-align:center;padding:60vh 0 0;">Carregando…</div>';
+          _firstRoute = false;
+          return;
+        }
       }
 
       if (!window._authStateResolved) {
