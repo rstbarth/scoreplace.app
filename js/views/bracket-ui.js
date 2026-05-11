@@ -7090,7 +7090,7 @@ window._openCasualMatch = function(restoreOpts) {
   // Available sports
   var sports = [
     { key: 'Beach Tennis', icon: (typeof window !== 'undefined' && window._BEACH_TENNIS_ICON) || '🟠', label: 'Beach Tennis', defaultDoubles: true },
-    { key: 'Pickleball', icon: (typeof window !== 'undefined' && window._sportIcon && window._sportIcon('Pickleball')) || '🟡', label: 'Pickleball', defaultDoubles: false },
+    { key: 'Pickleball', icon: (typeof window !== 'undefined' && window._sportIcon && window._sportIcon('Pickleball')) || '🟡', label: 'Pickleball', defaultDoubles: true },
     { key: 'Tênis', icon: '🎾', label: 'Tênis', defaultDoubles: false },
     { key: 'Tênis de Mesa', icon: '🏓', label: 'Tênis de Mesa', defaultDoubles: false },
     { key: 'Padel', icon: (typeof window !== 'undefined' && window._sportIcon && window._sportIcon('Padel')) || '🏓', label: 'Padel', defaultDoubles: true },
@@ -7401,17 +7401,24 @@ window._openCasualMatch = function(restoreOpts) {
           inputValues[_ri] = _lobbyParticipants[_ri].displayName;
         }
       }
-      // Preserve input values across re-renders ONLY for unregistered (editable) slots
+      // Preserve input values across re-renders ONLY for unregistered (editable) slots.
+      // When coming back from the config screen the DOM inputs no longer exist
+      // (config replaced content.innerHTML), so fall back to _savedPlayerNames
+      // which was snapshotted just before _casualOpenConfig() ran.
       for (var _ii = 0; _ii < inputIds.length; _ii++) {
         var _isRegSlot = (_ii === 0) ||
           (_ii < _lobbyParticipants.length && _lobbyParticipants[_ii] &&
            (_lobbyParticipants[_ii].uid || _lobbyParticipants[_ii].photoURL));
         if (!_isRegSlot) {
           var _el = document.getElementById(inputIds[_ii]);
-          if (_el) inputValues[_ii] = _el.value;
+          if (_el) {
+            inputValues[_ii] = _el.value;
+          } else if (_savedPlayerNames[_ii] !== undefined && _savedPlayerNames[_ii] !== '') {
+            // DOM was replaced by config screen — restore from pre-config snapshot
+            inputValues[_ii] = _savedPlayerNames[_ii];
+          }
         }
       }
-
       function _buildSetupCard(ci) {
         var avatar = _inputAvatar(ci);
         var team = _teamAssignments[ci]; // 1, 2, or undefined
@@ -7507,7 +7514,7 @@ window._openCasualMatch = function(restoreOpts) {
             '<div style="flex:1;position:relative;">' + _cuAvatarSingles +
               '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="width:100%;padding:10px 14px;' + (_hasSinglesAvatar ? 'padding-left:44px;' : '') + 'border-radius:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;box-sizing:border-box;">' +
             '</div>' +
-            '<input type="text" id="casual-p2-name" placeholder="Jogador 2" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
+            '<input type="text" id="casual-p2-name" value="' + window._safeHtml(_savedPlayerNames[5] || '') + '" placeholder="Jogador 2" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
           '</div>' +
         '</div>';
     }
@@ -7563,6 +7570,9 @@ window._openCasualMatch = function(restoreOpts) {
       // espaço extra no fim da tela
       '<div style="height:0.5rem;"></div>' +
       '';
+    // Clear snapshot after use so stale names don't bleed into later re-renders.
+    // Placed here (after content.innerHTML) so it runs for BOTH doubles and singles paths.
+    _savedPlayerNames = {};
 
     // Attach drag-and-drop for team building (Doubles — always, regardless of
     // autoShuffle state). Dragging to form a team automatically turns shuffle
@@ -7977,6 +7987,10 @@ window._openCasualMatch = function(restoreOpts) {
 
   // Track if config screen is open
   var _configOpen = false;
+  // Snapshot of player name inputs saved before config screen replaces the DOM,
+  // so _renderSetup() can restore them when returning from config.
+  // Keyed by slot index 0-3. Cleared after use in _renderSetup().
+  var _savedPlayerNames = {};
 
   // Persist last-used sport + doubles toggle so the next casual match opens with the same defaults
   function _persistLastCasualChoice() {
@@ -8039,6 +8053,15 @@ window._openCasualMatch = function(restoreOpts) {
 
   // Config gear handler — opens inline config editor
   window._casualOpenConfig = function() {
+    // Snapshot player names before overwriting the DOM so _renderSetup()
+    // can restore them when the user navigates back from config.
+    _savedPlayerNames = {};
+    var _snapIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name',
+                    'casual-p1-name', 'casual-p2-name'];
+    _snapIds.forEach(function(id, i) {
+      var el = document.getElementById(id);
+      if (el) _savedPlayerNames[i] = el.value;
+    });
     _configOpen = true;
     var cfg = _getConfig();
     var content = document.getElementById('casual-setup-content');
