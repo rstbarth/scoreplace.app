@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.75-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>Login SMS — diagnóstico real no erro "código: unknown".</b><br>' +
+      '• Quando o Firebase Phone Auth falha sem retornar um código padrão (<code>auth/xxx</code>) — como ocorre em falhas de reCAPTCHA no iOS Safari — a mensagem de erro real do Firebase agora aparece no toast, facilitando o diagnóstico.<br>' +
+      '• <code>auth/internal-error</code> adicionado ao handler de reCAPTCHA (mesmo tratamento de <code>auth/captcha-check-failed</code>).<br>' +
+      '• O Sentry agora recebe <code>error.message</code> além de <code>error.code</code> para esses eventos.<br>' +
+      'Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.74-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Partida Casual — dois bugs corrigidos.</b><br>' +
       '• <b>Nomes resetavam ao voltar da configuração:</b> ao clicar em ⚙️ e retornar à tela de organização, os nomes digitados nos campos Jogador 2/3/4 voltavam para os genéricos. Os valores são agora salvos em snapshot (<code>_savedPlayerNames</code>) imediatamente antes da tela de configuração substituir o DOM, e restaurados ao re-renderizar o setup — tanto no modo duplas quanto no modo singles.<br>' +

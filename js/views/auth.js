@@ -1010,30 +1010,44 @@ function handlePhoneLogin() {
     })
     .catch(function(error) {
       console.error('Phone sign-in error:', error);
+      // v1.3.75-beta: envia error.message ao Sentry (além do code) para
+      // diagnosticar casos onde error.code é undefined (erros JS nativos,
+      // reCAPTCHA iOS Safari, etc).
       if (typeof window._captureException === 'function') {
-        window._captureException(error, { area: 'phoneLogin', code: error && error.code });
+        window._captureException(error, {
+          area: 'phoneLogin',
+          code: error && error.code,
+          message: error && error.message
+        });
       }
       _resetPhoneRecaptcha();
       // v1.0.17-beta: mensagens específicas + surface error.code pra debug.
       // Bug reportado: "SMS não mandou pra ninguém". Sem error.code visível,
       // impossível diagnosticar (provider não habilitado, quota, formato,
       // reCAPTCHA, etc). Sugere fallback (Link Mágico) em todos os casos.
+      // v1.3.75-beta: error.code === undefined (código: unknown) pode
+      // indicar falha do reCAPTCHA invisível no iOS Safari ou erro JS
+      // nativo. Inclui error.message no toast para diagnóstico. Também
+      // cobre auth/internal-error que Firebase retorna em falhas de
+      // reCAPTCHA não mapeadas.
       var code = (error && error.code) || 'unknown';
-      var msg = error.message || 'Erro desconhecido';
+      var rawMsg = (error && error.message) || '';
+      var msg;
       if (code === 'auth/invalid-phone-number') {
         msg = 'Número inválido. Confira o DDI + DDD + número (ex: +55 11 99999-8888).';
       } else if (code === 'auth/too-many-requests') {
         msg = 'Muitas tentativas. Aguarde 30 minutos. Ou use Link Mágico por E-mail.';
       } else if (code === 'auth/operation-not-allowed') {
         msg = 'Login por SMS não está habilitado nesta conta Firebase. Reporte: scoreplace.app@gmail.com\n\nUse Link Mágico por E-mail enquanto isso.';
-      } else if (code === 'auth/captcha-check-failed') {
-        msg = 'Verificação reCAPTCHA falhou. Recarregue a página e tente de novo. Ou use Link Mágico.';
+      } else if (code === 'auth/captcha-check-failed' || code === 'auth/internal-error') {
+        msg = 'Verificação reCAPTCHA falhou. Recarregue a página e tente de novo. Ou use Link Mágico.' + (rawMsg ? '\n\n(' + rawMsg.substring(0, 120) + ')' : '');
       } else if (code === 'auth/quota-exceeded') {
         msg = 'Cota diária de SMS Firebase esgotada (limite free tier). Use Link Mágico por E-mail.';
       } else if (code === 'auth/network-request-failed') {
         msg = 'Sem conexão estável com Firebase. Tente Wi-Fi ou outra rede. Ou use Link Mágico.';
       } else {
-        msg = 'Não foi possível enviar SMS. Use Link Mágico por E-mail.\n\n(código: ' + code + ')';
+        // Inclui rawMsg para diagnóstico quando error.code é undefined
+        msg = 'Não foi possível enviar SMS. Use Link Mágico por E-mail.\n\n(código: ' + code + (rawMsg ? ' — ' + rawMsg.substring(0, 120) : '') + ')';
       }
       showNotification('SMS — falha', msg, 'error');
     });
