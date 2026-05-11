@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.76-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>Login por SMS — reCAPTCHA invisível corrigido no iOS Safari.</b><br>' +
+      '• <b>Causa raiz</b>: o container <code>recaptcha-container</code> ficava dentro do modal de login (<code>.modal</code> com <code>overflow:hidden</code>), clippando o iframe do reCAPTCHA no iOS Safari e causando falha silenciosa sem código de erro.<br>' +
+      '• <b>Fix 1 — container no body</b>: nova função <code>_ensureRecaptchaInBody()</code> move o container para <code>document.body</code> antes de qualquer operação de reCAPTCHA — fora de qualquer overlay com <code>overflow:hidden</code>. Posicionado em <code>position:fixed; bottom:0; right:0</code> (fora da tela mas no layout, não <code>display:none</code>).<br>' +
+      '• <b>Fix 2 — render() explícito</b>: <code>verifier.render()</code> é chamado antes de <code>signInWithPhoneNumber()</code>. No iOS Safari, o render tardio (dentro do Firebase SDK) falha porque o iOS exige que a interação com o reCAPTCHA seja iniciada dentro da janela de gesto do usuário. O <code>render()</code> antecipado ancora o widget no contexto do clique.<br>' +
+      'Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.75-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Login SMS — diagnóstico real no erro "código: unknown".</b><br>' +
       '• Quando o Firebase Phone Auth falha sem retornar um código padrão (<code>auth/xxx</code>) — como ocorre em falhas de reCAPTCHA no iOS Safari — a mensagem de erro real do Firebase agora aparece no toast, facilitando o diagnóstico.<br>' +

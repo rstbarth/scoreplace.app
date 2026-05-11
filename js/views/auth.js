@@ -974,12 +974,11 @@ function handlePhoneLogin() {
     return;
   }
 
-  // Initialize reCAPTCHA if not already done
-  var recaptchaContainer = document.getElementById('recaptcha-container');
-  if (!recaptchaContainer) {
-    showNotification(_t('auth.error'), _t('auth.recaptchaNotFound'), 'error');
-    return;
-  }
+  // v1.3.76-beta: mover container pro body ANTES de qualquer operação de
+  // reCAPTCHA. Isso garante que o iframe do reCAPTCHA não fica clipado
+  // por overflow:hidden do modal. Substitui o guard recaptchaContainer
+  // antigo (que só verificava existência, não localização no DOM).
+  _ensureRecaptchaInBody();
 
   // Show loading
   showNotification(_t('auth.verifying'), _t('auth.sendingSms', {phone: phone}), 'info');
@@ -1001,7 +1000,15 @@ function handlePhoneLogin() {
     }
   });
 
-  firebase.auth().signInWithPhoneNumber(phone, window._phoneRecaptchaVerifier)
+  // v1.3.76-beta: chamar render() explicitamente ANTES de signInWithPhoneNumber.
+  // No iOS Safari, o render tardio (dentro de signInWithPhoneNumber) falha
+  // porque iOS exige que a interação com reCAPTCHA seja iniciada dentro da
+  // janela de gesto do usuário. render() pré-warms o widget no contexto do
+  // clique, e signInWithPhoneNumber reutiliza o iframe já ancorado.
+  window._phoneRecaptchaVerifier.render()
+    .then(function() {
+      return firebase.auth().signInWithPhoneNumber(phone, window._phoneRecaptchaVerifier);
+    })
     .then(function(confirmationResult) {
       window._phoneConfirmationResult = confirmationResult;
       // Show verification code input
@@ -1190,6 +1197,26 @@ function _resetPhoneRecaptcha() {
   }
   var container = document.getElementById('recaptcha-container');
   if (container) container.innerHTML = '';
+}
+
+// v1.3.76-beta: garante que recaptcha-container está diretamente no body,
+// FORA de qualquer modal/overlay com overflow:hidden. No iOS Safari, o
+// reCAPTCHA invisível injeta um iframe via position:absolute que fica
+// clipado quando o container está dentro de um .modal com overflow:hidden
+// — causando falha silenciosa sem error.code (código: unknown).
+// Posicionado fora da tela mas NÃO display:none (reCAPTCHA precisa
+// estar no layout para o iframe receber dimensões reais).
+function _ensureRecaptchaInBody() {
+  var el = document.getElementById('recaptcha-container');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'recaptcha-container';
+    document.body.appendChild(el);
+  } else if (el.parentNode !== document.body) {
+    // Move para body — sai do interior do modal
+    document.body.appendChild(el);
+  }
+  el.style.cssText = 'position:fixed;bottom:0;right:0;z-index:0;width:1px;height:1px;overflow:hidden;';
 }
 
 function _resetPhoneLoginUI() {
