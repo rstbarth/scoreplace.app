@@ -328,14 +328,30 @@ exports.sendMagicLink = onCall(
         '</table>' +
       '</body></html>';
 
+    // Versão texto puro — filtros de spam penalizam HTML-only. Alternativa
+    // plain/text garante que qualquer cliente de e-mail renderize algo e
+    // melhora o spam score.
+    const textBody =
+      "scoreplace.app — seu link de acesso\n\n" +
+      "Acesse o app clicando no link abaixo (ou copie e cole no navegador):\n\n" +
+      link + "\n\n" +
+      "O link expira em 1 hora e só funciona uma vez.\n\n" +
+      "Não foi você? Pode ignorar — o link expira sozinho.\n" +
+      "Dúvidas: scoreplace.app@gmail.com\n\n" +
+      "scoreplace.app · Jogue em outro nível";
+
     // Enfileira na mail/ collection — extension firestore-send-email pega
     // e envia via SMTP configurado (scoreplace.app@gmail.com nesse momento).
+    // v1.3.82-beta: subject menos "phishing-like" + text/plain alternativo
+    // pra melhorar deliverability (emails HTML-only têm score de spam maior).
     try {
       await admin.firestore().collection("mail").add({
         to: [email],
+        replyTo: "scoreplace.app@gmail.com",
         message: {
-          subject: "🎾 Entrar no scoreplace.app",
+          subject: "scoreplace.app — seu link de acesso",
           html: html,
+          text: textBody,
         },
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
@@ -380,6 +396,116 @@ exports.sendMagicLink = onCall(
 const EVOLUTION_API_URL = defineSecret("EVOLUTION_API_URL");
 const EVOLUTION_API_KEY = defineSecret("EVOLUTION_API_KEY");
 const EVOLUTION_INSTANCE = defineSecret("EVOLUTION_INSTANCE");
+
+// ─── WhatsApp Magic Link ──────────────────────────────────────────────────────
+// v1.3.83-beta: quando o usuário entra com telefone, o frontend também chama
+// esta função em paralelo com o Firebase SMS. Se o número estiver cadastrado
+// no WhatsApp, o usuário recebe um link direto que loga sem precisar digitar o
+// código SMS — usa signInWithCustomToken no cliente.
+//
+// Fluxo:
+//   1. Verifica se o número existe no Firebase Auth (getUserByPhoneNumber).
+//   2. Gera um custom token via Admin SDK (admin.auth().createCustomToken(uid)).
+//   3. Armazena wrapper em magicLinks/{token} com type='customToken'.
+//   4. Envia mensagem WhatsApp com link scoreplace.app/?wt=TOKEN.
+//   5. Se usuário não existe ainda (primeiro login) → retorna ok:false silencioso.
+//      SMS continua sendo o caminho principal nesse caso.
+//
+// O cliente detecta ?wt=TOKEN em auth.js, busca o Firestore, chama
+// signInWithCustomToken — login direto, zero digitação.
+//
+// Deploy: firebase deploy --only functions:sendWhatsAppMagicLink
+exports.sendWhatsAppMagicLink = onCall(
+  {
+    region: "us-central1",
+    memory: "256MiB",
+    timeoutSeconds: 30,
+    secrets: [EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE],
+  },
+  async (request) => {
+    const rawPhone = (request.data && request.data.phone || "").trim();
+    const phone = _normalizePhoneE164(rawPhone);
+    if (!phone) {
+      // Número inválido — silencioso, SMS continua.
+      return { ok: false, reason: "invalid-phone" };
+    }
+
+    // Verifica se já tem conta no Firebase Auth por este número.
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUserByPhoneNumber("+" + phone);
+    } catch (err) {
+      if (err.code === "auth/user-not-found") {
+        // Primeiro login via telefone — ainda não existe conta. SMS é o caminho.
+        return { ok: false, reason: "user-not-found" };
+      }
+      console.error("[sendWhatsAppMagicLink] getUserByPhoneNumber failed:", err.code || err.message);
+      return { ok: false, reason: "lookup-error" };
+    }
+
+    // Gera custom token com validade de 1h (Firebase default é 1h pra custom tokens).
+    let customToken;
+    try {
+      customToken = await admin.auth().createCustomToken(userRecord.uid, {
+        source: "whatsapp_magic_link",
+      });
+    } catch (err) {
+      console.error("[sendWhatsAppMagicLink] createCustomToken failed:", err.code || err.message);
+      return { ok: false, reason: "token-error" };
+    }
+
+    // Armazena wrapper no mesmo schema que o email magic link usa.
+    const crypto = require("crypto");
+    const token = crypto.randomBytes(18).toString("base64url");
+    try {
+      await admin.firestore().collection("magicLinks").doc(token).set({
+        type: "customToken",
+        customToken: customToken,
+        uid: userRecord.uid,
+        phone: phone,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1h
+      });
+    } catch (err) {
+      console.error("[sendWhatsAppMagicLink] Firestore write failed:", err.code || err.message);
+      return { ok: false, reason: "store-error" };
+    }
+
+    const wrapperUrl = "https://scoreplace.app/?wt=" + encodeURIComponent(token);
+
+    // Nome de exibição para personalizar a mensagem.
+    const displayName = (userRecord.displayName || "").trim();
+    const firstName = displayName ? displayName.split(/[\s.]+/)[0] : "";
+    const greeting = firstName ? "Olá, " + firstName + "!" : "Olá!";
+
+    const message =
+      "🎾 " + greeting + "\n\n" +
+      "Acesse o *scoreplace.app* pelo link abaixo — sem digitar nenhum código:\n\n" +
+      wrapperUrl + "\n\n" +
+      "_O link expira em 1 hora. Se não pediu, ignore._";
+
+    // Envia direto pela Evolution API (não usa a fila — link de login é time-sensitive).
+    let apiUrl, apiKey, instance;
+    try {
+      apiUrl = EVOLUTION_API_URL.value();
+      apiKey = EVOLUTION_API_KEY.value();
+      instance = EVOLUTION_INSTANCE.value();
+    } catch (err) {
+      console.error("[sendWhatsAppMagicLink] secrets unavailable:", err.message);
+      return { ok: false, reason: "secrets-missing" };
+    }
+
+    const result = await _sendWhatsAppText(apiUrl, apiKey, instance, phone, message);
+    if (!result.ok) {
+      console.warn("[sendWhatsAppMagicLink] WA send failed for", phone, ":", result.error);
+      // Não joga erro — SMS já foi enviado, isto é bônus best-effort.
+      return { ok: false, reason: "wa-send-failed", error: result.error };
+    }
+
+    console.log("[sendWhatsAppMagicLink] sent to", phone, "uid:", userRecord.uid);
+    return { ok: true };
+  }
+);
 
 // Sanitiza telefone pra E.164 sem '+' (formato Evolution API espera).
 // Aceita "+55 11 99999-8888", "55 11 99999-8888", "11 99999-8888",

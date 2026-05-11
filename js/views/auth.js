@@ -73,6 +73,84 @@
   }
 })();
 
+// v1.3.83-beta: WhatsApp Magic Link Wrapper — detecta /?wt=TOKEN gerado por
+// sendWhatsAppMagicLink (Cloud Function). Diferente do ?ml= (email magic link
+// que redireciona pro Firebase), o ?wt= usa signInWithCustomToken — login
+// direto sem OTP, sem redirecionamento extra.
+(function _handleWhatsAppMagicLink() {
+  try {
+    var qs = (typeof URLSearchParams === 'function') ? new URLSearchParams(window.location.search) : null;
+    var token = qs && qs.get('wt');
+    if (!token) return;
+
+    var bg = '#0f172a';
+    var fg = '#25d366'; // verde WhatsApp
+    document.documentElement.style.background = bg;
+    var showStatus = function(emoji, title, subtitle, isError) {
+      document.body.innerHTML = '<div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:' + bg + ';color:#fff;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;flex-direction:column;gap:14px;padding:24px;text-align:center;">' +
+        '<div style="font-size:2.4rem;line-height:1;">' + emoji + '</div>' +
+        '<div style="font-size:1.05rem;font-weight:700;color:' + (isError ? '#ef4444' : fg) + ';">' + title + '</div>' +
+        (subtitle ? '<div style="font-size:0.85rem;color:#94a3b8;max-width:340px;line-height:1.5;">' + subtitle + '</div>' : '') +
+        (isError ? '<a href="/" style="margin-top:8px;color:' + fg + ';font-size:0.85rem;text-decoration:none;border:1px solid ' + fg + ';padding:8px 18px;border-radius:8px;">Voltar ao início</a>' : '') +
+        '</div>';
+    };
+    showStatus('💬', 'Entrando via WhatsApp...', 'Validando seu link de acesso seguro');
+
+    var tries = 0;
+    var resolve = function() {
+      var db = window.FirestoreDB && window.FirestoreDB.db;
+      var auth = window.firebase && window.firebase.auth && window.firebase.auth();
+      if (!db || !auth) {
+        if (tries++ < 80) return setTimeout(resolve, 100); // até 8s
+        showStatus('⚠️', 'Não foi possível carregar', 'Verifique sua conexão e tente abrir o link de novo.', true);
+        return;
+      }
+      db.collection('magicLinks').doc(token).get().then(function(doc) {
+        if (!doc.exists) {
+          showStatus('🔗', 'Link inválido ou expirado', 'Esse link não existe mais. Volte ao app e faça login novamente.', true);
+          return;
+        }
+        var data = doc.data() || {};
+        if (data.type !== 'customToken' || !data.customToken) {
+          showStatus('🔗', 'Link inválido', 'Formato de link não reconhecido. Peça um novo pelo app.', true);
+          return;
+        }
+        // Verifica expiração client-side (defense-in-depth)
+        if (data.expiresAt) {
+          var exp = data.expiresAt.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+          if (exp < new Date()) {
+            showStatus('⏱️', 'Link expirado', 'O link de WhatsApp expirou. Abra o app e faça login novamente.', true);
+            return;
+          }
+        }
+        showStatus('💬', 'Quase lá...', 'Abrindo sua conta');
+        auth.signInWithCustomToken(data.customToken).then(function() {
+          // Limpa o ?wt= da URL e vai pro dashboard
+          try {
+            var clean = window.location.pathname;
+            window.history.replaceState({}, '', clean + '#dashboard');
+          } catch(e) {
+            window.location.replace('/#dashboard');
+          }
+          // O onAuthStateChanged vai disparar e iniciar o app normalmente.
+        }).catch(function(err) {
+          console.error('[wtMagicLink] signInWithCustomToken failed:', err);
+          if (typeof window._captureException === 'function') {
+            window._captureException(err, { area: 'wtMagicLink', token: token.substring(0, 6) + '...' });
+          }
+          showStatus('⚠️', 'Não foi possível entrar', 'O link pode ter expirado. Tente fazer login pelo app normalmente.', true);
+        });
+      }).catch(function(err) {
+        console.error('[wtMagicLink] Firestore fetch failed:', err);
+        showStatus('⚠️', 'Erro ao validar o link', 'Tente abrir de novo. Se persistir, faça login pelo app.', true);
+      });
+    };
+    resolve();
+  } catch (e) {
+    console.error('[wtMagicLink] handler crashed:', e);
+  }
+})();
+
 const firebaseConfig = {
   apiKey: "AIzaSyB7AyOojV_Pm50Kr7bovVY4jVTTNbKOK0A",
   authDomain: "scoreplace-app.firebaseapp.com",
@@ -1048,6 +1126,14 @@ function handlePhoneLogin() {
       // Show verification code input
       _showPhoneVerificationStep();
       showNotification(_t('auth.codeSent'), _t('auth.codeSentMsg', {phone: phone}), 'success');
+      // v1.3.83-beta: best-effort WhatsApp magic link — se o número tiver
+      // cadastro no WhatsApp (e conta Firebase), recebe link direto além do
+      // SMS OTP. Silencioso: se falhar por qualquer motivo, SMS continua
+      // sendo o caminho principal. Fire-and-forget.
+      try {
+        var sendWaMagicFn = firebase.functions().httpsCallable('sendWhatsAppMagicLink');
+        sendWaMagicFn({ phone: phone }).catch(function() { /* silencioso */ });
+      } catch(e) { /* silencioso */ }
     })
     .catch(function(error) {
       console.error('Phone sign-in error:', error);
@@ -2750,7 +2836,7 @@ function setupLoginModal() {
           // SMS code verification step (mostrado só após handlePhoneLogin enviar SMS)
           '<div id="phone-step-code" style="display:none;margin-bottom:4px;">' +
             '<div style="font-size:0.78rem;font-weight:600;color:var(--text-bright);margin-bottom:6px;">📱 Confirme o código</div>' +
-            '<p style="color:var(--text-muted);font-size:0.78rem;margin-bottom:6px;">Digite o código de 6 dígitos recebido por SMS:</p>' +
+            '<p style="color:var(--text-muted);font-size:0.78rem;margin-bottom:6px;">Digite o código de 6 dígitos recebido por SMS — ou clique no link que chegou no <strong>WhatsApp</strong> para entrar direto:</p>' +
             // v1.0.27-beta: grid 1fr auto pra distribuição determinística —
             // input toma todo o espaço, botão Verificar só seu conteúdo.
             '<form onsubmit="event.preventDefault(); handlePhoneVerifyCode();">' +

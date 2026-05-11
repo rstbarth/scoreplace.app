@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.83-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>Login por celular — link mágico no WhatsApp além do SMS.</b><br>' +
+      '• Ao digitar o celular no login e clicar Enviar, além do SMS com o código de 6 dígitos o app agora tenta enviar um <b>link direto pelo WhatsApp</b>. Quem tiver o número cadastrado no WhatsApp recebe uma mensagem com um link de um clique — sem precisar digitar nenhum código.<br>' +
+      '• O link WhatsApp expira em 1 hora e só funciona para números que já têm conta no scoreplace.app (primeiro acesso ainda usa o SMS normalmente).<br>' +
+      '• Se o WhatsApp não estiver disponível ou o número não for reconhecido, o SMS funciona normalmente — os dois caminhos são independentes.<br>' +
+      '• O painel de verificação agora mostra o aviso: <em>"Digite o código de 6 dígitos recebido por SMS — ou clique no link que chegou no WhatsApp para entrar direto."</em><br>' +
+      'Alterações em <code>functions/index.js</code> (nova Cloud Function <code>sendWhatsAppMagicLink</code>) e <code>js/views/auth.js</code> (handler <code>?wt=TOKEN</code> + call no login por celular).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.82-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Link mágico — e-mail com melhor deliverability + botão Reenviar funcional.</b><br>' +
       '• O e-mail do link de acesso era HTML puro — filtros de spam penalizam isso. Agora inclui versão <code>text/plain</code> alternativa, que melhora o score de spam e garante que qualquer cliente de e-mail exiba algo legível.<br>' +
