@@ -1155,23 +1155,11 @@ function handlePhoneLogin() {
   // clique, e signInWithPhoneNumber reutiliza o iframe já ancorado.
   window._phoneRecaptchaVerifier.render()
     .then(function() {
-      return firebase.auth().signInWithPhoneNumber(phone, window._phoneRecaptchaVerifier);
-    })
-    .then(function(confirmationResult) {
-      window._phoneConfirmationResult = confirmationResult;
-      // Show verification code input
-      _showPhoneVerificationStep();
-      showNotification(_t('auth.codeSent'), _t('auth.codeSentMsg', {phone: phone}), 'success');
-      // v1.3.83-beta: best-effort WhatsApp magic link — se o número tiver
-      // cadastro no WhatsApp (e conta Firebase), recebe link direto além do
-      // SMS OTP. Fire-and-forget (não bloqueia OTP, não exibe erro se falhar).
-      // v1.3.86-beta: usa fetch() direto ao endpoint da Cloud Function em vez
-      // de firebase.functions().httpsCallable(). O httpsCallable tenta inicializar
-      // o Firebase Messaging internamente (que busca /firebase-messaging-sw.js),
-      // e essa inicialização falha no mobile antes do HTTP request sair,
-      // rejeitando a promise com erro de Messaging em vez de chamar a função.
-      // Fetch direto não tem essa dependência: curl provou que o endpoint
-      // responde corretamente sem auth token.
+      // v1.3.89-beta: WhatsApp magic link dispara em PARALELO com o SMS,
+      // imediatamente após reCAPTCHA render() — não depende do SMS ter sucesso.
+      // Se SMS falhar por rate-limit, o WA já foi enviado antes do erro.
+      // Guardamos o resultado em window._waMagicLinkResult para o catch usar.
+      window._waMagicLinkResult = null;
       (function() {
         var waStatus = document.getElementById('phone-step-wa-status');
         if (waStatus) waStatus.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">⏳ Verificando WhatsApp...</span>';
@@ -1185,21 +1173,31 @@ function handlePhoneLogin() {
         .then(function(body) {
           var d = body && body.result;
           console.log('[WA magic link] resultado:', JSON.stringify(d));
-          if (!waStatus) return;
+          window._waMagicLinkResult = d;
+          var ws = document.getElementById('phone-step-wa-status');
+          if (!ws) return;
           if (d && d.ok) {
-            waStatus.innerHTML = '<span style="color:#10b981;font-size:0.72rem;">✅ Link enviado pelo WhatsApp também.</span>';
+            ws.innerHTML = '<span style="color:#10b981;font-size:0.72rem;">✅ Link enviado pelo WhatsApp também.</span>';
           } else {
             var reason = (d && d.reason) || 'unknown';
-            // user-not-found = primeiro login por telefone, esperado — silencioso
-            waStatus.innerHTML = reason === 'user-not-found' ? '' :
+            ws.innerHTML = reason === 'user-not-found' ? '' :
               '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA: ' + reason + '</span>';
           }
         })
         .catch(function(err) {
           console.warn('[WA magic link] fetch falhou:', err && err.message);
-          if (waStatus) waStatus.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA: rede</span>';
+          var ws = document.getElementById('phone-step-wa-status');
+          if (ws) ws.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA: rede</span>';
         });
       })();
+
+      return firebase.auth().signInWithPhoneNumber(phone, window._phoneRecaptchaVerifier);
+    })
+    .then(function(confirmationResult) {
+      window._phoneConfirmationResult = confirmationResult;
+      // Show verification code input
+      _showPhoneVerificationStep();
+      showNotification(_t('auth.codeSent'), _t('auth.codeSentMsg', {phone: phone}), 'success');
     })
     .catch(function(error) {
       console.error('Phone sign-in error:', error);
@@ -1223,24 +1221,30 @@ function handlePhoneLogin() {
       // nativo. Inclui error.message no toast para diagnóstico. Também
       // cobre auth/internal-error que Firebase retorna em falhas de
       // reCAPTCHA não mapeadas.
+      // v1.3.89-beta: se SMS falhou mas WA foi enviado com sucesso, mensagem
+      // de erro menciona o link do WhatsApp como alternativa imediata.
+      var waOk = window._waMagicLinkResult && window._waMagicLinkResult.ok;
       var code = (error && error.code) || 'unknown';
       var rawMsg = (error && error.message) || '';
+      var waSuffix = waOk ? '\n\n💬 Mas o link de acesso foi enviado pelo WhatsApp — verifique suas mensagens.' : '';
       var msg;
       if (code === 'auth/invalid-phone-number') {
         msg = 'Número inválido. Confira o DDI + DDD + número (ex: +55 11 99999-8888).';
       } else if (code === 'auth/too-many-requests') {
-        msg = 'Muitas tentativas. Aguarde 30 minutos. Ou use Link Mágico por E-mail.';
+        msg = waOk
+          ? 'Muitas tentativas de SMS. Mas o link de acesso já foi enviado pelo WhatsApp — clique nele para entrar.'
+          : 'Muitas tentativas. Aguarde 30 minutos. Ou use Link Mágico por E-mail.';
       } else if (code === 'auth/operation-not-allowed') {
         msg = 'Login por SMS não está habilitado nesta conta Firebase. Reporte: scoreplace.app@gmail.com\n\nUse Link Mágico por E-mail enquanto isso.';
       } else if (code === 'auth/captcha-check-failed' || code === 'auth/internal-error') {
         msg = 'Verificação reCAPTCHA falhou. Recarregue a página e tente de novo. Ou use Link Mágico.' + (rawMsg ? '\n\n(' + rawMsg.substring(0, 120) + ')' : '');
       } else if (code === 'auth/quota-exceeded') {
-        msg = 'Cota diária de SMS Firebase esgotada (limite free tier). Use Link Mágico por E-mail.';
+        msg = 'Cota diária de SMS Firebase esgotada (limite free tier). Use Link Mágico por E-mail.' + waSuffix;
       } else if (code === 'auth/network-request-failed') {
         msg = 'Sem conexão estável com Firebase. Tente Wi-Fi ou outra rede. Ou use Link Mágico.';
       } else {
         // Inclui rawMsg para diagnóstico quando error.code é undefined
-        msg = 'Não foi possível enviar SMS. Use Link Mágico por E-mail.\n\n(código: ' + code + (rawMsg ? ' — ' + rawMsg.substring(0, 120) : '') + ')';
+        msg = 'Não foi possível enviar SMS. Use Link Mágico por E-mail.\n\n(código: ' + code + (rawMsg ? ' — ' + rawMsg.substring(0, 120) : '') + ')' + waSuffix;
       }
       showNotification('SMS — falha', msg, 'error');
     });

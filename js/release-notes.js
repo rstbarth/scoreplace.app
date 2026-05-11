@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.89-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>WhatsApp magic link — dispara em paralelo com o SMS (independente de rate-limit).</b><br>' +
+      '• Antes, o link do WhatsApp era enviado dentro do <code>.then()</code> do <code>signInWithPhoneNumber</code>. Se o SMS falhava por "muitas tentativas" (rate-limit do Firebase), o <code>.then()</code> nunca disparava e o WhatsApp também não era enviado.<br>' +
+      '• Agora o WhatsApp dispara imediatamente após o reCAPTCHA validar, em paralelo com o SMS — antes de saber se o SMS vai ter sucesso ou não. Se o SMS falhar mas o WA funcionar, a mensagem de erro muda para "Muitas tentativas de SMS. Mas o link de acesso já foi enviado pelo WhatsApp — clique nele para entrar."<br>' +
+      'Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.88-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>WhatsApp magic link — fix login no Chrome + "Abrir no Safari" no iPhone.</b><br>' +
       '• <b>Bug corrigido:</b> ao clicar no link do WhatsApp, a tela ficava presa em "Validando seu link de acesso seguro" para sempre. Causa: <code>showStatus()</code> substitui todo o <code>document.body.innerHTML</code>, apagando o <code>#view-container</code>. Após o <code>signInWithCustomToken</code> ter sucesso, o router tentava renderizar o dashboard num container que não existia mais. Fix: em vez de <code>history.replaceState</code>, agora faz <code>window.location.replace(\'/#dashboard\')</code> — reload completo com auth já persistido no IndexedDB. A tela mostra "✅ Você entrou! Carregando o app..." antes do reload.<br>' +
