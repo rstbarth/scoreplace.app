@@ -1129,35 +1129,40 @@ function handlePhoneLogin() {
       // v1.3.83-beta: best-effort WhatsApp magic link — se o número tiver
       // cadastro no WhatsApp (e conta Firebase), recebe link direto além do
       // SMS OTP. Fire-and-forget (não bloqueia OTP, não exibe erro se falhar).
-      // v1.3.85-beta: status visível no UI (div #phone-step-wa-status) para
-      // diagnosticar sem DevTools; user-not-found fica silencioso (primeiro login).
+      // v1.3.86-beta: usa fetch() direto ao endpoint da Cloud Function em vez
+      // de firebase.functions().httpsCallable(). O httpsCallable tenta inicializar
+      // o Firebase Messaging internamente (que busca /firebase-messaging-sw.js),
+      // e essa inicialização falha no mobile antes do HTTP request sair,
+      // rejeitando a promise com erro de Messaging em vez de chamar a função.
+      // Fetch direto não tem essa dependência: curl provou que o endpoint
+      // responde corretamente sem auth token.
       (function() {
         var waStatus = document.getElementById('phone-step-wa-status');
         if (waStatus) waStatus.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">⏳ Verificando WhatsApp...</span>';
-        try {
-          var sendWaMagicFn = firebase.functions().httpsCallable('sendWhatsAppMagicLink');
-          sendWaMagicFn({ phone: phone })
-            .then(function(res) {
-              console.log('[WA magic link] resultado:', JSON.stringify(res.data));
-              if (!waStatus) return;
-              var d = res && res.data;
-              if (d && d.ok) {
-                waStatus.innerHTML = '<span style="color:#10b981;font-size:0.72rem;">✅ Link enviado pelo WhatsApp também.</span>';
-              } else {
-                var reason = (d && d.reason) || 'unknown';
-                // user-not-found = primeiro login por telefone, esperado — silencioso
-                waStatus.innerHTML = reason === 'user-not-found' ? '' :
-                  '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA: ' + reason + '</span>';
-              }
-            })
-            .catch(function(err) {
-              console.warn('[WA magic link] falhou:', err && err.message);
-              if (waStatus) waStatus.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA erro: ' + (err && err.message || 'unknown') + '</span>';
-            });
-        } catch(e) {
-          console.warn('[WA magic link] exceção:', e && e.message);
-          if (waStatus) waStatus.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA exceção: ' + (e && e.message || 'unknown') + '</span>';
-        }
+        var WA_FN_URL = 'https://us-central1-scoreplace-app.cloudfunctions.net/sendWhatsAppMagicLink';
+        fetch(WA_FN_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: { phone: phone } })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(body) {
+          var d = body && body.result;
+          console.log('[WA magic link] resultado:', JSON.stringify(d));
+          if (!waStatus) return;
+          if (d && d.ok) {
+            waStatus.innerHTML = '<span style="color:#10b981;font-size:0.72rem;">✅ Link enviado pelo WhatsApp também.</span>';
+          } else {
+            var reason = (d && d.reason) || 'unknown';
+            // user-not-found = primeiro login por telefone, esperado — silencioso
+            waStatus.innerHTML = reason === 'user-not-found' ? '' :
+              '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA: ' + reason + '</span>';
+          }
+        })
+        .catch(function(err) {
+          console.warn('[WA magic link] fetch falhou:', err && err.message);
+          if (waStatus) waStatus.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA: rede</span>';
+        });
       })();
     })
     .catch(function(error) {

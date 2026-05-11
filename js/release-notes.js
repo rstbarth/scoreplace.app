@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.86-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>WhatsApp magic link — fix real: fetch() direto em vez de httpsCallable.</b><br>' +
+      '• A causa do WhatsApp nunca enviar foi identificada: <code>firebase.functions().httpsCallable()</code> internamente tenta inicializar o Firebase Messaging (que busca <code>/firebase-messaging-sw.js</code> no mobile) — como esse arquivo não existe, a inicialização falha antes do HTTP request sair, e a promise é rejeitada com erro de Messaging.<br>' +
+      '• Fix: substituído por <code>fetch()</code> direto ao endpoint da Cloud Function. Sem dependência do SDK, sem service worker. O teste via curl já confirmava que o endpoint responde corretamente sem token de auth.<br>' +
+      '• O status WhatsApp continua visível no painel de código SMS (✅ em caso de sucesso, ℹ️ em caso de erro, silencioso para primeiro login).<br>' +
+      'Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.85-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>WhatsApp magic link — status visível no UI (sem DevTools).</b><br>' +
       '• Ao enviar SMS, o painel de código agora mostra diretamente o status do link WhatsApp: <em>"⏳ Verificando WhatsApp..."</em> enquanto a Cloud Function responde, depois <em>"✅ Link enviado pelo WhatsApp também."</em> em caso de sucesso — ou o motivo do erro se algo falhar.<br>' +
