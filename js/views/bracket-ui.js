@@ -8605,6 +8605,13 @@ window._openCasualMatch = function(restoreOpts) {
       } catch(e) {}
     }
 
+    // Save typed player names before destroying setup DOM so that if the user
+    // unlinks/re-pairs after this match, _casualReopenSetup → _renderSetup can
+    // restore them via the existing _savedPlayerNames fallback (slot index 0-3).
+    for (var _saveIdx = 0; _saveIdx < players.length && _saveIdx < 4; _saveIdx++) {
+      _savedPlayerNames[_saveIdx] = players[_saveIdx].name || '';
+    }
+
     // Close setup overlay
     var ov = document.getElementById('casual-match-overlay');
     if (ov) ov.remove();

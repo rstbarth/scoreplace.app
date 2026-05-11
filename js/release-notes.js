@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.91-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>Partida casual — nomes preservados ao desparear e reparear jogadores.</b><br>' +
+      '• Bug corrigido: ao simular uma partida casual, clicar no elo das correntes para desparear e tentar arrastar um jogador para novo parceiro, os nomes digitados (jogador 2, 3, 4) sumiam e voltavam a "Jogador 2/3/4".<br>' +
+      '• Causa: ao iniciar a partida, o overlay de setup era removido do DOM sem salvar os nomes. Quando o usuário voltava à tela de organização, <code>_renderSetup()</code> não encontrava os nomes nem no DOM nem no cache <code>_savedPlayerNames</code>.<br>' +
+      '• Fix: os nomes são salvos em <code>_savedPlayerNames</code> imediatamente antes de remover o overlay, usando o array <code>players</code> que já foi construído por <code>_buildPlayers()</code>.<br>' +
+      'Alteração em <code>js/views/bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.90-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Liga — grupo no WhatsApp criado automaticamente a cada sorteio.</b><br>' +
       '• Sempre que uma rodada da Liga é sorteada (sorteio manual, sorteio automático agendado ou 1ª rodada via "Sortear"), o app cria automaticamente um grupo no WhatsApp para cada partida da rodada.<br>' +
