@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.82-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>Link mágico — e-mail com melhor deliverability + botão Reenviar funcional.</b><br>' +
+      '• O e-mail do link de acesso era HTML puro — filtros de spam penalizam isso. Agora inclui versão <code>text/plain</code> alternativa, que melhora o score de spam e garante que qualquer cliente de e-mail exiba algo legível.<br>' +
+      '• Assunto alterado de <code>"🎾 Entrar no scoreplace.app"</code> para <code>"scoreplace.app — seu link de acesso"</code> — o padrão anterior combinava emoji + verbo "Entrar" + link único, padrão clássico de phishing que filtros de Gmail identificam e jogam no spam.<br>' +
+      '• Botão <b>Reenviar</b> no painel "Link enviado!" agora chama de verdade a Cloud Function e envia um novo e-mail. Antes fazia <code>window.location.reload()</code> — recarregava a página sem reenviar nada.<br>' +
+      'Alterações em <code>functions/index.js</code> (Cloud Function) e <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.81-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Hamburger — menu não fecha mais sozinho no primeiro clique.</b><br>' +
       '• Regressão da v1.3.80: ao clicar no hamburger para abrir o menu, ele abria e fechava automaticamente. Era necessário clicar uma segunda vez para mantê-lo aberto.<br>' +

@@ -801,9 +801,25 @@ function handleEmailLinkLogin() {
             '</div>' +
             '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">' +
               '<button class="btn btn-outline btn-sm" onclick="document.getElementById(\'modal-login\').classList.remove(\'active\')" style="font-size:0.82rem;">Fechar</button>' +
-              '<button class="btn btn-primary btn-sm" onclick="window.location.reload()" style="font-size:0.82rem;">Reenviar</button>' +
+              '<button class="btn btn-primary btn-sm" id="resend-magic-btn" onclick="window._resendMagicLink && window._resendMagicLink()" style="font-size:0.82rem;">Reenviar</button>' +
             '</div>' +
           '</div>';
+        // v1.3.82-beta: botão Reenviar chama a função de envio real em vez de
+        // recarregar a página (que não reenviar nada, só ia pro router).
+        window._resendMagicLink = function() {
+          var btn = document.getElementById('resend-magic-btn');
+          if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+          var sendMagicLinkFnR = firebase.functions().httpsCallable('sendMagicLink');
+          sendMagicLinkFnR({ email: email })
+            .then(function() {
+              if (btn) { btn.disabled = false; btn.textContent = 'Enviado ✓'; }
+              showNotification('📬', 'Novo link enviado pra ' + email, 'success');
+            })
+            .catch(function() {
+              if (btn) { btn.disabled = false; btn.textContent = 'Reenviar'; }
+              showNotification('⚠️', 'Não foi possível reenviar. Tente de novo.', 'error');
+            });
+        };
       } else {
         // Fallback se modal não existe — toast normal.
         showNotification(_t('auth.linkSent'), _t('auth.linkSentMsg', {email: email}), 'success');
