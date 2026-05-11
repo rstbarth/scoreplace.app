@@ -1129,21 +1129,34 @@ function handlePhoneLogin() {
       // v1.3.83-beta: best-effort WhatsApp magic link — se o número tiver
       // cadastro no WhatsApp (e conta Firebase), recebe link direto além do
       // SMS OTP. Fire-and-forget (não bloqueia OTP, não exibe erro se falhar).
-      // v1.3.84-beta: added console.log for diagnostics; phone passed raw
-      // (E.164 com +) para a Cloud Function normalizar internamente.
+      // v1.3.85-beta: status visível no UI (div #phone-step-wa-status) para
+      // diagnosticar sem DevTools; user-not-found fica silencioso (primeiro login).
       (function() {
+        var waStatus = document.getElementById('phone-step-wa-status');
+        if (waStatus) waStatus.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">⏳ Verificando WhatsApp...</span>';
         try {
-          console.log('[WA magic link] tentando enviar para', phone);
           var sendWaMagicFn = firebase.functions().httpsCallable('sendWhatsAppMagicLink');
           sendWaMagicFn({ phone: phone })
             .then(function(res) {
               console.log('[WA magic link] resultado:', JSON.stringify(res.data));
+              if (!waStatus) return;
+              var d = res && res.data;
+              if (d && d.ok) {
+                waStatus.innerHTML = '<span style="color:#10b981;font-size:0.72rem;">✅ Link enviado pelo WhatsApp também.</span>';
+              } else {
+                var reason = (d && d.reason) || 'unknown';
+                // user-not-found = primeiro login por telefone, esperado — silencioso
+                waStatus.innerHTML = reason === 'user-not-found' ? '' :
+                  '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA: ' + reason + '</span>';
+              }
             })
             .catch(function(err) {
-              console.warn('[WA magic link] falhou (silencioso):', err && err.message);
+              console.warn('[WA magic link] falhou:', err && err.message);
+              if (waStatus) waStatus.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA erro: ' + (err && err.message || 'unknown') + '</span>';
             });
         } catch(e) {
-          console.warn('[WA magic link] exceção (silencioso):', e && e.message);
+          console.warn('[WA magic link] exceção:', e && e.message);
+          if (waStatus) waStatus.innerHTML = '<span style="color:var(--text-muted);font-size:0.72rem;">ℹ️ WA exceção: ' + (e && e.message || 'unknown') + '</span>';
         }
       })();
     })
@@ -2857,7 +2870,8 @@ function setupLoginModal() {
                 '<button type="submit" class="btn btn-success" style="font-size:0.78rem;white-space:nowrap;padding:9px 14px;width:auto;justify-self:end;">Verificar</button>' +
               '</div>' +
             '</form>' +
-            '<div style="text-align:center;margin-top:6px;">' +
+            '<div id="phone-step-wa-status" style="text-align:center;margin-top:4px;min-height:1em;"></div>' +
+            '<div style="text-align:center;margin-top:4px;">' +
               '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();handlePhoneLogin();" style="color:var(--text-muted);font-size:0.72rem;">Reenviar</a>' +
               '<span style="color:var(--text-muted);font-size:0.72rem;margin:0 6px;">|</span>' +
               '<a href="#" onclick="event.preventDefault();_resetPhoneLoginUI();" style="color:var(--text-muted);font-size:0.72rem;">Voltar</a>' +

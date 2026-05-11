@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.85-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
+      '<p><b>WhatsApp magic link — status visível no UI (sem DevTools).</b><br>' +
+      '• Ao enviar SMS, o painel de código agora mostra diretamente o status do link WhatsApp: <em>"⏳ Verificando WhatsApp..."</em> enquanto a Cloud Function responde, depois <em>"✅ Link enviado pelo WhatsApp também."</em> em caso de sucesso — ou o motivo do erro se algo falhar.<br>' +
+      '• Primeiro login por telefone (<code>user-not-found</code>) continua silencioso — o SMS é o caminho correto nesses casos.<br>' +
+      '• Isso elimina a necessidade de DevTools para diagnosticar por que o WhatsApp não estava chegando.<br>' +
+      'Alteração em <code>js/views/auth.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.84-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>WhatsApp magic link — diagnóstico + fix de silêncio excessivo.</b><br>' +
       '• A v1.3.83 envolvia toda a chamada da Cloud Function em <code>try/catch</code> completamente silencioso — qualquer erro (de JS, de rede, de CORS) era descartado sem deixar rastro.<br>' +
