@@ -1584,7 +1584,8 @@ function renderDashboard(container) {
       }
     }
   } catch (_e) {}
-  if (window.FirestoreDB && window.FirestoreDB.db) {
+  // v1.3.79-beta: só busca se autenticado — evita permission-denied de bots/anon
+  if (window.FirestoreDB && window.FirestoreDB.db && _myUid) {
     (async function() {
       var n = null;
       // Path 1: aggregate count (preferred)
@@ -1598,7 +1599,8 @@ function renderDashboard(container) {
           }
         }
       } catch (e1) {
-        console.warn('[users count] aggregate failed, falling back to .get():', e1 && e1.message);
+        if (e1 && e1.code !== 'permission-denied')
+          console.warn('[users count] aggregate failed, falling back to .get():', e1 && e1.message);
       }
       // Path 2: fallback — get() todos os docs e count via .size
       if (n == null) {
@@ -1606,7 +1608,8 @@ function renderDashboard(container) {
           var fullSnap = await window.FirestoreDB.db.collection('users').get();
           if (fullSnap && typeof fullSnap.size === 'number') n = fullSnap.size;
         } catch (e2) {
-          console.warn('[users count] .get() fallback also failed:', e2 && e2.message);
+          if (e2 && e2.code !== 'permission-denied')
+            console.warn('[users count] .get() fallback also failed:', e2 && e2.message);
         }
       }
       if (n != null) {
