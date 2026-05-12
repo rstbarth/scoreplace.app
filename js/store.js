@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.4.10-beta';
+window.SCOREPLACE_VERSION = '1.4.11-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -116,6 +116,13 @@ setInterval(function() {
 window._softRefreshView = function() {
   // 0. If bracket just re-rendered locally, skip to avoid double-render + scroll jump
   if (window._suppressSoftRefresh) return;
+
+  // 0b. #novo-torneio is stateful — renderCreateTournamentPage moves DOM from
+  // body into viewContainer. A soft-refresh calls initRouter() which does
+  // viewContainer.innerHTML='' destroying that moved DOM, causing the page to
+  // close/redirect. Block entirely; user exits intentionally via Voltar/Salvar.
+  var _currentView = (window.location.hash || '').replace('#', '').split('/')[0];
+  if (_currentView === 'novo-torneio') return;
 
   // 1. If any modal is open or user is typing, defer — retry in 500ms
   // v1.0.62-beta: simulation-panel adicionado ao safe-list. Bug reportado:

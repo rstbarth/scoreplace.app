@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.11-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Fix: criar/editar torneio não fecha mais sozinho ao abrir.</b><br>' +
+      '• A tela <code>#novo-torneio</code> fechava imediatamente após abrir ou ficava piscando, especialmente no primeiro clique.<br>' +
+      '• Causa: o listener do Firestore disparava um "soft refresh" que limpava o DOM da tela antes dela carregar por completo.<br>' +
+      '• Corrigido bloqueando o soft refresh enquanto o usuário está em <code>#novo-torneio</code> — a tela só sai quando o usuário navega intencionalmente via Voltar ou Salvar.<br>' +
+      'Alteração em <code>store.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.10-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Cabeçalho de criar/editar torneio cabe em qualquer mobile.</b><br>' +
       '• Em telas ≤ 600px, todos os 4 botões do cabeçalho ficam só com ícone: 💾 · ⭐ · ✕ · ✓ — textos "Carregar", "Salvar Template", "Descartar" e "Salvar" somem para liberar espaço.<br>' +
