@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.95-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil de amigo — aniversário sem ano + estatísticas de confrontos e parcerias.</b><br>' +
+      '• Idade removida de todos os perfis. Exibe apenas aniversário no formato dd/mm (ex: 🎂 12/05) — sem revelar o ano.<br>' +
+      '• Seção "Estatísticas entre vocês" exclusiva para amigos: mostra confrontos diretos com placar de vitórias (ex: ⚔️ 2 × 1), parcerias com vitórias/derrotas (ex: 🤝 4V · 1D) e torneios em comum com nomes destacados.<br>' +
+      '• Cálculo feito sobre todos os torneios carregados no app — inclui todos os formatos (eliminatórias, Liga, Suíço, Grupos, Rei/Rainha, duplas).<br>' +
+      'Alteração em <code>js/views/explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.94-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Perfil de amigo no Explorar — layout rico com todas as informações disponíveis.</b><br>' +
       '• Antes o sheet mostrava só foto, nome e botão "Desfazer amizade" quando cidade/esportes estavam vazios.<br>' +

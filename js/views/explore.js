@@ -1335,6 +1335,95 @@ window._openPendingInviteDetail = function (uid) {
     .catch(function () { _renderInviteDetailSheet({ _docId: uid, displayName: 'Usuário' }); });
 };
 
+// ── Profile sheet helpers ─────────────────────────────────────────────────
+
+// Returns true if the player identified by email/name appears in a match slot
+// string (simple name, "A / B" doubles, or email).
+function _playerInSlot(slot, email, name) {
+  if (!slot) return false;
+  var s = String(slot).toLowerCase();
+  if (email && s.indexOf(email.toLowerCase()) !== -1) return true;
+  if (name) {
+    var n = name.toLowerCase().trim();
+    if (!n || n.length < 2) return false;
+    if (s === n) return true;
+    if (s.indexOf(n) !== -1) return true;
+    // First-name match for doubles "Ana / Paulo" — only if >= 3 chars
+    var firstName = n.split(/\s+/)[0];
+    if (firstName.length >= 3) {
+      var parts = s.split(/[\s\/]+/);
+      for (var _i = 0; _i < parts.length; _i++) {
+        if (parts[_i] === firstName) return true;
+      }
+    }
+  }
+  return false;
+}
+
+// Computes confrontos/parcerias/torneios stats between currentUser and friend u
+function _computeFriendStats(u) {
+  var cu = window.AppStore ? (window.AppStore.currentUser || {}) : {};
+  var myEmail = cu.email || '';
+  var myName  = cu.displayName || '';
+  var frEmail = u.email || '';
+  var frName  = u.displayName || '';
+  var stats = {
+    tournaments: 0, tournamentNames: [],
+    confrontos: { total: 0, myWins: 0, frWins: 0 },
+    parcerias:  { total: 0, wins: 0, losses: 0 }
+  };
+  if (!frEmail && !frName) return stats;
+  var allT = window.AppStore ? (window.AppStore.tournaments || []) : [];
+  allT.forEach(function(t) {
+    var pList = Array.isArray(t.participants) ? t.participants : [];
+    var meIn = t.organizerEmail === myEmail || pList.some(function(pp) {
+      return _participantMatchesUser(pp, myEmail, myName);
+    });
+    var frIn = pList.some(function(pp) {
+      return _participantMatchesUser(pp, frEmail, frName);
+    });
+    if (!meIn || !frIn) return;
+    stats.tournaments++;
+    if (stats.tournamentNames.length < 3 && t.name) stats.tournamentNames.push(window._safeHtml(t.name));
+    var matches = (typeof window._collectAllMatches === 'function')
+      ? window._collectAllMatches(t)
+      : (Array.isArray(t.matches) ? t.matches : []);
+    matches.forEach(function(m) {
+      if (!m) return;
+      var meP1 = _playerInSlot(m.p1, myEmail, myName);
+      var meP2 = _playerInSlot(m.p2, myEmail, myName);
+      var frP1 = _playerInSlot(m.p1, frEmail, frName);
+      var frP2 = _playerInSlot(m.p2, frEmail, frName);
+      // Monarch format: team arrays
+      if (Array.isArray(m.team1)) {
+        if (!meP1) meP1 = m.team1.some(function(id){ return _playerInSlot(id, myEmail, myName); });
+        if (!frP1) frP1 = m.team1.some(function(id){ return _playerInSlot(id, frEmail, frName); });
+      }
+      if (Array.isArray(m.team2)) {
+        if (!meP2) meP2 = m.team2.some(function(id){ return _playerInSlot(id, myEmail, myName); });
+        if (!frP2) frP2 = m.team2.some(function(id){ return _playerInSlot(id, frEmail, frName); });
+      }
+      var sameTeam  = (meP1 && frP1) || (meP2 && frP2);
+      var opponents = (meP1 && frP2) || (meP2 && frP1);
+      if (sameTeam) {
+        stats.parcerias.total++;
+        if (m.winner) {
+          var mySideSlot = meP1 ? m.p1 : m.p2;
+          var won = (m.winner === mySideSlot) || _playerInSlot(m.winner, myEmail, myName);
+          if (won) stats.parcerias.wins++; else stats.parcerias.losses++;
+        }
+      } else if (opponents) {
+        stats.confrontos.total++;
+        if (m.winner) {
+          if (_playerInSlot(m.winner, myEmail, myName))       stats.confrontos.myWins++;
+          else if (_playerInSlot(m.winner, frEmail, frName))  stats.confrontos.frWins++;
+        }
+      }
+    });
+  });
+  return stats;
+}
+
 function _profileSheetAvatarHtml(u, uid, size, borderColor) {
   var nl = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
   var seed = encodeURIComponent((nl.line1 + (nl.line2 ? ' ' + nl.line2 : '')) || uid || 'User');
@@ -1380,7 +1469,7 @@ function _mountProfileSheet(innerHtml) {
 }
 
 function _renderUserProfileSheet(u) {
-  var cu = window.AppStore.currentUser || {};
+  var cu = window.AppStore ? (window.AppStore.currentUser || {}) : {};
   var myFriends = cu.friends || [];
   var mySent = cu.friendRequestsSent || [];
   var uid = u._docId || u.uid || u.email;
@@ -1390,80 +1479,97 @@ function _renderUserProfileSheet(u) {
   var safeUid = String(uid || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   var fullName = window._safeHtml(u.displayName || u.email || 'Usuário');
   var borderColor = isFriend ? 'var(--success-color)' : 'var(--primary-color)';
+  var hr = '<div style="height:1px;background:rgba(255,255,255,0.07);margin:12px 0;"></div>';
 
-  // ── Location ─────────────────────────────────────────────
+  // ── Location ──────────────────────────────────────────────
   var locationParts = [u.city, u.state].filter(Boolean).map(function(s) { return window._safeHtml(s); });
   var cityHtml = locationParts.length ? '<div style="font-size:0.83rem;color:var(--text-muted);margin-top:4px;">📍 ' + locationParts.join(', ') + '</div>' : '';
 
-  // ── Age (from birthDate "dd/mm/aaaa") ────────────────────
-  var ageHtml = '';
+  // ── Birthday dd/mm (no year, no age) ──────────────────────
+  var birthdayHtml = '';
   if (u.birthDate) {
     try {
-      var parts = String(u.birthDate).split('/');
-      if (parts.length === 3) {
-        var yr = parseInt(parts[2], 10);
-        var now = new Date();
-        var age = now.getFullYear() - yr;
-        var bdMonth = parseInt(parts[1], 10) - 1;
-        var bdDay = parseInt(parts[0], 10);
-        if (now.getMonth() < bdMonth || (now.getMonth() === bdMonth && now.getDate() < bdDay)) age--;
-        if (age > 5 && age < 110) ageHtml = age + ' anos';
+      var bdParts = String(u.birthDate).split('/');
+      if (bdParts.length >= 2) {
+        birthdayHtml = '<span>🎂 ' + bdParts[0] + '/' + bdParts[1] + '</span>';
       }
     } catch(e) {}
   }
 
-  // ── Gender ───────────────────────────────────────────────
+  // ── Gender ────────────────────────────────────────────────
   var genderMap = { 'feminino': '♀️ Feminino', 'masculino': '♂️ Masculino', 'nao-binario': '⚧️ Não-binário', 'prefiro-nao-dizer': '' };
-  var genderHtml = (u.gender && genderMap[u.gender]) ? genderMap[u.gender] : '';
+  var genderLabel = (u.gender && genderMap[u.gender]) ? genderMap[u.gender] : '';
 
-  // ── Info row (gender · age | level) ──────────────────────
-  var infoItems = [];
-  if (genderHtml || ageHtml) infoItems.push((genderHtml + (genderHtml && ageHtml ? ' · ' : '') + ageHtml).trim());
-  if (u.defaultCategory) infoItems.push('Nível ' + window._safeHtml(String(u.defaultCategory)));
-  var infoRowHtml = infoItems.length ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">' + infoItems.join(' &nbsp;·&nbsp; ') + '</div>' : '';
+  // ── Info row: gender · birthday · level ───────────────────
+  var infoChips = [];
+  if (genderLabel) infoChips.push(genderLabel);
+  if (birthdayHtml) infoChips.push(birthdayHtml);
+  if (u.defaultCategory) infoChips.push('Nível ' + window._safeHtml(String(u.defaultCategory)));
+  var infoRowHtml = infoChips.length
+    ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:center;">' + infoChips.join('<span style="opacity:0.35;">·</span>') + '</div>'
+    : '';
 
-  // ── Member since ─────────────────────────────────────────
+  // ── Member since ──────────────────────────────────────────
   var sinceHtml = '';
   if (u.createdAt) {
     try {
-      var d = new Date(u.createdAt);
-      var monNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-      sinceHtml = '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">🗓️ Membro desde ' + monNames[d.getMonth()] + ' ' + d.getFullYear() + '</div>';
+      var sd = new Date(u.createdAt);
+      var _mns = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      sinceHtml = '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">🗓️ Membro desde ' + _mns[sd.getMonth()] + ' ' + sd.getFullYear() + '</div>';
     } catch(e) {}
   }
 
-  // ── Sports / skill ────────────────────────────────────────
+  // ── Sports / skill pills ──────────────────────────────────
   var sportsHtml = _profileSheetSportsHtml(u);
 
-  // ── Shared tournaments ────────────────────────────────────
-  var sharedCount = u._sharedTournaments || u._sharedCount || 0;
-  var sharedHtml = '';
-  if (sharedCount > 0) {
-    // Try to get tournament names
-    var myTournaments = window.AppStore.tournaments || [];
-    var myEmail = cu.email || '';
-    var myName = cu.displayName || '';
-    var sharedNames = [];
-    myTournaments.forEach(function(t) {
-      if (sharedNames.length >= 3) return;
-      var parts = Array.isArray(t.participants) ? t.participants : [];
-      var hasMe = t.organizerEmail === myEmail || parts.some(function(pp) { return _participantMatchesUser(pp, myEmail, myName); });
-      var hasFriend = parts.some(function(pp) { return _participantMatchesUser(pp, u.email || '', u.displayName || ''); });
-      if (hasMe && hasFriend && t.name) sharedNames.push(window._safeHtml(t.name));
-    });
-    var namesHtml = sharedNames.length ? '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;">' + sharedNames.join(' · ') + (sharedCount > sharedNames.length ? ' · +' + (sharedCount - sharedNames.length) + ' mais' : '') + '</div>' : '';
-    sharedHtml = '<div style="margin-top:12px;padding:10px 14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;text-align:center;">' +
-      '<div style="font-size:0.82rem;color:#f59e0b;font-weight:600;">🏆 ' + sharedCount + ' torneio' + (sharedCount !== 1 ? 's' : '') + ' em comum</div>' +
-      namesHtml +
-    '</div>';
+  // ── Stats: confrontos + parcerias + torneios em comum ─────
+  var statsHtml = '';
+  if (isFriend) {
+    var st = _computeFriendStats(u);
+    var frFirstName = window._safeHtml((u.displayName || 'Amigo').split(/\s+/)[0]);
+    var rows = '';
+
+    if (st.confrontos.total > 0) {
+      var cScore = st.confrontos.myWins + ' × ' + st.confrontos.frWins;
+      var cExtra = st.confrontos.total - st.confrontos.myWins - st.confrontos.frWins;
+      var cLabel = cScore + (cExtra > 0 ? ' · ' + cExtra + ' sem resultado' : '');
+      rows += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+        '<span style="font-size:0.82rem;color:var(--text-bright);">⚔️ Confrontos diretos</span>' +
+        '<span style="font-size:0.8rem;color:var(--text-muted);">' + st.confrontos.total + ' partida' + (st.confrontos.total !== 1 ? 's' : '') + ' &nbsp;<b style="color:var(--text-bright);">' + cLabel + '</b></span>' +
+      '</div>';
+    }
+    if (st.parcerias.total > 0) {
+      var pLabel = st.parcerias.wins + 'V · ' + st.parcerias.losses + 'D';
+      var pExtra = st.parcerias.total - st.parcerias.wins - st.parcerias.losses;
+      if (pExtra > 0) pLabel += ' · ' + pExtra + ' s/res.';
+      rows += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+        '<span style="font-size:0.82rem;color:var(--text-bright);">🤝 Parcerias</span>' +
+        '<span style="font-size:0.8rem;color:var(--text-muted);">' + st.parcerias.total + ' partida' + (st.parcerias.total !== 1 ? 's' : '') + ' &nbsp;<b style="color:var(--text-bright);">' + pLabel + '</b></span>' +
+      '</div>';
+    }
+    if (st.tournaments > 0) {
+      var tNames = st.tournamentNames.join(' · ') + (st.tournaments > st.tournamentNames.length ? ' · +' + (st.tournaments - st.tournamentNames.length) : '');
+      rows += '<div style="padding:6px 0;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<span style="font-size:0.82rem;color:var(--text-bright);">🏆 Torneios juntos</span>' +
+          '<span style="font-size:0.8rem;color:#f59e0b;font-weight:600;">' + st.tournaments + '</span>' +
+        '</div>' +
+        (tNames ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + tNames + '</div>' : '') +
+      '</div>';
+    }
+
+    if (rows) {
+      statsHtml = hr +
+        '<div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Histórico entre vocês</div>' +
+        rows;
+    } else if (st.tournaments === 0) {
+      statsHtml = hr + '<div style="font-size:0.78rem;color:var(--text-muted);text-align:center;font-style:italic;">Ainda não jogaram torneios juntos</div>';
+    }
   }
 
-  // ── Empty state when profile is really bare ───────────────
-  var hasAnyInfo = cityHtml || infoRowHtml || sportsHtml || sharedHtml || sinceHtml;
-  var emptyHint = !hasAnyInfo ? '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:10px;font-style:italic;">Perfil ainda não preenchido</div>' : '';
-
-  // ── Divider helper ────────────────────────────────────────
-  var div = '<div style="height:1px;background:rgba(255,255,255,0.07);margin:12px 0;"></div>';
+  // ── Empty state when profile is bare ─────────────────────
+  var hasBasicInfo = cityHtml || infoRowHtml || sportsHtml;
+  var emptyHint = !hasBasicInfo ? '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:10px;font-style:italic;">Perfil ainda não preenchido</div>' : '';
 
   // ── Actions ───────────────────────────────────────────────
   var actionsHtml = '';
@@ -1496,8 +1602,8 @@ function _renderUserProfileSheet(u) {
       sinceHtml +
       emptyHint +
     '</div>' +
-    (sportsHtml ? div + sportsHtml : '') +
-    (sharedHtml ? sharedHtml : '') +
+    (sportsHtml ? hr + sportsHtml : '') +
+    statsHtml +
     actionsHtml
   );
 }
