@@ -9,10 +9,11 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
-      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.14-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
-      '<p><b>Cabeçalho de criar/editar torneio: todos os botões sempre visíveis com texto.</b><br>' +
-      '• Os botões 💾 Carregar Template e ⭐ Salvar Template foram movidos para uma segunda linha abaixo do cabeçalho principal.<br>' +
-      '• A linha principal agora tem apenas ← Voltar + ✕ Descartar + ✓ Salvar — cabe em qualquer celular sem cortar texto.<br>' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.15-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Cabeçalho de criar/editar torneio: todos os botões em uma linha, Salvar nunca cortado.</b><br>' +
+      '• 💾 e ⭐ ficam icon-only em mobile (detectado no momento do render via <code>window.innerWidth</code>).<br>' +
+      '• "Descartar" e "Salvar" mostram só o texto, sem ícone-prefixo, ocupando apenas o espaço necessário.<br>' +
+      '• Padding do cabeçalho aplicado via <code>style.setProperty(…, \'important\')</code> — garante override independente de especificidade CSS.<br>' +
       'Alteração em <code>create-tournament.js</code>.</p>' +
     '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +

@@ -4489,37 +4489,59 @@ window._renderCreateTournamentHeader = function() {
   var host = document.getElementById('create-tournament-header-host');
   if (!host || typeof window._renderBackHeader !== 'function') return;
   var _t = window._t || function(k) { return k; };
-  var btnStyle = 'padding:5px 10px;font-size:0.75rem;flex-shrink:0;border-radius:10px;';
-  var btnStyleSm = 'padding:4px 8px;font-size:0.7rem;flex-shrink:0;border-radius:8px;';
 
-  // Main row (right slot): only Descartar + Salvar — always fits on any phone width
+  // Template buttons: icon-only on narrow screens (decided at render time)
+  var narrow = window.innerWidth <= 600;
+  var tplPad  = narrow ? 'padding:4px 7px;font-size:0.72rem;' : 'padding:5px 10px;font-size:0.75rem;';
+  var loadLbl = narrow ? '' : (' ' + (_t('create.loadTemplate') || 'Carregar Template'));
+  var saveLbl = narrow ? '' : (' ' + (_t('create.saveTemplate') || 'Salvar Template'));
+
+  // Descartar and Salvar: text-only (no icon), minimum width needed for their words
+  var actPad  = narrow ? 'padding:4px 8px;font-size:0.75rem;' : 'padding:5px 12px;font-size:0.8rem;';
+
   var actionsHtml =
     '<div class="create-hdr-actions" style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap;">' +
-      '<button class="btn btn-danger-ghost btn-sm hover-lift" id="btn-discard-tournament" type="button" onclick="window._discardCreateTournament()" style="' + btnStyle + '" title="' + (_t('btn.discard') || 'Descartar') + '">✕ ' + (_t('btn.discard') || 'Descartar') + '</button>' +
-      '<button class="btn btn-primary btn-sm hover-lift" id="btn-save-tournament" type="button" style="' + btnStyle + 'font-weight:700;" title="' + (_t('btn.save') || 'Salvar') + '">✓ ' + (_t('btn.save') || 'Salvar') + '</button>' +
-    '</div>';
-
-  // Second row: template actions (less frequent, below main row)
-  var belowHtml =
-    '<div style="display:flex;align-items:center;gap:6px;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.07);">' +
-      '<button class="btn btn-tool-amber btn-sm" id="btn-load-template-create" type="button" onclick="window._showTemplatePickerInCreate()" style="' + btnStyleSm + '" title="' + (_t('create.loadTemplate') || 'Carregar Template') + '">💾 ' + (_t('create.loadTemplate') || 'Carregar Template') + '</button>' +
-      '<button class="btn btn-tool-indigo btn-sm" id="btn-save-template-create" type="button" onclick="window._saveCurrentFormAsTemplate()" style="' + btnStyleSm + '" title="' + (_t('create.saveTemplate') || 'Salvar Template') + '">⭐ ' + (_t('create.saveTemplate') || 'Salvar Template') + '</button>' +
+      '<button class="btn btn-tool-amber btn-sm" id="btn-load-template-create" type="button" ' +
+              'onclick="window._showTemplatePickerInCreate()" ' +
+              'style="' + tplPad + 'flex-shrink:0;border-radius:10px;" ' +
+              'title="' + (_t('create.loadTemplate') || 'Carregar Template') + '">💾' + loadLbl + '</button>' +
+      '<button class="btn btn-tool-indigo btn-sm" id="btn-save-template-create" type="button" ' +
+              'onclick="window._saveCurrentFormAsTemplate()" ' +
+              'style="' + tplPad + 'flex-shrink:0;border-radius:10px;" ' +
+              'title="' + (_t('create.saveTemplate') || 'Salvar Template') + '">⭐' + saveLbl + '</button>' +
+      '<button class="btn btn-danger-ghost btn-sm hover-lift" id="btn-discard-tournament" type="button" ' +
+              'onclick="window._discardCreateTournament()" ' +
+              'style="' + actPad + 'flex-shrink:0;border-radius:10px;" ' +
+              'title="' + (_t('btn.discard') || 'Descartar') + '">' + (_t('btn.discard') || 'Descartar') + '</button>' +
+      '<button class="btn btn-primary btn-sm hover-lift" id="btn-save-tournament" type="button" ' +
+              'style="' + actPad + 'font-weight:700;flex-shrink:0;border-radius:10px;" ' +
+              'title="' + (_t('btn.save') || 'Salvar') + '">' + (_t('btn.save') || 'Salvar') + '</button>' +
     '</div>';
 
   host.innerHTML = window._renderBackHeader({
     href: '#dashboard',
     label: _t('btn.back') || 'Voltar',
     onClickOverride: window._discardCreateTournament,
-    rightHtml: actionsHtml,
-    belowHtml: belowHtml
+    rightHtml: actionsHtml
   });
 
+  // Override header padding via JS (bypasses CSS specificity entirely — guaranteed to apply)
+  var hdr = host.querySelector('.sticky-back-header');
+  if (hdr) {
+    hdr.style.setProperty('padding-left',  '0.75rem', 'important');
+    hdr.style.setProperty('padding-right', '0.75rem', 'important');
+    hdr.style.setProperty('padding-top',   '0.5rem',  'important');
+    hdr.style.setProperty('padding-bottom','0.4rem',  'important');
+  }
+
+  // Modal-context override (when opened via "Detalhes Avançados" inside a modal)
   if (!document.getElementById('create-tournament-header-style')) {
     var st = document.createElement('style');
     st.id = 'create-tournament-header-style';
     st.textContent =
-      '#modal-create-tournament .sticky-back-header{position:sticky;top:0;background:var(--bg-card);' +
-        'padding:0.5rem 0.75rem 0.3rem;border-bottom:1px solid var(--border-color);z-index:10;}';
+      '#modal-create-tournament .sticky-back-header{position:sticky;top:0;' +
+        'background:var(--bg-card);padding:0.5rem 0.75rem;' +
+        'border-bottom:1px solid var(--border-color);z-index:10;}';
     document.head.appendChild(st);
   }
 };
