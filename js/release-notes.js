@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.18-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Botão "Salvar" nunca mais cortado no cabeçalho de criar/editar torneio.</b><br>' +
+      '• Causa raiz encontrada via Chrome MCP: <code>responsive.css</code> tem a regra <code>.view-container .btn-primary { width: 100% }</code> em <code>@media (max-width:767px)</code>. Isso forçava o botão "Salvar" (classe <code>btn-primary</code>) a 195px — largura total do container de ações — estourando a linha.<br>' +
+      '• Fix: <code>create-tournament-header-style</code> agora inclui <code>#create-tournament-header-host .btn-primary, .btn-secondary { width: auto !important }</code>, que anula a regra de full-width especificamente no contexto do cabeçalho.<br>' +
+      '• O bloco de injeção de estilo agora remove e recria a tag a cada navegação para #novo-torneio, evitando que uma versão cacheada do CSS fique presa no DOM.<br>' +
+      'Alteração em <code>create-tournament.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.17-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Dois bugs corrigidos em #novo-torneio:</b><br>' +
       '• <b>Abria e fechava no primeiro clique:</b> o handler do botão "Detalhes Avançados" usava <code>_t()</code> sem defini-la localmente — o ReferenceError abortava a execução antes de chamar <code>_navigateToCreateTournament()</code>. Adicionado <code>var _t = window._t || …</code> no início do handler.<br>' +

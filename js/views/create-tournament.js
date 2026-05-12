@@ -4540,27 +4540,32 @@ window._renderCreateTournamentHeader = function() {
 
   // Responsive overrides via CSS media query — CSS always reflects actual viewport,
   // JS innerWidth at call time would be wrong when header is built at startup on desktop.
-  if (!document.getElementById('create-tournament-header-style')) {
-    var st = document.createElement('style');
-    st.id = 'create-tournament-header-style';
-    st.textContent =
-      // Modal-context: keep header sticky when opened as overlay
-      '#modal-create-tournament .sticky-back-header{position:sticky;top:0;' +
-        'background:var(--bg-card);padding:0.5rem 0.75rem;' +
-        'border-bottom:1px solid var(--border-color);z-index:10;}' +
-      // Mobile: hide "Voltar" label + template labels, shrink paddings, tighten gap
-      '@media (max-width:600px){' +
-        '#create-tournament-header-host [data-back-nav]{padding-left:8px!important;padding-right:8px!important;}' +
-        '#create-tournament-header-host .back-btn-label{display:none!important;}' +
-        '#create-tournament-header-host .tpl-label{display:none!important;}' +
-        '#create-tournament-header-host .create-hdr-actions{gap:4px!important;}' +
-        '#create-tournament-header-host .btn-tool-amber,' +
-        '#create-tournament-header-host .btn-tool-indigo{padding:4px 7px!important;font-size:0.72rem!important;}' +
-        '#create-tournament-header-host #btn-discard-tournament,' +
-        '#create-tournament-header-host #btn-save-tournament{padding:4px 8px!important;font-size:0.75rem!important;}' +
-      '}';
-    document.head.appendChild(st);
-  }
+  // Always remove + recreate so the fix is never stuck behind a cached old version.
+  var existingSt = document.getElementById('create-tournament-header-style');
+  if (existingSt) existingSt.remove();
+  var st = document.createElement('style');
+  st.id = 'create-tournament-header-style';
+  st.textContent =
+    // Modal-context: keep header sticky when opened as overlay
+    '#modal-create-tournament .sticky-back-header{position:sticky;top:0;' +
+      'background:var(--bg-card);padding:0.5rem 0.75rem;' +
+      'border-bottom:1px solid var(--border-color);z-index:10;}' +
+    // Fix: responsive.css has .view-container .btn-primary{width:100%} at ≤767px.
+    // Override for header buttons — they must size to content, never fill-width.
+    '#create-tournament-header-host .btn-primary,' +
+    '#create-tournament-header-host .btn-secondary{width:auto!important;}' +
+    // Mobile: hide "Voltar" label + template labels, shrink paddings, tighten gap
+    '@media (max-width:600px){' +
+      '#create-tournament-header-host [data-back-nav]{padding-left:8px!important;padding-right:8px!important;}' +
+      '#create-tournament-header-host .back-btn-label{display:none!important;}' +
+      '#create-tournament-header-host .tpl-label{display:none!important;}' +
+      '#create-tournament-header-host .create-hdr-actions{gap:4px!important;}' +
+      '#create-tournament-header-host .btn-tool-amber,' +
+      '#create-tournament-header-host .btn-tool-indigo{padding:4px 7px!important;font-size:0.72rem!important;}' +
+      '#create-tournament-header-host #btn-discard-tournament,' +
+      '#create-tournament-header-host #btn-save-tournament{padding:4px 8px!important;font-size:0.75rem!important;}' +
+    '}';
+  document.head.appendChild(st);
 };
 
 // ─── Hide/restore underlying sticky-back-headers when the modal is open ───
