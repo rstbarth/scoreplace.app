@@ -4807,15 +4807,10 @@ function setupProfileModal() {
           }
         });
       }
-      // Mantém defaultCategory legacy = primeira skill encontrada (compat com
-      // readers antigos como _suggestForCount, ranking, etc.). Quando user
-      // refinar pra ter skill diferente por modalidade, defaultCategory vai
-      // refletir o primeiro do array sportsArr — readers que precisam do
-      // skill exato por modalidade devem ler skillBySport[sport].
-      var category = '';
-      if (sportsArr.length > 0 && skillBySport[sportsArr[0]]) {
-        category = skillBySport[sportsArr[0]];
-      }
+      // defaultCategory foi removido da UI e do Firestore em v1.3.98-beta.
+      // Skill por modalidade vive em skillBySport{sport→skill}.
+      // Leitores legados (enrollment-report) continuam lendo o campo antigo
+      // de docs que já existiam no banco, mas novos saves não escrevem mais.
       var preferredCeps = (_v('profile-edit-ceps') || '').trim();
       var preferredLocations = Array.isArray(window._profileLocations)
         ? window._profileLocations.slice()
@@ -4902,7 +4897,7 @@ function setupProfileModal() {
       if (age != null) payload.age = age;
       if (cityIn) payload.city = cityIn;
       if (phoneDigits) payload.phone = phoneDigits;
-      if (category) payload.defaultCategory = category;
+      // defaultCategory removido — v1.3.98-beta (skill vive em skillBySport)
       if (preferredCeps) payload.preferredCeps = preferredCeps;
 
       // Arrays: só envia se tem pelo menos 1 item
@@ -4934,7 +4929,7 @@ function setupProfileModal() {
       console.log('[Profile v0.16.9] uid:', uid);
       console.log('[Profile v0.16.9] form raw:', {
         name: nameIn, gender: genderIn, birthRaw: birthRaw, city: cityIn,
-        phone: phoneDigits, sports: sportsArr, category: category
+        phone: phoneDigits, sports: sportsArr
       });
       console.log('[Profile v0.16.9] payload:', JSON.parse(JSON.stringify(payload)));
       window._lastProfileSave = {

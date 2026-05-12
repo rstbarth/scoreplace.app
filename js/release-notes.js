@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.98-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Nível de habilidade geral removido — skill agora é exclusivamente por modalidade.</b><br>' +
+      '• O campo "Nível X" (nível geral de habilidade) foi removido de todas as telas: perfil de amigo, perfil próprio e salvamento no banco de dados.<br>' +
+      '• Habilidade agora vive somente em <b>Habilidade por modalidade</b> (ex: Beach Tennis FUN, Tênis B) — configurável no próprio perfil.<br>' +
+      '• Usuários com nível geral gravado anteriormente continuam sendo migrados automaticamente: na primeira edição do perfil o nível antigo é aplicado como padrão para cada modalidade preferida cadastrada.<br>' +
+      '• Novos saves não escrevem mais o campo <code>defaultCategory</code> no Firestore.<br>' +
+      'Alterações em <code>explore.js</code>, <code>auth.js</code> e <code>store.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.97-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Perfil de amigo — comparação estatística com barras visuais (igual ao fim de partida casual).</b><br>' +
       '• ⚔️ Confrontos diretos agora apresentados com barras duplas lado a lado: Vitórias, Pontos, Games e Sets — você em azul (esquerda), amigo em âmbar (direita), proporcional ao total.<br>' +

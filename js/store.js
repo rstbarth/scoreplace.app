@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.3.97-beta';
+window.SCOREPLACE_VERSION = '1.3.98-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -2142,7 +2142,7 @@ window.AppStore = {
       phone: user.phone,
       phoneCountry: user.phoneCountry,
       preferredSports: user.preferredSports,
-      defaultCategory: user.defaultCategory,
+      // defaultCategory removed v1.3.98-beta — skill lives in skillBySport
       acceptFriendRequests: user.acceptFriendRequests,
       notifyPlatform: user.notifyPlatform,
       notifyEmail: user.notifyEmail,
@@ -2170,7 +2170,7 @@ window.AppStore = {
     // opcionais. Booleans, phoneCountry (default "55") e notifyLevel
     // (default "todas") continuam sendo escritos sempre.
     var _optionalTextFields = ['gender', 'birthDate', 'city', 'state', 'country',
-                               'phone', 'defaultCategory', 'preferredCeps'];
+                               'phone', 'preferredCeps'];
     var _optionalArrayFields = ['preferredSports', 'preferredLocations'];
     _optionalTextFields.forEach(function(k) {
       if (payload[k] === '') delete payload[k];

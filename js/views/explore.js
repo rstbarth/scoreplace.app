@@ -1685,11 +1685,10 @@ function _renderUserProfileSheet(u) {
   var genderMap = { 'feminino': '♀️ Feminino', 'masculino': '♂️ Masculino', 'nao-binario': '⚧️ Não-binário', 'prefiro-nao-dizer': '' };
   var genderLabel = (u.gender && genderMap[u.gender]) ? genderMap[u.gender] : '';
 
-  // ── Info row: gender · birthday · level ───────────────────
+  // ── Info row: gender · birthday (skill shown via skillBySport pills) ─
   var infoChips = [];
   if (genderLabel) infoChips.push(genderLabel);
   if (birthdayHtml) infoChips.push(birthdayHtml);
-  if (u.defaultCategory) infoChips.push('Nível ' + window._safeHtml(String(u.defaultCategory)));
   var infoRowHtml = infoChips.length
     ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:center;">' + infoChips.join('<span style="opacity:0.35;">·</span>') + '</div>'
     : '';
