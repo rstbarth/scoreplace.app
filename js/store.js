@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.4.12-beta';
+window.SCOREPLACE_VERSION = '1.4.13-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -1651,7 +1651,16 @@ window.AppStore = {
         // First snapshot = initial load → full render needed
         if (isFirstSnapshot) {
           isFirstSnapshot = false;
-          if (typeof initRouter === 'function') initRouter();
+          // v1.4.13-beta: se o usuário já navegou pra uma rota stateful
+          // (#novo-torneio) antes do primeiro snapshot chegar, NÃO chamar
+          // initRouter() — isso limparia o viewContainer e fecharia o formulário.
+          // O mesmo guard de _softRefreshView se aplica aqui: a rota stateful
+          // já foi renderizada pelo hashchange; o snapshot só atualiza os dados
+          // em memória (store.tournaments) sem precisar re-renderizar a view.
+          var _firstSnapView = (window.location.hash || '').replace('#', '').split('/')[0];
+          if (_firstSnapView !== 'novo-torneio') {
+            if (typeof initRouter === 'function') initRouter();
+          }
           // Auto-fix stale names after tournaments are loaded (no currentUser check needed)
           if (typeof window._autoFixStaleNames === 'function') {
             window._autoFixStaleNames().catch(function(e) { console.warn('Auto-fix stale names error:', e); });

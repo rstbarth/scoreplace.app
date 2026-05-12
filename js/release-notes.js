@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.13-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Fix definitivo: criar torneio não fecha mais ao primeiro clique.</b><br>' +
+      '• A v1.4.11 bloqueava o soft-refresh (Firestore → re-render) mas o <em>primeiro</em> snapshot do Firestore — que chega 0,5–2s após o login — chamava <code>initRouter()</code> diretamente, fora do caminho protegido.<br>' +
+      '• Agora o primeiro snapshot também ignora o re-render quando o usuário já está em <code>#novo-torneio</code>.<br>' +
+      '• Os dados dos torneios são carregados normalmente em memória; só o re-render desnecessário da tela é suprimido.<br>' +
+      'Alteração em <code>store.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.12-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Botões Descartar e Salvar sempre com texto no cabeçalho de criar torneio.</b><br>' +
       '• Os botões ✕ Descartar e ✓ Salvar agora mostram sempre o texto, independente do tamanho da tela.<br>' +
