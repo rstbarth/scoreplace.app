@@ -4463,6 +4463,10 @@ window.renderCreateTournamentPage = function (container) {
   container.appendChild(modalInner);
   if (modalEl && modalEl.parentNode === document.body) modalEl.remove();
 
+  // Re-render header on every navigation so button labels/padding reflect actual
+  // viewport (the CSS media query handles layout, but the DOM must exist in-situ).
+  if (typeof window._renderCreateTournamentHeader === 'function') window._renderCreateTournamentHeader();
+
   // Re-rodar setup async que depende de DOM visível (places, venue map, GSM)
   setTimeout(function () {
     if (typeof window._gsmInitPresets === 'function') window._gsmInitPresets();
@@ -4490,14 +4494,14 @@ window._renderCreateTournamentHeader = function() {
   if (!host || typeof window._renderBackHeader !== 'function') return;
   var _t = window._t || function(k) { return k; };
 
-  // Template buttons: icon-only on narrow screens (decided at render time)
-  var narrow = window.innerWidth <= 600;
-  var tplPad  = narrow ? 'padding:4px 7px;font-size:0.72rem;' : 'padding:5px 10px;font-size:0.75rem;';
-  var loadLbl = narrow ? '' : (' ' + (_t('create.loadTemplate') || 'Carregar Template'));
-  var saveLbl = narrow ? '' : (' ' + (_t('create.saveTemplate') || 'Salvar Template'));
+  // Template buttons: icon-only on narrow screens via CSS (not JS), so they
+  // respond to actual viewport at display time — not at render-call time.
+  var tplPad  = 'padding:5px 10px;font-size:0.75rem;';
+  var loadLbl = ' <span class="tpl-label">' + (_t('create.loadTemplate') || 'Carregar Template') + '</span>';
+  var saveLbl = ' <span class="tpl-label">' + (_t('create.saveTemplate') || 'Salvar Template') + '</span>';
 
   // Descartar and Salvar: text-only (no icon), minimum width needed for their words
-  var actPad  = narrow ? 'padding:4px 8px;font-size:0.75rem;' : 'padding:5px 12px;font-size:0.8rem;';
+  var actPad  = 'padding:5px 12px;font-size:0.8rem;';
 
   var actionsHtml =
     '<div class="create-hdr-actions" style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap;">' +
@@ -4534,26 +4538,27 @@ window._renderCreateTournamentHeader = function() {
     hdr.style.setProperty('padding-bottom','6px',  'important');
   }
 
-  // On narrow screens: hide "Voltar" text (keep arrow icon only) and shrink button padding.
-  // This saves ~65px, guaranteeing all 4 action buttons + icon-Voltar fit on one line.
-  if (narrow) {
-    var backBtn = host.querySelector('[data-back-nav]');
-    if (backBtn) {
-      backBtn.style.setProperty('padding-left',  '8px', 'important');
-      backBtn.style.setProperty('padding-right', '8px', 'important');
-      var lbl = backBtn.querySelector('.back-btn-label');
-      if (lbl) lbl.style.display = 'none';
-    }
-  }
-
-  // Modal-context override (when opened via "Detalhes Avançados" inside a modal)
+  // Responsive overrides via CSS media query — CSS always reflects actual viewport,
+  // JS innerWidth at call time would be wrong when header is built at startup on desktop.
   if (!document.getElementById('create-tournament-header-style')) {
     var st = document.createElement('style');
     st.id = 'create-tournament-header-style';
     st.textContent =
+      // Modal-context: keep header sticky when opened as overlay
       '#modal-create-tournament .sticky-back-header{position:sticky;top:0;' +
         'background:var(--bg-card);padding:0.5rem 0.75rem;' +
-        'border-bottom:1px solid var(--border-color);z-index:10;}';
+        'border-bottom:1px solid var(--border-color);z-index:10;}' +
+      // Mobile: hide "Voltar" label + template labels, shrink paddings, tighten gap
+      '@media (max-width:600px){' +
+        '#create-tournament-header-host [data-back-nav]{padding-left:8px!important;padding-right:8px!important;}' +
+        '#create-tournament-header-host .back-btn-label{display:none!important;}' +
+        '#create-tournament-header-host .tpl-label{display:none!important;}' +
+        '#create-tournament-header-host .create-hdr-actions{gap:4px!important;}' +
+        '#create-tournament-header-host .btn-tool-amber,' +
+        '#create-tournament-header-host .btn-tool-indigo{padding:4px 7px!important;font-size:0.72rem!important;}' +
+        '#create-tournament-header-host #btn-discard-tournament,' +
+        '#create-tournament-header-host #btn-save-tournament{padding:4px 8px!important;font-size:0.75rem!important;}' +
+      '}';
     document.head.appendChild(st);
   }
 };

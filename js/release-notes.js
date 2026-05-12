@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.17-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Dois bugs corrigidos em #novo-torneio:</b><br>' +
+      '• <b>Abria e fechava no primeiro clique:</b> o handler do botão "Detalhes Avançados" usava <code>_t()</code> sem defini-la localmente — o ReferenceError abortava a execução antes de chamar <code>_navigateToCreateTournament()</code>. Adicionado <code>var _t = window._t || …</code> no início do handler.<br>' +
+      '• <b>Botões cortados em mobile:</b> o cabeçalho era construído na inicialização num browser desktop, então <code>window.innerWidth ≤ 600</code> retornava false e o ajuste mobile nunca era aplicado. Substituído por CSS <code>@media (max-width:600px)</code> — funciona independente de quando/onde o header é renderizado.<br>' +
+      'Alterações em <code>main.js</code> e <code>create-tournament.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.16-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Cabeçalho de criar/editar torneio: Salvar agora nunca é cortado em nenhum celular.</b><br>' +
       '• Em telas estreitas (≤600px) o botão "← Voltar" mostra apenas a seta, escondendo o texto — libera ~65px garantidos.<br>' +

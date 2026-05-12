@@ -1459,6 +1459,7 @@ window._openHelpPage = function () { window.location.hash = '#help'; };
 
   // Detalhes Avançados — abre formulário completo com sport pré-selecionado
   document.getElementById('btn-quick-advanced').addEventListener('click', function () {
+    var _t = window._t || function(k) { return k; };
     const sportVal = document.getElementById('quick-create-sport').value;
     if (typeof closeModal === 'function') closeModal('modal-quick-create');
 
