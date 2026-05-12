@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.7-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Telefones normalizados para formato E.164 (+5511...) em todo o sistema.</b><br>' +
+      '• Todos os telefones do banco foram migrados para o formato <code>+55XXXXXXXXXXX</code>, eliminando a inconsistência entre perfis com e sem DDI.<br>' +
+      '• Conta duplicada detectada (mesmo celular, entradas distintas via SMS e Google) foi mesclada automaticamente — mantido o perfil com mais dados.<br>' +
+      '• Novos helpers <code>_normalizePhoneE164</code> e <code>_phoneLocalDigits</code> garantem que todo telefone gravado ou exibido daqui em diante siga o mesmo formato.<br>' +
+      '• Login via SMS, edição de perfil e exibição de telefones em cards e fichas atualizados para usar o novo padrão.<br>' +
+      'Alterações em <code>store.js</code> e <code>auth.js</code>; migração de dados via REST API.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.6-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Nomes genéricos substituídos por e-mail ou telefone nos cards e fichas de perfil.</b><br>' +
       '• Usuários que entraram via link mágico ou SMS e cujo nome era genérico ("usuário", "user", etc.) passam a aparecer com seu e-mail ou número de celular em todos os cards, fichas de perfil e estatísticas.<br>' +

@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.4.6-beta';
+window.SCOREPLACE_VERSION = '1.4.7-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -866,6 +866,32 @@ window._isUnfriendlyName = function(name) {
   return BAD.indexOf(n) !== -1;
 };
 
+// Normalizes any phone string to E.164 format with + prefix.
+// E.g., '11997237733' + cc='55' → '+5511997237733'
+//       '+5511997237733'         → '+5511997237733' (unchanged)
+// Returns '' if result has fewer than 8 digits (clearly invalid).
+window._normalizePhoneE164 = function(phone, cc) {
+  if (!phone) return '';
+  var d = String(phone).replace(/\D/g, '');
+  var _cc = String(cc || '55');
+  // Strip leading country-code digits (whether they came with + or not)
+  if (d.startsWith(_cc)) d = d.slice(_cc.length);
+  if (d.length < 8) return '';
+  return '+' + _cc + d;
+};
+
+// Returns local digits only (strips + and country code) — used by
+// _formatPhoneDisplay which expects DDD+number without DDI.
+// E.g., '+5511997237733' + cc='55' → '11997237733'
+//       '11997237733'               → '11997237733'
+window._phoneLocalDigits = function(phone, cc) {
+  if (!phone) return '';
+  var d = String(phone).replace(/\D/g, '');
+  var _cc = String(cc || '55');
+  if (d.startsWith(_cc)) d = d.slice(_cc.length);
+  return d;
+};
+
 // Returns the best human-readable name for a user object.
 // Falls through: displayName (if friendly) → email → phone → 'Usuário'.
 // Suitable for display anywhere a person needs to be identified.
@@ -875,14 +901,18 @@ window._friendlyDisplayName = function(u) {
   if (name && !window._isUnfriendlyName(name)) return name;
   // Full email is the clearest identifier for email-link users
   if (u.email) return u.email;
-  // Phone (local number stored without country code)
+  // Phone — strip country code before formatting for display
   if (u.phone) {
-    var ph = String(u.phone).replace(/\D/g, '');
     var cc = u.phoneCountry || '55';
-    if (typeof window._formatPhoneDisplay === 'function') {
-      try { return '+' + cc + ' ' + window._formatPhoneDisplay(ph, cc); } catch (_e) {}
+    var ph = (typeof window._phoneLocalDigits === 'function')
+      ? window._phoneLocalDigits(u.phone, cc)
+      : String(u.phone).replace(/\D/g, '');
+    if (ph.length >= 8) {
+      if (typeof window._formatPhoneDisplay === 'function') {
+        try { return '+' + cc + ' ' + window._formatPhoneDisplay(ph, cc); } catch (_e) {}
+      }
+      return '+' + cc + ' ' + ph;
     }
-    return '+' + cc + ' ' + ph;
   }
   // E.164 from Firebase Auth (SMS users who never loaded their profile)
   if (u.phoneNumber) return u.phoneNumber;

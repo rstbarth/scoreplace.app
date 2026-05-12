@@ -343,7 +343,11 @@ window._updateTopbarForUser = function(user) {
       // Tenta usar o número local do perfil (já com DDI stripado) quando
       // disponível (chamada tardia pós-loadUserProfile). Na chamada antecipada
       // (antes do Firestore retornar), cai no E.164 direto.
-      var _phD = (cu && cu.phone) ? String(cu.phone).replace(/\D/g, '') : '';
+      var _phD = (cu && cu.phone)
+        ? ((typeof window._phoneLocalDigits === 'function')
+            ? window._phoneLocalDigits(cu.phone, (cu && cu.phoneCountry) || '55')
+            : String(cu.phone).replace(/\D/g, ''))
+        : '';
       if (_phD.length >= 8 && typeof _formatPhoneDisplay === 'function') {
         displayFirstName = _formatPhoneDisplay(_phD, (cu && cu.phoneCountry) || '55');
       } else {
@@ -1312,10 +1316,12 @@ function handlePhoneVerifyCode() {
         try { savedCountry = localStorage.getItem('scoreplace_loginPhoneCountry'); } catch (_e) {}
         if (savedCountry) profileData.phoneCountry = savedCountry;
         if (user.phoneNumber) {
-          // Strip DDI: '+5511997237733' → '5511997237733' → remove '55' → '11997237733'
-          var _e164d = user.phoneNumber.replace(/^\+/, '');
-          var _cc = savedCountry || '55';
-          profileData.phone = _e164d.startsWith(_cc) ? _e164d.slice(_cc.length) : _e164d;
+          // v1.4.7-beta: armazena em formato E.164 completo (+5511997237733).
+          // Antes (v1.3.77-beta) stripava o DDI — gerava inconsistência com perfis
+          // antigos que guardavam com +55, impedindo cross-ref por telefone.
+          profileData.phone = (typeof window._normalizePhoneE164 === 'function')
+            ? window._normalizePhoneE164(user.phoneNumber, savedCountry || '55')
+            : user.phoneNumber;
         }
 
         // Lookup cross-reference por telefone. Tenta achar um user EXISTENTE
@@ -1323,13 +1329,13 @@ function handlePhoneVerifyCode() {
         // mesmo human que já cadastrou o telefone no perfil.
         try {
           if (user.phoneNumber) {
-            // v1.3.77-beta: busca tanto o E.164 completo (perfis antigos que
-            // guardavam '+5511997237733') quanto o número local sem DDI (perfis
-            // novos que guardam '11997237733') para garantir backward-compat.
-            var _crossRefPhones = [user.phoneNumber];
-            if (profileData.phone && profileData.phone !== user.phoneNumber) {
-              _crossRefPhones.push(profileData.phone);
-            }
+            // v1.4.7-beta: banco normalizado — todos os phones são E.164 (+55...).
+            // Mantém fallback local (sem +55) por backward-compat com docs ainda
+            // não migrados que possam existir fora da janela de migração.
+            var _e164Phone = profileData.phone || user.phoneNumber;
+            var _localFallback = _e164Phone.replace(/^\+55/, '');
+            var _crossRefPhones = [_e164Phone];
+            if (_localFallback !== _e164Phone) _crossRefPhones.push(_localFallback);
             var snap = await window.FirestoreDB.db.collection('users')
               .where('phone', 'in', _crossRefPhones)
               .limit(5).get();
@@ -2238,13 +2244,10 @@ async function simulateLoginSuccess(user) {
         if (!cu.photoURL && fbUser.photoURL) { cu.photoURL = fbUser.photoURL; }
         if (!cu.email && fbUser.email) { cu.email = fbUser.email; }
         if (!cu.phone && fbUser.phoneNumber) {
-          var _p = String(fbUser.phoneNumber).replace(/\D/g, '');
-          if (_p.length > 11 && _p.indexOf('55') === 0) {
-            cu.phoneCountry = '55';
-            cu.phone = _p.slice(2);
-          } else {
-            cu.phone = _p;
-          }
+          cu.phone = (typeof window._normalizePhoneE164 === 'function')
+            ? window._normalizePhoneE164(fbUser.phoneNumber, '55')
+            : fbUser.phoneNumber;
+          if (!cu.phoneCountry) cu.phoneCountry = '55';
         }
         if (!cu.authProvider && fbUser.providerData && fbUser.providerData.length > 0) {
           cu.authProvider = fbUser.providerData[0].providerId;
@@ -2325,10 +2328,13 @@ async function simulateLoginSuccess(user) {
     var phoneInput = document.getElementById('profile-edit-phone');
     if (phoneCountrySel && cu.phoneCountry) phoneCountrySel.value = cu.phoneCountry;
     if (phoneInput && cu.phone) {
-      var digits = (cu.phone || '').replace(/\D/g, '');
+      var _cc0 = phoneCountrySel ? phoneCountrySel.value : (cu.phoneCountry || '55');
+      var digits = (typeof window._phoneLocalDigits === 'function')
+        ? window._phoneLocalDigits(cu.phone, _cc0)
+        : (cu.phone || '').replace(/\D/g, '');
       phoneInput.setAttribute('data-digits', digits);
       if (typeof _formatPhoneDisplay === 'function') {
-        phoneInput.value = _formatPhoneDisplay(digits, phoneCountrySel ? phoneCountrySel.value : '55');
+        phoneInput.value = _formatPhoneDisplay(digits, _cc0);
       } else {
         phoneInput.value = digits;
       }
@@ -4921,7 +4927,9 @@ function setupProfileModal() {
       if (birthDate) payload.birthDate = birthDate;
       if (age != null) payload.age = age;
       if (cityIn) payload.city = cityIn;
-      if (phoneDigits) payload.phone = phoneDigits;
+      if (phoneDigits) payload.phone = (typeof window._normalizePhoneE164 === 'function')
+        ? window._normalizePhoneE164(phoneDigits, phoneCountry || '55')
+        : phoneDigits;
       // defaultCategory removido — v1.3.98-beta (skill vive em skillBySport)
       if (preferredCeps) payload.preferredCeps = preferredCeps;
 
