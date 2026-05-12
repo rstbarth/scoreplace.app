@@ -693,7 +693,9 @@ function _renderSentRequests(myUid, sentIds) {
     });
     var dedupedGroups = Object.keys(byEmail).map(function(k) { return byEmail[k]; });
 
-    // Cache profiles + store invite groups for instant sheet open
+    // Cache profiles + store invite groups + sentAt timestamps for instant sheet open
+    var _sentAtMap = (window.AppStore && window.AppStore.currentUser && window.AppStore.currentUser.friendRequestsSentAt) || {};
+    window._exploreInviteSentAt = window._exploreInviteSentAt || {};
     dedupedGroups.forEach(function(group) {
       var u = group.profile;
       var uid = u._docId;
@@ -701,9 +703,14 @@ function _renderSentRequests(myUid, sentIds) {
       window._exploreInviteGroups = window._exploreInviteGroups || {};
       if (uid) {
         window._exploreProfileCache[uid] = u;
+        // Store sentAt: check every uid in the group (legacy email key + current uid key)
+        var sentAt = null;
         group.uids.forEach(function(id) {
+          if (!sentAt && _sentAtMap[id]) sentAt = _sentAtMap[id];
           window._exploreInviteGroups[id] = group.uids;
+          if (sentAt) window._exploreInviteSentAt[id] = sentAt;
         });
+        if (sentAt) window._exploreInviteSentAt[uid] = sentAt;
       }
     });
 
@@ -1433,6 +1440,19 @@ function _renderInviteDetailSheet(u) {
   var cityHtml = u.city ? '<div style="font-size:0.84rem;color:var(--text-muted);margin-top:5px;">📍 ' + window._safeHtml(u.city) + '</div>' : '';
   var sportsHtml = _profileSheetSportsHtml(u);
 
+  // Sent-at timestamp — available from v1.3.93-beta onwards; older requests show "data não disponível"
+  var sentAtRaw = window._exploreInviteSentAt && window._exploreInviteSentAt[uid];
+  var sentAtHtml = '';
+  if (sentAtRaw) {
+    try {
+      var d = new Date(sentAtRaw);
+      var day = String(d.getDate()).padStart(2, '0');
+      var mon = String(d.getMonth() + 1).padStart(2, '0');
+      var yr = d.getFullYear();
+      sentAtHtml = '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:5px;">📅 Enviado em ' + day + '/' + mon + '/' + yr + '</div>';
+    } catch (e) {}
+  }
+
   _mountProfileSheet(
     '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;">' +
       '<button onclick="window._closeUserProfileSheet()" style="background:transparent;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;line-height:1;padding:4px 8px;">✕</button>' +
@@ -1442,7 +1462,7 @@ function _renderInviteDetailSheet(u) {
       '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);">' + fullName + '</div>' +
       cityHtml +
       sportsHtml +
-      '<div style="margin-top:14px;padding:10px 16px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;font-size:0.82rem;color:#fbbf24;">✉️ Convite enviado — aguardando resposta</div>' +
+      '<div style="margin-top:14px;padding:10px 16px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;font-size:0.82rem;color:#fbbf24;">✉️ Convite enviado — aguardando resposta' + (sentAtHtml ? '<br>' + sentAtHtml : '') + '</div>' +
     '</div>' +
     '<div style="display:flex;gap:10px;justify-content:center;margin-top:20px;">' +
       '<button class="btn btn-warning btn-sm hover-lift" onclick="window._closeUserProfileSheet(); window._spinButton(this,\'Reenviando...\'); _sendFriendRequest(\'' + safeUid + '\')">🔄 Reenviar</button>' +

@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.93-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Convites enviados — data do envio no painel de detalhe.</b><br>' +
+      '• Ao clicar num card de convite pendente, o painel agora mostra "📅 Enviado em DD/MM/AAAA" dentro da pílula amarela de status.<br>' +
+      '• A data é gravada automaticamente no perfil do usuário (campo <code>friendRequestsSentAt</code>) sempre que um convite é enviado ou reenviado. Convites enviados antes desta versão exibem só "Convite enviado — aguardando resposta" sem data (campo ausente).<br>' +
+      'Alteração em <code>js/views/explore.js</code> e <code>js/firebase-db.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.92-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Explorar Comunidade — clique no card abre perfil em bottom sheet.</b><br>' +
       '• Todos os cards de pessoas na tela Explorar são agora clicáveis.<br>' +

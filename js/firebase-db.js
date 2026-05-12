@@ -665,10 +665,13 @@ window.FirestoreDB = {
         return 'auto-accepted';
       }
       // Normal flow: send request
-      // Add to sender's friendRequestsSent
+      // Add to sender's friendRequestsSent + record timestamp in sentAt map
       await this.db.collection('users').doc(fromUid).set({
         friendRequestsSent: firebase.firestore.FieldValue.arrayUnion(toUid)
       }, { merge: true });
+      var _sentAtUpdate = {};
+      _sentAtUpdate['friendRequestsSentAt.' + toUid] = new Date().toISOString();
+      await this.db.collection('users').doc(fromUid).update(_sentAtUpdate);
       // Add to receiver's friendRequestsReceived
       await this.db.collection('users').doc(toUid).set({
         friendRequestsReceived: firebase.firestore.FieldValue.arrayUnion(fromUid)
