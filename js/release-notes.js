@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.99-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil de amigo — layout horizontal + ícones por modalidade.</b><br>' +
+      '• Foto/avatar agora ao lado esquerdo do nome, aproveitando melhor o espaço — sem desperdício de área centralizada.<br>' +
+      '• Linha 2: gênero · cidade · aniversário em sequência horizontal abaixo do nome.<br>' +
+      '• "Membro desde..." em linha separada, menor e discreto.<br>' +
+      '• Cada modalidade exibe o ícone específico do app antes do nome (🟠 Beach Tennis, 🟡 Pickleball, 🏓 Tênis de Mesa, 🎾 Tênis, etc.) em vez de um único 🎾 para todas.<br>' +
+      'Alteração em <code>explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.98-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Nível de habilidade geral removido — skill agora é exclusivamente por modalidade.</b><br>' +
       '• O campo "Nível X" (nível geral de habilidade) foi removido de todas as telas: perfil de amigo, perfil próprio e salvamento no banco de dados.<br>' +

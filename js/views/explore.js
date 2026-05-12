@@ -1619,19 +1619,27 @@ function _profileSheetAvatarHtml(u, uid, size, borderColor) {
 }
 
 function _profileSheetSportsHtml(u) {
-  if (u.skillBySport && typeof u.skillBySport === 'object' && Object.keys(u.skillBySport).length > 0) {
-    var pills = Object.keys(u.skillBySport).map(function (sport) {
-      var lvl = u.skillBySport[sport];
-      return '<span style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:20px;padding:3px 10px;font-size:0.75rem;color:var(--text-bright);">' +
-        window._safeHtml(sport) + ' <b>' + window._safeHtml(String(lvl)) + '</b></span>';
-    }).join('');
-    return '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;">' + pills + '</div>';
+  var sportIcon = window._sportIcon || function() { return '🏅'; };
+  // Resolve sports list — skillBySport takes precedence, fallback to preferredSports
+  var sportsList = [];
+  if (u.skillBySport && typeof u.skillBySport === 'object') {
+    sportsList = Object.keys(u.skillBySport);
+  } else if (Array.isArray(u.preferredSports)) {
+    sportsList = u.preferredSports;
+  } else if (u.preferredSports) {
+    sportsList = String(u.preferredSports).split(',').map(function(s) { return s.trim(); }).filter(Boolean);
   }
-  if (u.preferredSports) {
-    var s = Array.isArray(u.preferredSports) ? u.preferredSports.join(', ') : String(u.preferredSports);
-    if (s) return '<div style="font-size:0.82rem;color:var(--text-muted);margin-top:6px;">🎾 ' + window._safeHtml(s) + '</div>';
-  }
-  return '';
+  if (!sportsList.length) return '';
+  var pills = sportsList.map(function(sport) {
+    var icon = sportIcon(sport);
+    var lvl = u.skillBySport && u.skillBySport[sport];
+    return '<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:20px;padding:4px 11px;font-size:0.78rem;color:var(--text-bright);">' +
+      '<span style="font-size:0.9rem;line-height:1;">' + icon + '</span>' +
+      window._safeHtml(sport) +
+      (lvl ? ' <b style="opacity:0.85;">' + window._safeHtml(String(lvl)) + '</b>' : '') +
+    '</span>';
+  }).join('');
+  return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">' + pills + '</div>';
 }
 
 function _mountProfileSheet(innerHtml) {
@@ -1668,16 +1676,14 @@ function _renderUserProfileSheet(u) {
 
   // ── Location ──────────────────────────────────────────────
   var locationParts = [u.city, u.state].filter(Boolean).map(function(s) { return window._safeHtml(s); });
-  var cityHtml = locationParts.length ? '<div style="font-size:0.83rem;color:var(--text-muted);margin-top:4px;">📍 ' + locationParts.join(', ') + '</div>' : '';
+  var cityLabel = locationParts.join(', ');
 
   // ── Birthday dd/mm (no year, no age) ──────────────────────
-  var birthdayHtml = '';
+  var birthdayLabel = '';
   if (u.birthDate) {
     try {
       var bdParts = String(u.birthDate).split('/');
-      if (bdParts.length >= 2) {
-        birthdayHtml = '<span>🎂 ' + bdParts[0] + '/' + bdParts[1] + '</span>';
-      }
+      if (bdParts.length >= 2) birthdayLabel = '🎂 ' + bdParts[0] + '/' + bdParts[1];
     } catch(e) {}
   }
 
@@ -1685,12 +1691,13 @@ function _renderUserProfileSheet(u) {
   var genderMap = { 'feminino': '♀️ Feminino', 'masculino': '♂️ Masculino', 'nao-binario': '⚧️ Não-binário', 'prefiro-nao-dizer': '' };
   var genderLabel = (u.gender && genderMap[u.gender]) ? genderMap[u.gender] : '';
 
-  // ── Info row: gender · birthday (skill shown via skillBySport pills) ─
-  var infoChips = [];
-  if (genderLabel) infoChips.push(genderLabel);
-  if (birthdayHtml) infoChips.push(birthdayHtml);
-  var infoRowHtml = infoChips.length
-    ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px 10px;justify-content:center;">' + infoChips.join('<span style="opacity:0.35;">·</span>') + '</div>'
+  // ── Second line: gender · city · birthday ─────────────────
+  var line2Parts = [];
+  if (genderLabel) line2Parts.push(genderLabel);
+  if (cityLabel)   line2Parts.push('📍 ' + cityLabel);
+  if (birthdayLabel) line2Parts.push(birthdayLabel);
+  var line2Html = line2Parts.length
+    ? '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">' + line2Parts.join(' · ') + '</div>'
     : '';
 
   // ── Member since ──────────────────────────────────────────
@@ -1699,7 +1706,7 @@ function _renderUserProfileSheet(u) {
     try {
       var sd = new Date(u.createdAt);
       var _mns = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-      sinceHtml = '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">🗓️ Membro desde ' + _mns[sd.getMonth()] + ' ' + sd.getFullYear() + '</div>';
+      sinceHtml = '<div style="font-size:0.73rem;color:var(--text-muted);margin-top:2px;opacity:0.8;">🗓️ Membro desde ' + _mns[sd.getMonth()] + ' ' + sd.getFullYear() + '</div>';
     } catch(e) {}
   }
 
@@ -1713,7 +1720,7 @@ function _renderUserProfileSheet(u) {
     : '';
 
   // ── Empty state when profile is bare ─────────────────────
-  var hasBasicInfo = cityHtml || infoRowHtml || sportsHtml;
+  var hasBasicInfo = cityLabel || genderLabel || sportsHtml;
   var emptyHint = !hasBasicInfo ? '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:10px;font-style:italic;">Perfil ainda não preenchido</div>' : '';
 
   // ── Actions ───────────────────────────────────────────────
@@ -1735,18 +1742,27 @@ function _renderUserProfileSheet(u) {
     }
   }
 
-  _mountProfileSheet(
-    '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;">' +
+  // ── Close button ──────────────────────────────────────────
+  var closeBtn =
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">' +
       '<button onclick="window._closeUserProfileSheet()" style="background:transparent;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;line-height:1;padding:4px 8px;">✕</button>' +
-    '</div>' +
-    '<div style="text-align:center;">' +
-      _profileSheetAvatarHtml(u, uid, 80, borderColor) +
-      '<div style="font-size:1.15rem;font-weight:700;color:var(--text-bright);margin-top:2px;">' + fullName + '</div>' +
-      cityHtml +
-      infoRowHtml +
-      sinceHtml +
-      emptyHint +
-    '</div>' +
+    '</div>';
+
+  // ── Header: avatar left + name/info right ─────────────────
+  var headerHtml =
+    '<div style="display:flex;align-items:center;gap:14px;padding-bottom:14px;">' +
+      _profileSheetAvatarHtml(u, uid, 62, borderColor) +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + fullName + '</div>' +
+        line2Html +
+        sinceHtml +
+        emptyHint +
+      '</div>' +
+    '</div>';
+
+  _mountProfileSheet(
+    closeBtn +
+    headerHtml +
     (sportsHtml ? hr + sportsHtml : '') +
     statsHtml +
     actionsHtml
