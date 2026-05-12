@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.94-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil de amigo no Explorar — layout rico com todas as informações disponíveis.</b><br>' +
+      '• Antes o sheet mostrava só foto, nome e botão "Desfazer amizade" quando cidade/esportes estavam vazios.<br>' +
+      '• Agora exibe: cidade + estado, gênero, idade (calculada de birthDate), nível padrão (defaultCategory), "Membro desde Mês/Ano" e pills de modalidade com nível por esporte.<br>' +
+      '• Torneios em comum mostram contagem + nomes (até 3) em destaque âmbar.<br>' +
+      '• Quando o perfil está realmente vazio: mensagem discreta "Perfil ainda não preenchido".<br>' +
+      'Alteração em <code>js/views/explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.93-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Convites enviados — data do envio no painel de detalhe.</b><br>' +
       '• Ao clicar num card de convite pendente, o painel agora mostra "📅 Enviado em DD/MM/AAAA" dentro da pílula amarela de status.<br>' +

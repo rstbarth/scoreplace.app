@@ -1391,24 +1391,94 @@ function _renderUserProfileSheet(u) {
   var fullName = window._safeHtml(u.displayName || u.email || 'Usuário');
   var borderColor = isFriend ? 'var(--success-color)' : 'var(--primary-color)';
 
-  var cityHtml = u.city ? '<div style="font-size:0.84rem;color:var(--text-muted);margin-top:5px;">📍 ' + window._safeHtml(u.city) + '</div>' : '';
-  var sportsHtml = _profileSheetSportsHtml(u);
-  var sharedCount = u._sharedTournaments || u._sharedCount || 0;
-  var sharedHtml = sharedCount > 0 ? '<div style="font-size:0.8rem;color:#f59e0b;margin-top:8px;">🏆 ' + sharedCount + ' torneio(s) em comum</div>' : '';
+  // ── Location ─────────────────────────────────────────────
+  var locationParts = [u.city, u.state].filter(Boolean).map(function(s) { return window._safeHtml(s); });
+  var cityHtml = locationParts.length ? '<div style="font-size:0.83rem;color:var(--text-muted);margin-top:4px;">📍 ' + locationParts.join(', ') + '</div>' : '';
 
+  // ── Age (from birthDate "dd/mm/aaaa") ────────────────────
+  var ageHtml = '';
+  if (u.birthDate) {
+    try {
+      var parts = String(u.birthDate).split('/');
+      if (parts.length === 3) {
+        var yr = parseInt(parts[2], 10);
+        var now = new Date();
+        var age = now.getFullYear() - yr;
+        var bdMonth = parseInt(parts[1], 10) - 1;
+        var bdDay = parseInt(parts[0], 10);
+        if (now.getMonth() < bdMonth || (now.getMonth() === bdMonth && now.getDate() < bdDay)) age--;
+        if (age > 5 && age < 110) ageHtml = age + ' anos';
+      }
+    } catch(e) {}
+  }
+
+  // ── Gender ───────────────────────────────────────────────
+  var genderMap = { 'feminino': '♀️ Feminino', 'masculino': '♂️ Masculino', 'nao-binario': '⚧️ Não-binário', 'prefiro-nao-dizer': '' };
+  var genderHtml = (u.gender && genderMap[u.gender]) ? genderMap[u.gender] : '';
+
+  // ── Info row (gender · age | level) ──────────────────────
+  var infoItems = [];
+  if (genderHtml || ageHtml) infoItems.push((genderHtml + (genderHtml && ageHtml ? ' · ' : '') + ageHtml).trim());
+  if (u.defaultCategory) infoItems.push('Nível ' + window._safeHtml(String(u.defaultCategory)));
+  var infoRowHtml = infoItems.length ? '<div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">' + infoItems.join(' &nbsp;·&nbsp; ') + '</div>' : '';
+
+  // ── Member since ─────────────────────────────────────────
+  var sinceHtml = '';
+  if (u.createdAt) {
+    try {
+      var d = new Date(u.createdAt);
+      var monNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+      sinceHtml = '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;">🗓️ Membro desde ' + monNames[d.getMonth()] + ' ' + d.getFullYear() + '</div>';
+    } catch(e) {}
+  }
+
+  // ── Sports / skill ────────────────────────────────────────
+  var sportsHtml = _profileSheetSportsHtml(u);
+
+  // ── Shared tournaments ────────────────────────────────────
+  var sharedCount = u._sharedTournaments || u._sharedCount || 0;
+  var sharedHtml = '';
+  if (sharedCount > 0) {
+    // Try to get tournament names
+    var myTournaments = window.AppStore.tournaments || [];
+    var myEmail = cu.email || '';
+    var myName = cu.displayName || '';
+    var sharedNames = [];
+    myTournaments.forEach(function(t) {
+      if (sharedNames.length >= 3) return;
+      var parts = Array.isArray(t.participants) ? t.participants : [];
+      var hasMe = t.organizerEmail === myEmail || parts.some(function(pp) { return _participantMatchesUser(pp, myEmail, myName); });
+      var hasFriend = parts.some(function(pp) { return _participantMatchesUser(pp, u.email || '', u.displayName || ''); });
+      if (hasMe && hasFriend && t.name) sharedNames.push(window._safeHtml(t.name));
+    });
+    var namesHtml = sharedNames.length ? '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;">' + sharedNames.join(' · ') + (sharedCount > sharedNames.length ? ' · +' + (sharedCount - sharedNames.length) + ' mais' : '') + '</div>' : '';
+    sharedHtml = '<div style="margin-top:12px;padding:10px 14px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:10px;text-align:center;">' +
+      '<div style="font-size:0.82rem;color:#f59e0b;font-weight:600;">🏆 ' + sharedCount + ' torneio' + (sharedCount !== 1 ? 's' : '') + ' em comum</div>' +
+      namesHtml +
+    '</div>';
+  }
+
+  // ── Empty state when profile is really bare ───────────────
+  var hasAnyInfo = cityHtml || infoRowHtml || sportsHtml || sharedHtml || sinceHtml;
+  var emptyHint = !hasAnyInfo ? '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:10px;font-style:italic;">Perfil ainda não preenchido</div>' : '';
+
+  // ── Divider helper ────────────────────────────────────────
+  var div = '<div style="height:1px;background:rgba(255,255,255,0.07);margin:12px 0;"></div>';
+
+  // ── Actions ───────────────────────────────────────────────
   var actionsHtml = '';
   if (!isMe) {
     if (isFriend) {
-      actionsHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:22px;">' +
+      actionsHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:20px;">' +
         '<button class="btn btn-danger btn-sm" onclick="window._closeUserProfileSheet(); window._removeFriend(\'' + safeUid + '\')">Desfazer amizade</button>' +
       '</div>';
     } else if (isSent) {
-      actionsHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:22px;">' +
+      actionsHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:20px;">' +
         '<button class="btn btn-ghost btn-sm" style="opacity:0.8;pointer-events:none;">✉️ Convite enviado</button>' +
         '<button class="btn btn-danger btn-sm" onclick="window._closeUserProfileSheet(); window._spinButton(this,\'Cancelando...\'); _cancelFriendRequest(\'' + safeUid + '\')">Cancelar</button>' +
       '</div>';
     } else if (u.acceptFriendRequests !== false) {
-      actionsHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:22px;">' +
+      actionsHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:20px;">' +
         '<button class="btn btn-primary" onclick="window._closeUserProfileSheet(); window._spinButton(this,\'Enviando...\'); _sendFriendRequest(\'' + safeUid + '\')">Convidar para amigos</button>' +
       '</div>';
     }
@@ -1419,12 +1489,15 @@ function _renderUserProfileSheet(u) {
       '<button onclick="window._closeUserProfileSheet()" style="background:transparent;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;line-height:1;padding:4px 8px;">✕</button>' +
     '</div>' +
     '<div style="text-align:center;">' +
-      _profileSheetAvatarHtml(u, uid, 72, borderColor) +
-      '<div style="font-size:1.15rem;font-weight:700;color:var(--text-bright);">' + fullName + '</div>' +
+      _profileSheetAvatarHtml(u, uid, 80, borderColor) +
+      '<div style="font-size:1.15rem;font-weight:700;color:var(--text-bright);margin-top:2px;">' + fullName + '</div>' +
       cityHtml +
-      sportsHtml +
-      sharedHtml +
+      infoRowHtml +
+      sinceHtml +
+      emptyHint +
     '</div>' +
+    (sportsHtml ? div + sportsHtml : '') +
+    (sharedHtml ? sharedHtml : '') +
     actionsHtml
   );
 }
