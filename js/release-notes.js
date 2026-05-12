@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.12-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Botões Descartar e Salvar sempre com texto no cabeçalho de criar torneio.</b><br>' +
+      '• Os botões ✕ Descartar e ✓ Salvar agora mostram sempre o texto, independente do tamanho da tela.<br>' +
+      '• Apenas 💾 Carregar e ⭐ Salvar Template ficam como ícone em telas ≤ 600px.<br>' +
+      '• Padding lateral do cabeçalho reduzido em mobile para que os 4 botões caibam sem corte.<br>' +
+      'Alteração em <code>create-tournament.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.11-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Fix: criar/editar torneio não fecha mais sozinho ao abrir.</b><br>' +
       '• A tela <code>#novo-torneio</code> fechava imediatamente após abrir ou ficava piscando, especialmente no primeiro clique.<br>' +
