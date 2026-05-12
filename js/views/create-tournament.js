@@ -1558,6 +1558,7 @@ function setupCreateTournamentModal() {
   };
 
   window._onFormatoChange = function () {
+    if (!document.getElementById('select-formato')) return; // form not in DOM (e.g. moved to #novo-torneio then navigated away)
     const fmt = document.getElementById('select-formato').value;
     const isElim = fmt === 'elim_simples' || fmt === 'elim_dupla';
     const isSuico = fmt === 'suico';
@@ -1808,8 +1809,8 @@ function setupCreateTournamentModal() {
   };
 
   window._updateCategoryPreview = function() {
-    var genderVals = (document.getElementById('tourn-gender-categories').value || '').split(',').filter(Boolean);
-    var skillText = (document.getElementById('tourn-skill-categories').value || '').trim();
+    var genderVals = ((document.getElementById('tourn-gender-categories') || {}).value || '').split(',').filter(Boolean);
+    var skillText = ((document.getElementById('tourn-skill-categories') || {}).value || '').trim();
     var skillCats = skillText ? skillText.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
 
     // v1.2.0-beta: ler ageCategories

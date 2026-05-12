@@ -1500,9 +1500,13 @@ window._openHelpPage = function () { window.location.hash = '#help'; };
     if (typeof window._applyGenderCatUI === 'function') window._applyGenderCatUI([]);
     if (typeof window._applyAgeCatUI === 'function') window._applyAgeCatUI([]);
     if (typeof window._loadSkillCategoriesFromArray === 'function') window._loadSkillCategoriesFromArray([]);
-    if (typeof window._updateCategoryPreview === 'function') window._updateCategoryPreview();
+    // v1.4.19-beta: guard — form elements are destroyed after each navigation
+    // away from #novo-torneio (viewContainer.innerHTML=''). Without the check,
+    // both functions throw TypeError (null.value) and abort the handler before
+    // _navigateToCreateTournament() is reached, stranding the user on #dashboard.
+    if (document.getElementById('tourn-gender-categories') && typeof window._updateCategoryPreview === 'function') window._updateCategoryPreview();
 
-    if (typeof window._onFormatoChange === 'function') window._onFormatoChange();
+    if (document.getElementById('select-formato') && typeof window._onFormatoChange === 'function') window._onFormatoChange();
     // If a venue prefill arrived from #venues "Criar torneio aqui", populate
     // the venue fields before we open the modal so the user sees it ready.
     var _advVenuePref = null;

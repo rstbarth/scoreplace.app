@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.19-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Fix: "Detalhes Avançados" voltava para a dashboard após navegar #novo-torneio várias vezes.</b><br>' +
+      '• Causa raiz: o handler do botão chamava <code>_updateCategoryPreview()</code> e <code>_onFormatoChange()</code> antes de <code>_navigateToCreateTournament()</code>. Na 2ª visita em diante, o formulário já tinha sido destruído por <code>viewContainer.innerHTML = \'\'</code> na saída de #novo-torneio. Ambas as funções tentavam <code>document.getElementById(…).value</code> em elementos null → TypeError → handler abortava antes de navegar.<br>' +
+      '• Fix duplo (belt+suspenders): (1) <code>_updateCategoryPreview</code> e <code>_onFormatoChange</code> ganharam null-guards no acesso aos elementos; (2) o call site em <code>main.js</code> também verifica se o formulário está no DOM antes de chamar cada função.<br>' +
+      'Alterações em <code>create-tournament.js</code> e <code>main.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.18-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Botão "Salvar" nunca mais cortado no cabeçalho de criar/editar torneio.</b><br>' +
       '• Causa raiz encontrada via Chrome MCP: <code>responsive.css</code> tem a regra <code>.view-container .btn-primary { width: 100% }</code> em <code>@media (max-width:767px)</code>. Isso forçava o botão "Salvar" (classe <code>btn-primary</code>) a 195px — largura total do container de ações — estourando a linha.<br>' +
