@@ -4494,8 +4494,8 @@ window._renderCreateTournamentHeader = function() {
     '<div class="create-hdr-actions" style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap;">' +
       '<button class="btn btn-tool-amber btn-sm" id="btn-load-template-create" type="button" onclick="window._showTemplatePickerInCreate()" style="' + btnStyle + '" title="' + (_t('create.loadTemplate') || 'Carregar Template') + '">💾<span class="hdr-label" style="margin-left:4px;">' + (_t('create.loadTemplate') || 'Carregar') + '</span></button>' +
       '<button class="btn btn-tool-indigo btn-sm" id="btn-save-template-create" type="button" onclick="window._saveCurrentFormAsTemplate()" style="' + btnStyle + '" title="' + (_t('create.saveTemplate') || 'Salvar Template') + '">⭐<span class="hdr-label" style="margin-left:4px;">' + (_t('create.saveTemplate') || 'Salvar Template') + '</span></button>' +
-      '<button class="btn btn-danger-ghost btn-sm hover-lift" id="btn-discard-tournament" type="button" onclick="window._discardCreateTournament()" style="' + btnStyle + '">' + (_t('btn.discard') || 'Descartar') + '</button>' +
-      '<button class="btn btn-primary btn-sm hover-lift" id="btn-save-tournament" type="button" style="' + btnStyle + 'padding:5px 14px;font-weight:700;">' + (_t('btn.save') || 'Salvar') + '</button>' +
+      '<button class="btn btn-danger-ghost btn-sm hover-lift" id="btn-discard-tournament" type="button" onclick="window._discardCreateTournament()" style="' + btnStyle + '" title="' + (_t('btn.discard') || 'Descartar') + '">✕<span class="hdr-label" style="margin-left:4px;">' + (_t('btn.discard') || 'Descartar') + '</span></button>' +
+      '<button class="btn btn-primary btn-sm hover-lift" id="btn-save-tournament" type="button" style="' + btnStyle + 'padding:5px 14px;font-weight:700;" title="' + (_t('btn.save') || 'Salvar') + '">✓<span class="hdr-label" style="margin-left:4px;">' + (_t('btn.save') || 'Salvar') + '</span></button>' +
     '</div>';
   host.innerHTML = window._renderBackHeader({
     href: '#dashboard',

@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.10-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Cabeçalho de criar/editar torneio cabe em qualquer mobile.</b><br>' +
+      '• Em telas ≤ 600px, todos os 4 botões do cabeçalho ficam só com ícone: 💾 · ⭐ · ✕ · ✓ — textos "Carregar", "Salvar Template", "Descartar" e "Salvar" somem para liberar espaço.<br>' +
+      '• Correção anterior (v1.4.9) já ocultava os dois primeiros; esta versão completa com Descartar e Salvar.<br>' +
+      'Alteração em <code>create-tournament.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.9-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Botões do cabeçalho de criar/editar torneio mostram só ícone em telas estreitas.</b><br>' +
       '• Em mobile, os botões "Carregar" e "Salvar Template" exibem apenas o ícone (💾 ⭐), liberando espaço para "Descartar" e "Salvar" aparecerem completos sem corte.<br>' +
