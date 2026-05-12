@@ -1380,7 +1380,7 @@ function _loadAndRenderFriendStats(friendUid, hr) {
         '<div style="display:flex;align-items:center;gap:8px;">' +
           '<span style="font-size:1rem;">' + icon + '</span>' +
           '<span style="font-size:0.85rem;font-weight:900;color:' + accent + ';text-transform:uppercase;letter-spacing:0.8px;">' + title + '</span>' +
-          '<span style="margin-left:auto;font-size:0.62rem;color:var(--text-muted,#94a3b8);font-weight:700;">' + badge + '</span>' +
+          '<span style="margin-left:auto;font-size:0.78rem;color:var(--text-bright,#fff);font-weight:700;opacity:0.75;">' + badge + '</span>' +
         '</div>' +
         bodyHtml +
       '</div>'
@@ -1529,9 +1529,9 @@ function _loadAndRenderFriendStats(friendUid, hr) {
       var cu2 = window.AppStore ? (window.AppStore.currentUser || {}) : {};
       var myFirstName = (cu2.displayName || 'Você').split(/\s+/)[0];
 
-      // Colors: blue for me (left), amber for friend (right)
-      var myClr = '#3b82f6';
-      var frClr = '#f59e0b';
+      // Colors: red for friend (left), green for me (right)
+      var myClr = '#22c55e';
+      var frClr = '#ef4444';
 
       var frFirstName = window._safeHtml(
         (window._exploreProfileCache && window._exploreProfileCache[friendUid] &&
@@ -1547,14 +1547,15 @@ function _loadAndRenderFriendStats(friendUid, hr) {
         var hasPoints = (c.myPoints + c.frPoints)  > 0;
         var cExtra = c.total - c.myWins - c.frWins;
         var cBadge = c.total + ' partida' + (c.total !== 1 ? 's' : '') + (cExtra > 0 ? ' · ' + cExtra + ' s/res.' : '');
+        // Friend LEFT (red), Me RIGHT (green). Names only on first row.
         var confrontosBody =
           '<div style="display:flex;flex-direction:column;gap:2px;margin-top:2px;">' +
-            _matchupBar('Vitórias', window._safeHtml(myFirstName), frFirstName, c.myWins,   c.frWins,   myClr, frClr) +
-            (hasPoints ? _matchupBar('Pontos',  window._safeHtml(myFirstName), frFirstName, c.myPoints, c.frPoints, myClr, frClr) : '') +
-            (hasGames  ? _matchupBar('Games',   window._safeHtml(myFirstName), frFirstName, c.myGames,  c.frGames,  myClr, frClr) : '') +
-            (hasSets   ? _matchupBar('Sets',    window._safeHtml(myFirstName), frFirstName, c.mySets,   c.frSets,   myClr, frClr) : '') +
+            _matchupBar('Vitórias', frFirstName, window._safeHtml(myFirstName), c.frWins,   c.myWins,   frClr, myClr) +
+            (hasPoints ? _matchupBar('Pontos',  '', '', c.frPoints, c.myPoints, frClr, myClr) : '') +
+            (hasGames  ? _matchupBar('Games',   '', '', c.frGames,  c.myGames,  frClr, myClr) : '') +
+            (hasSets   ? _matchupBar('Sets',    '', '', c.frSets,   c.mySets,   frClr, myClr) : '') +
           '</div>';
-        html += _sectionBox('Confrontos Diretos', '⚔️', myClr, cBadge, confrontosBody);
+        html += _sectionBox('Confrontos Diretos', '⚔️', '#6366f1', cBadge, confrontosBody);
       }
 
       // ── Parcerias block ───────────────────────────────────────────────────
@@ -1569,20 +1570,7 @@ function _loadAndRenderFriendStats(friendUid, hr) {
         html += _sectionBox('Parcerias', '🤝', '#22c55e', pBadge, parceriasBody);
       }
 
-      // ── Summary row: casuais + torneios as stat boxes ─────────────────────
-      var summaryBoxes = '';
-      if (stats.casual > 0) {
-        summaryBoxes += _statBox('Partidas Casuais', stats.casual, '⚡', '#f59e0b');
-      }
-      if (stats.tournaments > 0) {
-        summaryBoxes += _statBox('Torneios', stats.tournaments, '🏆', '#6366f1');
-      }
-      if (summaryBoxes) {
-        html +=
-          '<div style="display:grid;grid-template-columns:' + (stats.casual > 0 && stats.tournaments > 0 ? '1fr 1fr' : '1fr') + ';gap:6px;margin-top:6px;">' +
-            summaryBoxes +
-          '</div>';
-      }
+      // ── Tournament names footnote (no redundant stat boxes) ───────────────
       if (stats.tournamentNames.length > 0) {
         html +=
           '<div style="text-align:center;font-size:0.68rem;color:var(--text-muted,#94a3b8);opacity:0.75;margin-top:4px;">' +
@@ -1800,12 +1788,6 @@ function _renderUserProfileSheet(u) {
     }
   }
 
-  // ── Close button ──────────────────────────────────────────
-  var closeBtn =
-    '<div style="display:flex;justify-content:flex-end;margin-bottom:8px;">' +
-      '<button onclick="window._closeUserProfileSheet()" style="background:transparent;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;line-height:1;padding:4px 8px;">✕</button>' +
-    '</div>';
-
   // ── Header: avatar left + name/info right ─────────────────
   var headerHtml =
     '<div style="display:flex;align-items:flex-start;gap:14px;padding-bottom:14px;">' +
@@ -1819,7 +1801,6 @@ function _renderUserProfileSheet(u) {
     '</div>';
 
   _mountProfileSheet(
-    closeBtn +
     headerHtml +
     (sportsHtml ? hr + sportsHtml : '') +
     statsHtml +

@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.3-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil de amigo — polimento das stats.</b><br>' +
+      '• Botão ✕ removido do card (o Voltar no topo já fecha).<br>' +
+      '• Amigo à esquerda (vermelho) · Você à direita (verde) — convenção V/D padrão do app.<br>' +
+      '• Nomes aparecem apenas na primeira barra de Confrontos, sem repetir em Pontos/Games/Sets.<br>' +
+      '• Box "Partidas Casuais" removido (a info já consta no badge da seção).<br>' +
+      '• Contador de partidas no badge com fonte maior e mais visível.<br>' +
+      'Alteração em <code>explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Perfil de amigo — estatísticas com visual consistente (Confrontos e Parcerias).</b><br>' +
       '• Confrontos e Parcerias usam agora o mesmo padrão visual das outras estatísticas do app: seções com borda colorida, barras divergentes do centro, percentual em destaque com absoluto entre parênteses.<br>' +
