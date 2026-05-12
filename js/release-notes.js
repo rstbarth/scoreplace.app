@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.20-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Fix: botão "Salvar" não fazia nada ao ser clicado em #novo-torneio.</b><br>' +
+      '• Causa raiz: <code>_renderCreateTournamentHeader()</code> usa <code>host.innerHTML = …</code> para criar o botão. Toda chamada a <code>innerHTML</code> destrói o elemento anterior e cria um novo — o listener registrado na inicialização ficava no elemento antigo (destruído). O novo botão nascia sem listener e sem <code>onclick</code>.<br>' +
+      '• Fix: handler de salvar exposto como <code>window._saveTournamentClickHandler</code>. <code>_renderCreateTournamentHeader()</code> agora re-anexa via <code>addEventListener</code> toda vez que recria o botão via innerHTML.<br>' +
+      'Alteração em <code>create-tournament.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.19-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Fix: "Detalhes Avançados" voltava para a dashboard após navegar #novo-torneio várias vezes.</b><br>' +
       '• Causa raiz: o handler do botão chamava <code>_updateCategoryPreview()</code> e <code>_onFormatoChange()</code> antes de <code>_navigateToCreateTournament()</code>. Na 2ª visita em diante, o formulário já tinha sido destruído por <code>viewContainer.innerHTML = \'\'</code> na saída de #novo-torneio. Ambas as funções tentavam <code>document.getElementById(…).value</code> em elementos null → TypeError → handler abortava antes de navegar.<br>' +

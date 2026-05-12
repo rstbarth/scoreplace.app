@@ -3379,9 +3379,10 @@ function setupCreateTournamentModal() {
   // A criação é feita via btn-create-tournament-in-box (dashboard.js) → modal-quick-create → main.js.
   // Bloco de dead code removido em v0.2.4-alpha.
 
-  const btnSave = document.getElementById('btn-save-tournament');
-  if (btnSave) {
-    btnSave.addEventListener('click', () => {
+  // v1.4.20-beta: expose handler on window so _renderCreateTournamentHeader can
+  // re-attach it after each host.innerHTML call (innerHTML destroys the old element
+  // and its listener — the new btn-save-tournament needs a fresh attachment).
+  window._saveTournamentClickHandler = function() {
       try {
         const editId = document.getElementById('edit-tournament-id').value;
         const name = document.getElementById('tourn-name').value.trim();
@@ -3760,8 +3761,9 @@ function setupCreateTournamentModal() {
         console.error('Erro ao salvar torneio:', err);
         showNotification(window._t('auth.error'), window._t('create.saveError', {msg: err.message}), 'error');
       }
-    });
-  }
+  };
+  const btnSave = document.getElementById('btn-save-tournament');
+  if (btnSave) btnSave.addEventListener('click', window._saveTournamentClickHandler);
 }
 
 // ── GSM Config Modal and Functions ──
@@ -4529,6 +4531,13 @@ window._renderCreateTournamentHeader = function() {
     onClickOverride: window._discardCreateTournament,
     rightHtml: actionsHtml
   });
+
+  // v1.4.20-beta: innerHTML destroys the old btn-save-tournament and its listener.
+  // Re-attach the save handler to the freshly created button every time.
+  var _saveBtn = host.querySelector('#btn-save-tournament');
+  if (_saveBtn && typeof window._saveTournamentClickHandler === 'function') {
+    _saveBtn.addEventListener('click', window._saveTournamentClickHandler);
+  }
 
   // Override header padding via JS (bypasses CSS specificity entirely — guaranteed to apply)
   var hdr = host.querySelector('.sticky-back-header');
