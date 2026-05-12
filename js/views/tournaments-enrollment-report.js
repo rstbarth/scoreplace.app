@@ -402,93 +402,115 @@
   }
 
   function _renderOverview(rows, t) {
-    // v1.3.2-beta: pills sempre baseadas nos dados reais dos perfis, não
-    // só nas categorias configuradas. Mostra todas as habilidades/idades
-    // que realmente aparecem nos inscritos. Default ageBuckets = [40+, 50+,
-    // 60+, 70+] quando t.ageCategories vazio (pra mostrar idade dos perfis
-    // mesmo sem cat configurada).
+    // v1.4.5-beta: habilidade e idade agora quebradas POR GÊNERO — facilita
+    // decidir se faremos torneio misto por habilidade ou por faixa etária.
     var totalEnrolled = rows.length;
     var byGender = { Fem: 0, Masc: 0, Misto: 0, sem: 0 };
-    var bySkill = {};
-    var byAge = {};
     var DEFAULT_AGE_CATS = ['40+', '50+', '60+', '70+'];
     var ageCats = (t.ageCategories && t.ageCategories.length > 0) ? t.ageCategories : DEFAULT_AGE_CATS;
+    var skillOrder = (t.skillCategories || []).slice();
+
+    // Indexed by gender key → { [skill|age]: count }
+    var _gKeys = ['Fem', 'Masc', 'Misto', 'sem'];
+    var bySkillG = { Fem: {}, Masc: {}, Misto: {}, sem: {} };
+    var byAgeG   = { Fem: {}, Masc: {}, Misto: {}, sem: {} };
 
     rows.forEach(function (r) {
-      // Gender from profile (or fallback)
       var gLabel = _genderLabel(r.gender) || 'sem';
       if (byGender[gLabel] != null) byGender[gLabel]++; else byGender.sem++;
 
-      // Skill: use effectiveSkills (assigned > profile.defaultCategory)
+      // Skill by gender
       if (r.effectiveSkills && r.effectiveSkills.length > 0) {
         r.effectiveSkills.forEach(function (s) {
-          bySkill[s] = (bySkill[s] || 0) + 1;
+          bySkillG[gLabel][s] = (bySkillG[gLabel][s] || 0) + 1;
         });
       } else {
-        bySkill.sem = (bySkill.sem || 0) + 1;
+        bySkillG[gLabel].sem = (bySkillG[gLabel].sem || 0) + 1;
       }
 
-      // Age: bucket against default ageCats if t doesn't have any
+      // Age by gender
       var bks = (r.age != null) ? _ageBuckets(r.age, ageCats) : [];
       if (bks.length > 0) {
         bks.forEach(function (a) {
-          byAge[a] = (byAge[a] || 0) + 1;
+          byAgeG[gLabel][a] = (byAgeG[gLabel][a] || 0) + 1;
         });
       } else {
-        byAge.sem = (byAge.sem || 0) + 1;
+        byAgeG[gLabel].sem = (byAgeG[gLabel].sem || 0) + 1;
       }
     });
+
+    // Gender config for sub-row rendering
+    var _gCfg = [
+      { key: 'Fem',   label: '♀ Fem',  color: '236,72,153' },
+      { key: 'Masc',  label: '♂ Masc', color: '59,130,246' },
+      { key: 'Misto', label: '⚥ Misto', color: '168,85,247' },
+      { key: 'sem',   label: '?',       color: '148,163,184' },
+    ];
+
+    // Render one "by-gender" breakdown block (skill or age)
+    function _renderByGenderBlock(title, getKeys, sortFn, pillColor, semLabel) {
+      var hasAny = _gKeys.some(function (g) {
+        var d = (title === 'habilidade' ? bySkillG : byAgeG)[g];
+        return Object.keys(d).some(function (k) { return d[k] > 0; });
+      });
+      if (!hasAny) return '';
+      var out = '<div style="margin-bottom:10px;">';
+      out += '<div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;">Por ' + title + '</div>';
+      out += '<div style="display:flex;flex-direction:column;gap:6px;">';
+      _gCfg.forEach(function (gc) {
+        var d = (title === 'habilidade' ? bySkillG : byAgeG)[gc.key];
+        var keys = getKeys(d);
+        sortFn(keys);
+        var hasSem = d.sem > 0;
+        if (keys.length === 0 && !hasSem) return;
+        out += '<div style="display:flex;align-items:flex-start;gap:8px;">';
+        out += '<span style="font-size:0.68rem;font-weight:700;color:rgb(' + gc.color + ');min-width:40px;padding-top:3px;flex-shrink:0;">' + gc.label + '</span>';
+        out += '<div style="display:flex;flex-wrap:wrap;gap:5px;">';
+        keys.forEach(function (k) { if (d[k] > 0) out += _statPill(k, d[k], pillColor); });
+        if (hasSem) out += _statPill(semLabel, d.sem, '148,163,184');
+        out += '</div></div>';
+      });
+      out += '</div></div>';
+      return out;
+    }
 
     var html = '<div style="background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.18); border-radius:12px; padding:14px 16px; margin-bottom:14px;">';
     html += '<p style="margin:0 0 10px;font-size:0.74rem;color:#a855f7;font-weight:700;text-transform:uppercase;letter-spacing:1px;">📊 Visão Geral</p>';
     html += '<div style="font-size:0.95rem;color:var(--text-bright);font-weight:700;margin-bottom:8px;">' + totalEnrolled + ' inscrito' + (totalEnrolled === 1 ? '' : 's') + '</div>';
 
-    // Gender row
-    html += '<div style="margin-bottom:8px;"><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Por gênero</div>';
+    // Gender row (totals)
+    html += '<div style="margin-bottom:10px;"><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Por gênero</div>';
     html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
-    if (byGender.Fem > 0) html += _statPill('♀ Fem', byGender.Fem, '236,72,153');
-    if (byGender.Masc > 0) html += _statPill('♂ Masc', byGender.Masc, '59,130,246');
-    if (byGender.Misto > 0) html += _statPill('⚥ Misto', byGender.Misto, '168,85,247');
-    if (byGender.sem > 0) html += _statPill('? Sem gênero', byGender.sem, '148,163,184');
+    if (byGender.Fem > 0)  html += _statPill('♀ Fem',     byGender.Fem,  '236,72,153');
+    if (byGender.Masc > 0) html += _statPill('♂ Masc',    byGender.Masc, '59,130,246');
+    if (byGender.Misto > 0) html += _statPill('⚥ Misto',  byGender.Misto,'168,85,247');
+    if (byGender.sem > 0)  html += _statPill('? Sem gênero', byGender.sem, '148,163,184');
     html += '</div></div>';
 
-    // Skill row — sempre mostra os skills que aparecem nos perfis
-    var skillKeys = Object.keys(bySkill).filter(function (k) { return k !== 'sem' && bySkill[k] > 0; });
-    // Ordena: priorizar t.skillCategories[] order, depois alfabético
-    var skillOrder = (t.skillCategories || []).slice();
-    skillKeys.sort(function (a, b) {
-      var ai = skillOrder.indexOf(a), bi = skillOrder.indexOf(b);
-      if (ai !== -1 && bi !== -1) return ai - bi;
-      if (ai !== -1) return -1;
-      if (bi !== -1) return 1;
-      return a.localeCompare(b);
-    });
-    if (skillKeys.length > 0 || bySkill.sem > 0) {
-      html += '<div style="margin-bottom:8px;"><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Por habilidade</div>';
-      html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
-      skillKeys.forEach(function (s) {
-        if (bySkill[s] > 0) html += _statPill(s, bySkill[s], '99,102,241');
-      });
-      if (bySkill.sem > 0) html += _statPill('? Sem habilidade', bySkill.sem, '148,163,184');
-      html += '</div></div>';
-    }
+    // Skill rows broken down by gender
+    html += _renderByGenderBlock(
+      'habilidade',
+      function (d) { return Object.keys(d).filter(function (k) { return k !== 'sem' && d[k] > 0; }); },
+      function (keys) {
+        keys.sort(function (a, b) {
+          var ai = skillOrder.indexOf(a), bi = skillOrder.indexOf(b);
+          if (ai !== -1 && bi !== -1) return ai - bi;
+          if (ai !== -1) return -1; if (bi !== -1) return 1;
+          return a.localeCompare(b);
+        });
+      },
+      '99,102,241',
+      '? s/hab.'
+    );
 
-    // Age row — sempre mostra as idades que aparecem nos perfis
-    var ageKeys = Object.keys(byAge).filter(function (k) { return k !== 'sem' && byAge[k] > 0; });
-    // Ordena: pelo valor numérico (40+, 50+, ...)
-    ageKeys.sort(function (a, b) {
-      var na = parseInt(a) || 0, nb = parseInt(b) || 0;
-      return na - nb;
-    });
-    if (ageKeys.length > 0 || byAge.sem > 0) {
-      html += '<div><div style="font-size:0.72rem;color:var(--text-muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;">Por idade</div>';
-      html += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
-      ageKeys.forEach(function (a) {
-        if (byAge[a] > 0) html += _statPill(a, byAge[a], '245,158,11');
-      });
-      if (byAge.sem > 0) html += _statPill('? Sem data nasc.', byAge.sem, '148,163,184');
-      html += '</div></div>';
-    }
+    // Age rows broken down by gender
+    html += _renderByGenderBlock(
+      'idade',
+      function (d) { return Object.keys(d).filter(function (k) { return k !== 'sem' && d[k] > 0; }); },
+      function (keys) { keys.sort(function (a, b) { return (parseInt(a) || 0) - (parseInt(b) || 0); }); },
+      '245,158,11',
+      '? s/nasc.'
+    );
 
     html += '</div>';
     return html;

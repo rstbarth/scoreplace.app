@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.5-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Análise de inscritos — habilidade e faixa etária separados por gênero.</b><br>' +
+      '• Seções "Por Habilidade" e "Por Idade" do relatório de inscrição agora mostram cada categoria desdobrada por gênero (♀ Fem, ♂ Masc, ⚥ Misto) em linhas independentes.<br>' +
+      '• Facilita decidir formatos misto com cortes por habilidade ou idade sem misturar os sexos na leitura.<br>' +
+      'Alteração em <code>tournaments-enrollment-report.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.4-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Perfil de amigo — botão Voltar no topo + tipo de partida no badge.</b><br>' +
       '• Botão "← Voltar" aparece agora no topo da ficha do perfil, antes do nome/avatar, no padrão consistente do app.<br>' +
