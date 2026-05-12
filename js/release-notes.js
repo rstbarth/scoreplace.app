@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.14-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Cabeçalho de criar/editar torneio: todos os botões sempre visíveis com texto.</b><br>' +
+      '• Os botões 💾 Carregar Template e ⭐ Salvar Template foram movidos para uma segunda linha abaixo do cabeçalho principal.<br>' +
+      '• A linha principal agora tem apenas ← Voltar + ✕ Descartar + ✓ Salvar — cabe em qualquer celular sem cortar texto.<br>' +
+      'Alteração em <code>create-tournament.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.13-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Fix definitivo: criar torneio não fecha mais ao primeiro clique.</b><br>' +
       '• A v1.4.11 bloqueava o soft-refresh (Firestore → re-render) mas o <em>primeiro</em> snapshot do Firestore — que chega 0,5–2s após o login — chamava <code>initRouter()</code> diretamente, fora do caminho protegido.<br>' +

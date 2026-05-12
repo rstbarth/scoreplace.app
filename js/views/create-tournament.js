@@ -4490,30 +4490,36 @@ window._renderCreateTournamentHeader = function() {
   if (!host || typeof window._renderBackHeader !== 'function') return;
   var _t = window._t || function(k) { return k; };
   var btnStyle = 'padding:5px 10px;font-size:0.75rem;flex-shrink:0;border-radius:10px;';
+  var btnStyleSm = 'padding:4px 8px;font-size:0.7rem;flex-shrink:0;border-radius:8px;';
+
+  // Main row (right slot): only Descartar + Salvar — always fits on any phone width
   var actionsHtml =
     '<div class="create-hdr-actions" style="display:flex;align-items:center;gap:6px;flex-shrink:0;flex-wrap:nowrap;">' +
-      '<button class="btn btn-tool-amber btn-sm" id="btn-load-template-create" type="button" onclick="window._showTemplatePickerInCreate()" style="' + btnStyle + '" title="' + (_t('create.loadTemplate') || 'Carregar Template') + '">💾<span class="hdr-label" style="margin-left:4px;">' + (_t('create.loadTemplate') || 'Carregar') + '</span></button>' +
-      '<button class="btn btn-tool-indigo btn-sm" id="btn-save-template-create" type="button" onclick="window._saveCurrentFormAsTemplate()" style="' + btnStyle + '" title="' + (_t('create.saveTemplate') || 'Salvar Template') + '">⭐<span class="hdr-label" style="margin-left:4px;">' + (_t('create.saveTemplate') || 'Salvar Template') + '</span></button>' +
       '<button class="btn btn-danger-ghost btn-sm hover-lift" id="btn-discard-tournament" type="button" onclick="window._discardCreateTournament()" style="' + btnStyle + '" title="' + (_t('btn.discard') || 'Descartar') + '">✕ ' + (_t('btn.discard') || 'Descartar') + '</button>' +
       '<button class="btn btn-primary btn-sm hover-lift" id="btn-save-tournament" type="button" style="' + btnStyle + 'font-weight:700;" title="' + (_t('btn.save') || 'Salvar') + '">✓ ' + (_t('btn.save') || 'Salvar') + '</button>' +
     '</div>';
+
+  // Second row: template actions (less frequent, below main row)
+  var belowHtml =
+    '<div style="display:flex;align-items:center;gap:6px;padding:4px 0 2px;border-top:1px solid rgba(255,255,255,0.07);">' +
+      '<button class="btn btn-tool-amber btn-sm" id="btn-load-template-create" type="button" onclick="window._showTemplatePickerInCreate()" style="' + btnStyleSm + '" title="' + (_t('create.loadTemplate') || 'Carregar Template') + '">💾 ' + (_t('create.loadTemplate') || 'Carregar Template') + '</button>' +
+      '<button class="btn btn-tool-indigo btn-sm" id="btn-save-template-create" type="button" onclick="window._saveCurrentFormAsTemplate()" style="' + btnStyleSm + '" title="' + (_t('create.saveTemplate') || 'Salvar Template') + '">⭐ ' + (_t('create.saveTemplate') || 'Salvar Template') + '</button>' +
+    '</div>';
+
   host.innerHTML = window._renderBackHeader({
     href: '#dashboard',
     label: _t('btn.back') || 'Voltar',
     onClickOverride: window._discardCreateTournament,
-    rightHtml: actionsHtml
+    rightHtml: actionsHtml,
+    belowHtml: belowHtml
   });
-  // Shrink labels on small screens (inline style for sticky-back-header override)
+
   if (!document.getElementById('create-tournament-header-style')) {
     var st = document.createElement('style');
     st.id = 'create-tournament-header-style';
     st.textContent =
-      '#modal-create-tournament .sticky-back-header{position:sticky;top:0;background:var(--bg-card);padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-color);z-index:10;}' +
-      '@media(max-width:600px){' +
-        '.create-hdr-actions .hdr-label{display:none!important;}' +
-        '.create-hdr-actions .btn{padding:4px 7px!important;font-size:0.72rem!important;}' +
-        '#create-tournament-header-host .sticky-back-header{padding-left:0.75rem!important;padding-right:0.75rem!important;}' +
-      '}';
+      '#modal-create-tournament .sticky-back-header{position:sticky;top:0;background:var(--bg-card);' +
+        'padding:0.5rem 0.75rem 0.3rem;border-bottom:1px solid var(--border-color);z-index:10;}';
     document.head.appendChild(st);
   }
 };
