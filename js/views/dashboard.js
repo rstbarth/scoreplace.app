@@ -907,7 +907,31 @@ function renderDashboard(container) {
       if (sessionStorage.getItem('scoreplace_profile_nudge_dismissed') === '1') return '';
     } catch (e) {}
 
-    // Avaliação por campo — ordem importa pro display "qual falta"
+    var _openProfile = "if(typeof window._showProfileModal==='function')window._showProfileModal();else if(typeof openModal==='function')openModal('modal-profile');";
+
+    // ── Nudge prioritário: nome é um número de telefone ──────────────────
+    // Usuários que entraram só por telefone ficam com o número como nome de
+    // exibição. Isso aparece em torneios, rankings e chats — precisa de ação
+    // imediata, mais urgente do que os campos opcionais de perfil.
+    // Não pode ser dismissado (não tem botão ✕) pois afeta outros usuários
+    // que veem esse nome em partidas e classificações.
+    var _dn = (cu.displayName || '').trim();
+    if (typeof window._isUnfriendlyName === 'function' && window._isUnfriendlyName(_dn)) {
+      var _phoneDisplay = _dn || (cu.phone ? (cu.phone).replace(/^\+55/, '+55 ').replace(/(\d{2})(\d{4,5})(\d{4})$/, function(m,a,b,c){return a+' '+b+'-'+c;}) : '');
+      return '<div id="dash-profile-nudge" style="background:linear-gradient(135deg,rgba(239,68,68,0.13),rgba(239,68,68,0.05));border:1px solid rgba(239,68,68,0.4);border-radius:14px;padding:14px 16px;margin-bottom:1rem;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">' +
+          '<span style="font-size:1.6rem;flex-shrink:0;line-height:1;">👤</span>' +
+          '<div style="flex:1;min-width:220px;">' +
+            '<div style="font-weight:800;color:#fca5a5;font-size:0.92rem;line-height:1.2;">Adicione seu nome ao perfil</div>' +
+            '<div style="font-size:0.76rem;color:var(--text-muted);margin-top:4px;line-height:1.45;">' +
+              'Seu nome aparece como <b style="color:#fca5a5;font-family:monospace;">' + window._safeHtml(_phoneDisplay || 'número de telefone') + '</b> nos torneios e rankings. ' +
+              'Coloque seu nome para que os outros jogadores te reconheçam.' +
+            '</div>' +
+          '</div>' +
+          '<button class="btn btn-sm hover-lift" onclick="' + _openProfile + '" style="white-space:nowrap;background:linear-gradient(135deg,#ef4444,#dc2626);border:none;color:#fff;font-weight:700;flex-shrink:0;">Colocar meu nome →</button>' +
+        '</div>';
+    }
+
+    // ── Nudge padrão: campos de perfil incompletos ───────────────────────
     var hasGender = cu.gender && String(cu.gender).trim().length > 0 && cu.gender !== 'nao_informar';
     var hasBirth = cu.birthDate && String(cu.birthDate).trim().length > 0;
     var hasCity = cu.city && String(cu.city).trim().length > 0;
@@ -916,10 +940,10 @@ function renderDashboard(container) {
     var hasLocation = hasCity || prefLocs.length > 0;
 
     var checks = [
-      { key: 'gender',   label: 'sexo',                  ok: hasGender },
-      { key: 'birth',    label: 'data de nascimento',    ok: hasBirth },
-      { key: 'location', label: 'cidade',                ok: hasLocation },
-      { key: 'sports',   label: 'modalidades',           ok: hasSports }
+      { key: 'gender',   label: 'sexo',               ok: hasGender },
+      { key: 'birth',    label: 'data de nascimento',  ok: hasBirth },
+      { key: 'location', label: 'cidade',              ok: hasLocation },
+      { key: 'sports',   label: 'modalidades',         ok: hasSports }
     ];
     var filled = checks.filter(function(c){ return c.ok; }).length;
     var total = checks.length;
@@ -932,11 +956,8 @@ function renderDashboard(container) {
         ? missing[0] + ' e ' + missing[1]
         : missing.slice(0, -1).join(', ') + ' e ' + missing[missing.length - 1];
 
-    // Tempo estimado proporcional aos campos faltantes (~7s cada).
     var secsEstimate = Math.max(15, Math.min(60, missing.length * 8));
     var timeLabel = secsEstimate <= 30 ? 'em ~' + secsEstimate + 's' : 'em ~1min';
-
-    // Progress bar visual (0-100%)
     var pct = Math.round((filled / total) * 100);
 
     return '<div id="dash-profile-nudge" style="background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.05));border:1px solid rgba(245,158,11,0.35);border-radius:14px;padding:14px 16px;margin-bottom:1rem;display:flex;align-items:center;gap:14px;flex-wrap:wrap;">' +
@@ -944,13 +965,12 @@ function renderDashboard(container) {
         '<div style="flex:1;min-width:220px;">' +
           '<div style="font-weight:800;color:var(--text-bright);font-size:0.92rem;line-height:1.2;">Complete seu perfil ' + timeLabel + '</div>' +
           '<div style="font-size:0.76rem;color:var(--text-muted);margin-top:3px;line-height:1.35;">' + filled + ' de ' + total + ' campos preenchidos · faltam <b style="color:#fbbf24;">' + window._safeHtml(missStr) + '</b></div>' +
-          // Progress bar
           '<div style="margin-top:7px;height:5px;background:rgba(255,255,255,0.08);border-radius:3px;overflow:hidden;">' +
             '<div style="height:100%;background:linear-gradient(90deg,#fbbf24,#f59e0b);width:' + pct + '%;transition:width 0.4s ease;border-radius:3px;"></div>' +
           '</div>' +
         '</div>' +
         '<div style="display:flex;gap:6px;flex-shrink:0;">' +
-          '<button class="btn btn-primary btn-sm hover-lift" onclick="if(typeof window._showProfileModal===\'function\')window._showProfileModal(); else if(typeof openModal===\'function\')openModal(\'modal-profile\');" style="white-space:nowrap;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;">Completar →</button>' +
+          '<button class="btn btn-primary btn-sm hover-lift" onclick="' + _openProfile + '" style="white-space:nowrap;background:linear-gradient(135deg,#f59e0b,#d97706);border:none;">Completar →</button>' +
           '<button class="btn btn-sm" onclick="window._dismissProfileNudge()" style="background:transparent;border:1px solid var(--border-color);color:var(--text-muted);font-size:0.78rem;" title="Descartar nesta sessão">✕</button>' +
         '</div>' +
       '</div>';
