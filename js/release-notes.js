@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.1-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil de amigo — barras de comparação com percentuais e orientação correta de parcerias.</b><br>' +
+      '• Todos os valores nas barras de comparação agora exibem <b>XX% (N)</b>: percentual em destaque (grande/bold) e número absoluto menor entre parênteses.<br>' +
+      '• 🤝 Parcerias: Derrotas à esquerda (vermelho) · Vitórias à direita (verde) — orientação corrigida e coerente com a lógica V/D.<br>' +
+      '• Label da barra de parcerias: "Derrotas · Vitórias como dupla" deixa explícita a direção de leitura.<br>' +
+      'Alteração em <code>explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Perfil de amigo — alinhamentos visuais corrigidos.</b><br>' +
       '• Nome alinhado ao topo do avatar (não mais centralizado verticalmente).<br>' +

@@ -1372,16 +1372,22 @@ function _loadAndRenderFriendStats(friendUid, hr) {
     return;
   }
 
-  // Inline dual-bar builder — same logic as _compareBar in bracket-ui.js
+  // Inline dual-bar builder — same logic as _compareBar in bracket-ui.js.
+  // Numbers displayed as "XX% (N)": percentage prominent, absolute in parens.
   var _dualBar = function(label, icon, leftVal, rightVal, leftClr, rightClr) {
     var sum = (leftVal || 0) + (rightVal || 0);
     var leftPct  = sum > 0 ? Math.round((leftVal  || 0) / sum * 100) : 0;
     var rightPct = sum > 0 ? (100 - leftPct) : 0;
+    var fmtNum = function(pct, n) {
+      if (sum === 0) return '<span style="font-size:0.88rem;font-weight:900;">–</span>';
+      return '<span style="font-size:0.88rem;font-weight:900;font-variant-numeric:tabular-nums;">' + pct + '%</span>' +
+             '<span style="font-size:0.62rem;font-weight:500;opacity:0.7;"> (' + n + ')</span>';
+    };
     return (
       '<div style="display:flex;flex-direction:column;gap:3px;">' +
         '<div style="text-align:center;font-size:0.58rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;">' + icon + ' ' + label + '</div>' +
         '<div style="display:flex;align-items:center;gap:5px;">' +
-          '<span style="flex:0 0 auto;min-width:30px;text-align:right;font-size:0.92rem;font-weight:900;color:' + leftClr + ';font-variant-numeric:tabular-nums;">' + (leftVal || 0) + '</span>' +
+          '<span style="flex:0 0 auto;min-width:56px;text-align:right;color:' + leftClr + ';">' + fmtNum(leftPct, leftVal || 0) + '</span>' +
           '<div style="flex:1;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.06);display:flex;justify-content:flex-end;">' +
             '<div style="width:' + leftPct + '%;height:100%;background:linear-gradient(90deg,' + leftClr + '44,' + leftClr + ');border-radius:4px 0 0 4px;transition:width 0.7s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
           '</div>' +
@@ -1389,7 +1395,7 @@ function _loadAndRenderFriendStats(friendUid, hr) {
           '<div style="flex:1;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.06);display:flex;">' +
             '<div style="width:' + rightPct + '%;height:100%;background:linear-gradient(90deg,' + rightClr + ',' + rightClr + '44);border-radius:0 4px 4px 0;transition:width 0.7s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
           '</div>' +
-          '<span style="flex:0 0 auto;min-width:30px;font-size:0.92rem;font-weight:900;color:' + rightClr + ';font-variant-numeric:tabular-nums;">' + (rightVal || 0) + '</span>' +
+          '<span style="flex:0 0 auto;min-width:56px;color:' + rightClr + ';">' + fmtNum(rightPct, rightVal || 0) + '</span>' +
         '</div>' +
       '</div>'
     );
@@ -1517,7 +1523,7 @@ function _loadAndRenderFriendStats(friendUid, hr) {
         html +=
           '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:12px 14px;margin-bottom:10px;">' +
             '<div style="text-align:center;font-size:0.58rem;font-weight:800;color:' + pClr + ';text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">🤝 Parcerias · ' + p.total + ' partida' + (p.total !== 1 ? 's' : '') + pNote + '</div>' +
-            _dualBar('Vitórias como dupla', '🏆', p.wins, p.losses, pClr, '#ef4444') +
+            _dualBar('Derrotas · Vitórias como dupla', '🏆', p.losses, p.wins, '#ef4444', pClr) +
           '</div>';
       }
 
