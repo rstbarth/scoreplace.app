@@ -1060,9 +1060,16 @@ function _completeEmailLinkSignIn() {
           console.warn('[email-link] cross-ref por email falhou:', e);
         }
         // Fallback: se não temos displayName herdado nem do Firebase, usa
-        // local-part do email (ex: "joao.silva" pra joao.silva@gmail.com).
+        // o email completo como nome inicial (mais identificável que o local-part).
+        // O usuário pode trocar no perfil a qualquer momento.
         if (!profileData.displayName && !user.displayName && email) {
-          profileData.displayName = email.split('@')[0];
+          profileData.displayName = email;
+        }
+        // Fix retroativo: se o Firebase Auth tem um nome genérico ("Usuário" etc),
+        // substituir pelo email enquanto a pessoa não preenche o perfil.
+        if (profileData.displayName && typeof window._isUnfriendlyName === 'function' &&
+            window._isUnfriendlyName(profileData.displayName) && email) {
+          profileData.displayName = email;
         }
         window.FirestoreDB.saveUserProfile(user.uid, profileData).catch(function() {});
       }
@@ -2067,8 +2074,26 @@ async function simulateLoginSuccess(user) {
   if (window.FirestoreDB && window.FirestoreDB.db && uid) {
     var needsSave = false;
     var basicData = {};
-    if (!existingProfile || !existingProfile.displayName) {
-      if (user.displayName) { basicData.displayName = user.displayName; needsSave = true; }
+    // Set / fix displayName: covers (1) no name yet, (2) generic placeholder
+    // "Usuário" saved by old app versions or i18n default.
+    var _storedDN = (existingProfile && existingProfile.displayName) || user.displayName || '';
+    var _needsBetterDN = !_storedDN || (typeof window._isUnfriendlyName === 'function' && window._isUnfriendlyName(_storedDN));
+    if (_needsBetterDN) {
+      var _betterDN = null;
+      var _profEmail = (existingProfile && existingProfile.email) || user.email || '';
+      var _profPhone = (existingProfile && existingProfile.phone) || '';
+      if (user.displayName && !(typeof window._isUnfriendlyName === 'function' && window._isUnfriendlyName(user.displayName))) {
+        // Firebase Auth has a real name (e.g. Google account) — use it
+        _betterDN = user.displayName;
+      } else if (_profEmail) {
+        // Use full email — clearest identifier for magic-link users
+        _betterDN = _profEmail;
+      } else if (_profPhone) {
+        _betterDN = _profPhone;
+      } else if (user.phoneNumber) {
+        _betterDN = user.phoneNumber;
+      }
+      if (_betterDN) { basicData.displayName = _betterDN; needsSave = true; }
     }
     if (!existingProfile || !existingProfile.email) {
       if (user.email) { basicData.email = user.email; needsSave = true; }

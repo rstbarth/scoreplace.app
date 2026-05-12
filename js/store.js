@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.4.5-beta';
+window.SCOREPLACE_VERSION = '1.4.6-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -849,6 +849,44 @@ window._profileAvatarUrl = function(name, photoURL, size) {
         return photoURL;
     }
     return window._avatarUrl(name, size);
+};
+
+// ─── Friendly display name helpers ────────────────────────────────────────────
+// Returns true when a displayName is a generic placeholder that gives no useful
+// identity info (empty, "Usuário", "user", "teste", etc.).
+// Also catches purely-numeric strings that were accidentally stored as names
+// in very old versions (phone number as displayName).
+window._isUnfriendlyName = function(name) {
+  if (!name) return true;
+  var n = String(name).trim().toLowerCase();
+  if (!n) return true;
+  // Purely numeric / phone-number shape → not a real name
+  if (/^[\d\s\+\-\(\)]+$/.test(n)) return true;
+  var BAD = ['usuário', 'usuario', 'user', 'teste', 'test', 'undefined', 'null', 'anon', 'anônimo'];
+  return BAD.indexOf(n) !== -1;
+};
+
+// Returns the best human-readable name for a user object.
+// Falls through: displayName (if friendly) → email → phone → 'Usuário'.
+// Suitable for display anywhere a person needs to be identified.
+window._friendlyDisplayName = function(u) {
+  if (!u) return 'Usuário';
+  var name = String(u.displayName || '').trim();
+  if (name && !window._isUnfriendlyName(name)) return name;
+  // Full email is the clearest identifier for email-link users
+  if (u.email) return u.email;
+  // Phone (local number stored without country code)
+  if (u.phone) {
+    var ph = String(u.phone).replace(/\D/g, '');
+    var cc = u.phoneCountry || '55';
+    if (typeof window._formatPhoneDisplay === 'function') {
+      try { return '+' + cc + ' ' + window._formatPhoneDisplay(ph, cc); } catch (_e) {}
+    }
+    return '+' + cc + ' ' + ph;
+  }
+  // E.164 from Firebase Auth (SMS users who never loaded their profile)
+  if (u.phoneNumber) return u.phoneNumber;
+  return name || 'Usuário';
 };
 
 // v1.0.33-beta: animação on-scroll de barras + contadores de stats.

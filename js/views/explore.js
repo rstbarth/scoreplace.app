@@ -99,13 +99,20 @@ function _isRealPhoto(url) {
 
 // Returns {line1, line2} for a name: line1 = first token, line2 = last token.
 // Splits on spaces for display names; falls back to . @ _ - for usernames.
+// Emails and phone-number strings are kept on a single line to avoid
+// confusing splits like "joao | com" from "joao@gmail.com".
 function _nameLines(raw) {
   if (!raw) return { line1: '', line2: '' };
-  var tokens = raw.trim().split(/\s+/).filter(function(t) { return t.length > 0; });
+  var trimmed = raw.trim();
+  // Email address → always single line (split at @ would give "joao" | "com")
+  if (trimmed.indexOf('@') !== -1) return { line1: trimmed, line2: '' };
+  // Purely numeric / phone → single line
+  if (/^[\d\s\+\-\(\)]+$/.test(trimmed)) return { line1: trimmed, line2: '' };
+  var tokens = trimmed.split(/\s+/).filter(function(t) { return t.length > 0; });
   if (tokens.length <= 1) {
-    tokens = raw.trim().split(/[.@_\-]/).filter(function(t) { return t.length > 0; });
+    tokens = trimmed.split(/[.@_\-]/).filter(function(t) { return t.length > 0; });
   }
-  if (tokens.length <= 1) return { line1: tokens[0] || raw, line2: '' };
+  if (tokens.length <= 1) return { line1: tokens[0] || trimmed, line2: '' };
   return { line1: tokens[0], line2: tokens[tokens.length - 1] };
 }
 
@@ -140,7 +147,7 @@ function _isSameCityAsMe(theirCity) {
 // Falls back to the larger _userCardHtml for other sections.
 function _friendCompactCardHtml(u, uid) {
   var cu = window.AppStore.currentUser || {};
-  var _nl = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
+  var _nl = _nameLines((window._friendlyDisplayName ? window._friendlyDisplayName(u) : (u.displayName || u.email || 'Usuário')));
   var avatarSeed = encodeURIComponent((_nl.line1 + (_nl.line2 ? ' ' + _nl.line2 : '')) || uid || 'User');
   var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
@@ -179,7 +186,7 @@ function _friendCompactCardHtml(u, uid) {
 }
 
 function _userCardHtml(u, uid, actionHtml, variant, onClickFn) {
-  var _nl = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
+  var _nl = _nameLines((window._friendlyDisplayName ? window._friendlyDisplayName(u) : (u.displayName || u.email || 'Usuário')));
   var avatarSeed = encodeURIComponent((_nl.line1 + (_nl.line2 ? ' ' + _nl.line2 : '')) || uid || 'User');
   var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
@@ -560,7 +567,7 @@ function _renderOtrosCards(resultsDiv, users) {
 // Renders a user card that shows shared-tournament count + latest encounter date when applicable
 function _userCardWithEncounterHtml(u, uid, actionHtml) {
   var _t = window._t || function(k){return k;};
-  var _nl = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
+  var _nl = _nameLines((window._friendlyDisplayName ? window._friendlyDisplayName(u) : (u.displayName || u.email || 'Usuário')));
   var avatarSeed = encodeURIComponent((_nl.line1 + (_nl.line2 ? ' ' + _nl.line2 : '')) || uid || 'User');
   var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrl;
@@ -618,7 +625,7 @@ function _renderPendingRequests(myUid, receivedIds) {
 
     profiles.forEach(function(u) {
       var uid = u._docId;
-      var _nlP = _nameLines(u.displayName || 'Usuário');
+      var _nlP = _nameLines(window._friendlyDisplayName ? window._friendlyDisplayName(u) : (u.displayName || u.email || 'Usuário'));
       var initialsUrlP = 'https://api.dicebear.com/9.x/initials/svg?seed=' + encodeURIComponent((_nlP.line1 + (_nlP.line2 ? ' ' + _nlP.line2 : '')) || uid || 'User') + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
       var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrlP;
       var fallbackPhoto2 = initialsUrlP;
@@ -1106,7 +1113,7 @@ function _renderConhecidosCards(div, profiles) {
     }
 
     // Horizontal card for conhecidos (amber/yellow tint)
-    var _nlC = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
+    var _nlC = _nameLines((window._friendlyDisplayName ? window._friendlyDisplayName(u) : (u.displayName || u.email || 'Usuário')));
     var avatarSeed = encodeURIComponent((_nlC.line1 + (_nlC.line2 ? ' ' + _nlC.line2 : '')) || uid || 'User');
     var initialsUrlC = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
     var photo = _isRealPhoto(u.photoURL) ? u.photoURL : initialsUrlC;
@@ -1532,16 +1539,17 @@ function _loadAndRenderFriendStats(friendUid, hr) {
       }
 
       var cu2 = window.AppStore ? (window.AppStore.currentUser || {}) : {};
-      var myFirstName = (cu2.displayName || 'Você').split(/\s+/)[0];
+      // Use friendly display name; take first word only for the bar label (keeps it compact)
+      var _myFriendlyDN = (window._friendlyDisplayName ? window._friendlyDisplayName(cu2) : (cu2.displayName || 'Você'));
+      var myFirstName = _myFriendlyDN.split(/[\s@]+/)[0];
 
       // Colors: red for friend (left), green for me (right)
       var myClr = '#22c55e';
       var frClr = '#ef4444';
 
-      var frFirstName = window._safeHtml(
-        (window._exploreProfileCache && window._exploreProfileCache[friendUid] &&
-         (window._exploreProfileCache[friendUid].displayName || '').split(/[\s.@_\-]+/)[0]) || 'Amigo'
-      );
+      var _frCached = (window._exploreProfileCache && window._exploreProfileCache[friendUid]) || {};
+      var _frFriendlyDN = window._friendlyDisplayName ? window._friendlyDisplayName(_frCached) : (_frCached.displayName || _frCached.email || 'Amigo');
+      var frFirstName = window._safeHtml(_frFriendlyDN.split(/[\s@]+/)[0] || 'Amigo');
       var html = '';
 
       // ── Confrontos block ──────────────────────────────────────────────────
@@ -1666,7 +1674,7 @@ function _computeFriendStats(u) {
 }
 
 function _profileSheetAvatarHtml(u, uid, size, borderColor) {
-  var nl = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
+  var nl = _nameLines((window._friendlyDisplayName ? window._friendlyDisplayName(u) : (u.displayName || u.email || 'Usuário')));
   var seed = encodeURIComponent((nl.line1 + (nl.line2 ? ' ' + nl.line2 : '')) || uid || 'User');
   var fallback = 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
   var src = _isRealPhoto(u.photoURL) ? u.photoURL : fallback;
@@ -1732,7 +1740,7 @@ function _renderUserProfileSheet(u) {
   var isSent = mySent.indexOf(uid) !== -1;
   var isMe = uid === (cu.uid || cu.email);
   var safeUid = String(uid || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-  var fullName = window._safeHtml(u.displayName || u.email || 'Usuário');
+  var fullName = window._safeHtml(window._friendlyDisplayName ? window._friendlyDisplayName(u) : (u.displayName || u.email || 'Usuário'));
   var borderColor = isFriend ? 'var(--success-color)' : 'var(--primary-color)';
   var hr = '<div style="height:1px;background:rgba(255,255,255,0.07);margin:12px 0;"></div>';
 
@@ -1836,7 +1844,7 @@ function _renderInviteDetailSheet(u) {
   var allUidsJs = allUids.map(function (id) {
     return "'" + String(id).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
   }).join(',');
-  var fullName = window._safeHtml(u.displayName || u.email || 'Usuário');
+  var fullName = window._safeHtml(window._friendlyDisplayName ? window._friendlyDisplayName(u) : (u.displayName || u.email || 'Usuário'));
   var cityHtml = u.city ? '<div style="font-size:0.84rem;color:var(--text-muted);margin-top:5px;">📍 ' + window._safeHtml(u.city) + '</div>' : '';
   var sportsHtml = _profileSheetSportsHtml(u);
 

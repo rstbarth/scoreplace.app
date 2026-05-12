@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.6-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Nomes genéricos substituídos por e-mail ou telefone nos cards e fichas de perfil.</b><br>' +
+      '• Usuários que entraram via link mágico ou SMS e cujo nome era genérico ("usuário", "user", etc.) passam a aparecer com seu e-mail ou número de celular em todos os cards, fichas de perfil e estatísticas.<br>' +
+      '• Ao fazer login via magic link ou SMS, o e-mail/telefone agora é salvo como nome de exibição inicial no Firestore até o usuário preencher o perfil manualmente.<br>' +
+      '• Cards e fichas do Explorar usam o novo helper <code>_friendlyDisplayName()</code> — e-mail e telefone não são mais particionados em pedaços (ex: "rodrigo@gmail.com" aparece completo, não "rodrigo" / "com").<br>' +
+      'Alterações em <code>store.js</code>, <code>auth.js</code> e <code>explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.5-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Análise de inscritos — habilidade e faixa etária separados por gênero.</b><br>' +
       '• Seções "Por Habilidade" e "Por Idade" do relatório de inscrição agora mostram cada categoria desdobrada por gênero (♀ Fem, ♂ Masc, ⚥ Misto) em linhas independentes.<br>' +
