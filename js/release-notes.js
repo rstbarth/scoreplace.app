@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.97-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil de amigo — comparação estatística com barras visuais (igual ao fim de partida casual).</b><br>' +
+      '• ⚔️ Confrontos diretos agora apresentados com barras duplas lado a lado: Vitórias, Pontos, Games e Sets — você em azul (esquerda), amigo em âmbar (direita), proporcional ao total.<br>' +
+      '• 🤝 Parcerias com barra Vitórias × Derrotas em verde vs vermelho.<br>' +
+      '• Mesmo layout visual da tela de estatísticas exibida ao final de cada partida casual.<br>' +
+      'Alteração em <code>js/views/explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.96-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Perfil de amigo — estatísticas carregadas do histórico real (torneios + partidas casuais).</b><br>' +
       '• As estatísticas agora lêem o histórico de partidas gravado no Firestore (<code>matchHistory</code> subcoleção) em vez do cache em memória — cobrem todos os torneios em que os dois participaram, independente de quem organizou, mais todas as partidas casuais finalizadas.<br>' +
