@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.22-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Fix: ícones de gênero desalinhados nos botões de categoria.</b><br>' +
+      '• Causa raiz: <code>_applyGenderCatUI()</code> usa <code>btn.style.cssText = onStyle/offStyle</code> para aplicar o estilo ativo/inativo — isso sobrescreve <em>todo</em> o inline style do botão, apagando o <code>display:inline-flex;align-items:center;gap</code> adicionado no HTML.<br>' +
+      '• Fix: <code>display:inline-flex;align-items:center;gap:5px;</code> adicionado ao início de <code>onStyle</code> e <code>offStyle</code> em <code>_applyGenderCatUI</code>. Agora toda atualização de estado (toggle, load, reset) preserva o alinhamento flex e o espaço entre ícone e texto "Misto".<br>' +
+      'Alteração em <code>create-tournament.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.20-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Fix: botão "Salvar" não fazia nada ao ser clicado em #novo-torneio.</b><br>' +
       '• Causa raiz: <code>_renderCreateTournamentHeader()</code> usa <code>host.innerHTML = …</code> para criar o botão. Toda chamada a <code>innerHTML</code> destrói o elemento anterior e cria um novo — o listener registrado na inicialização ficava no elemento antigo (destruído). O novo botão nascia sem listener e sem <code>onclick</code>.<br>' +

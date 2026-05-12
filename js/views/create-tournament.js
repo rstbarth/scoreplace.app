@@ -1800,8 +1800,8 @@ function setupCreateTournamentModal() {
       values = h && h.value ? h.value.split(',').filter(Boolean) : [];
     }
     var map = { fem: 'btn-cat-fem', masc: 'btn-cat-masc', misto_aleatorio: 'btn-cat-misto-ale', misto_obrigatorio: 'btn-cat-misto-obr' };
-    var onStyle = 'padding:6px 14px;border-radius:8px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #a855f7;background:rgba(168,85,247,0.22);color:#d8b4fe;font-weight:700;box-shadow:0 0 0 1px rgba(168,85,247,0.3);';
-    var offStyle = 'padding:6px 14px;border-radius:8px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;';
+    var onStyle = 'display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #a855f7;background:rgba(168,85,247,0.22);color:#d8b4fe;font-weight:700;box-shadow:0 0 0 1px rgba(168,85,247,0.3);';
+    var offStyle = 'display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:500;';
     Object.keys(map).forEach(function(k) {
       var btn = document.getElementById(map[k]);
       if (btn) btn.style.cssText = values.indexOf(k) !== -1 ? onStyle : offStyle;
