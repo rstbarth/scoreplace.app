@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.4.15-beta';
+window.SCOREPLACE_VERSION = '1.4.16-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -402,7 +402,7 @@ window._renderBackHeader = function(opts) {
                 'data-back-nav="1" data-back-href="' + _safeHrefAttr + '"' + _overrideAttr + ' ' +
                 'aria-label="' + _label + '" ' +
                 'style="display:inline-flex;align-items:center;gap:6px;padding:6px 16px;border-radius:20px;flex-shrink:0;">' +
-          _svg + ' ' + _label +
+          _svg + ' <span class="back-btn-label">' + _label + '</span>' +
         '</button>' +
         _middle +
         _right +

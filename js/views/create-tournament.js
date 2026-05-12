@@ -4528,10 +4528,22 @@ window._renderCreateTournamentHeader = function() {
   // Override header padding via JS (bypasses CSS specificity entirely — guaranteed to apply)
   var hdr = host.querySelector('.sticky-back-header');
   if (hdr) {
-    hdr.style.setProperty('padding-left',  '0.75rem', 'important');
-    hdr.style.setProperty('padding-right', '0.75rem', 'important');
-    hdr.style.setProperty('padding-top',   '0.5rem',  'important');
-    hdr.style.setProperty('padding-bottom','0.4rem',  'important');
+    hdr.style.setProperty('padding-left',  '12px', 'important');
+    hdr.style.setProperty('padding-right', '12px', 'important');
+    hdr.style.setProperty('padding-top',   '6px',  'important');
+    hdr.style.setProperty('padding-bottom','6px',  'important');
+  }
+
+  // On narrow screens: hide "Voltar" text (keep arrow icon only) and shrink button padding.
+  // This saves ~65px, guaranteeing all 4 action buttons + icon-Voltar fit on one line.
+  if (narrow) {
+    var backBtn = host.querySelector('[data-back-nav]');
+    if (backBtn) {
+      backBtn.style.setProperty('padding-left',  '8px', 'important');
+      backBtn.style.setProperty('padding-right', '8px', 'important');
+      var lbl = backBtn.querySelector('.back-btn-label');
+      if (lbl) lbl.style.display = 'none';
+    }
   }
 
   // Modal-context override (when opened via "Detalhes Avançados" inside a modal)
