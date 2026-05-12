@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.92-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Explorar Comunidade — clique no card abre perfil em bottom sheet.</b><br>' +
+      '• Todos os cards de pessoas na tela Explorar são agora clicáveis.<br>' +
+      '• <b>Amigos:</b> abre perfil completo com avatar, nome, cidade, modalidades com nível de habilidade por esporte (<code>skillBySport</code>), quantidade de torneios em comum e botão para desfazer amizade.<br>' +
+      '• <b>Convites enviados pendentes:</b> abre painel de detalhe com perfil do convidado + pílula "Convite enviado — aguardando resposta" + botões Reenviar convite e Cancelar convite.<br>' +
+      '• <b>Outros usuários:</b> abre perfil completo (igual amigos) com botão Convidar para amizade.<br>' +
+      '• Bottom sheet desliza de baixo para cima com animação suave; fechar tocando no fundo ou no ✕.<br>' +
+      'Alteração em <code>js/views/explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.91-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(11 de Maio, 2026)</span></div>' +
       '<p><b>Partida casual — nomes preservados ao desparear e reparear jogadores.</b><br>' +
       '• Bug corrigido: ao simular uma partida casual, clicar no elo das correntes para desparear e tentar arrastar um jogador para novo parceiro, os nomes digitados (jogador 2, 3, 4) sumiam e voltavam a "Jogador 2/3/4".<br>' +

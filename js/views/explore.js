@@ -163,7 +163,10 @@ function _friendCompactCardHtml(u, uid) {
 
   var safeUid = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
 
-  return '<div class="card hover-lift" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(34,197,94,0.06);border:1px solid var(--success-color);border-radius:10px;min-width:0;">' +
+  window._exploreProfileCache = window._exploreProfileCache || {};
+  window._exploreProfileCache[uid] = u;
+
+  return '<div class="card hover-lift" onclick="window._openUserProfile(\'' + safeUid + '\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(34,197,94,0.06);border:1px solid var(--success-color);border-radius:10px;min-width:0;">' +
     '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid var(--success-color);flex-shrink:0;">' +
     '<div style="flex:1;min-width:0;">' +
       _nameHtml(_nl.line1, _nl.line2) +
@@ -175,7 +178,7 @@ function _friendCompactCardHtml(u, uid) {
   '</div>';
 }
 
-function _userCardHtml(u, uid, actionHtml, variant) {
+function _userCardHtml(u, uid, actionHtml, variant, onClickFn) {
   var _nl = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
   var avatarSeed = encodeURIComponent((_nl.line1 + (_nl.line2 ? ' ' + _nl.line2 : '')) || uid || 'User');
   var initialsUrl = 'https://api.dicebear.com/9.x/initials/svg?seed=' + avatarSeed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
@@ -198,7 +201,9 @@ function _userCardHtml(u, uid, actionHtml, variant) {
   var borderColor = variant === 'friend' ? 'var(--success-color)' : variant === 'pending' ? 'rgba(245,158,11,0.45)' : 'var(--border-color)';
   var bgTint = variant === 'friend' ? 'rgba(34,197,94,0.06)' : variant === 'pending' ? 'rgba(245,158,11,0.06)' : 'transparent';
 
-  return '<div class="card" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:' + bgTint + ';border:1px solid ' + borderColor + ';border-radius:10px;min-width:0;">' +
+  var _cardClick = onClickFn ? ' onclick="' + onClickFn + '"' : '';
+  var _cardCursor = onClickFn ? 'cursor:pointer;' : '';
+  return '<div class="card"' + _cardClick + ' style="' + _cardCursor + 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:' + bgTint + ';border:1px solid ' + borderColor + ';border-radius:10px;min-width:0;">' +
     '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ' + borderColor + ';flex-shrink:0;">' +
     '<div style="flex:1;min-width:0;">' +
       _nameHtml(_nl.line1, _nl.line2) +
@@ -506,6 +511,8 @@ function _renderOtrosCards(resultsDiv, users) {
     var inner = '<div style="display:flex;flex-direction:column;gap:6px;">';
     groupUsers.forEach(function(u) {
       var uid = u._docId || u.uid || u.email;
+      window._exploreProfileCache = window._exploreProfileCache || {};
+      if (uid) window._exploreProfileCache[uid] = u;
       inner += _userCardWithEncounterHtml(u, uid, _actionBtnFor(u));
     });
     inner += '</div>';
@@ -571,9 +578,13 @@ function _userCardWithEncounterHtml(u, uid, actionHtml) {
     sharedLine = '<div style="font-size: 0.65rem; color: #f59e0b; margin-top: 2px;">' + (u._sharedCount || 0) + ' ' + sharedLabel + '</div>';
   }
 
+  var _safeUidEnc = (uid || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  window._exploreProfileCache = window._exploreProfileCache || {};
+  window._exploreProfileCache[uid] = u;
+
   // Date is shown as a group header above a batch of cards (see _renderOtrosCards),
   // so we don't repeat it on each individual card.
-  return '<div class="card" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:' + bgTint + ';border:1px solid ' + borderColor + ';border-radius:10px;min-width:0;">' +
+  return '<div class="card" onclick="window._openUserProfile(\'' + _safeUidEnc + '\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 10px;background:' + bgTint + ';border:1px solid ' + borderColor + ';border-radius:10px;min-width:0;">' +
     '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid ' + avatarBorder + ';flex-shrink:0;">' +
     '<div style="flex:1;min-width:0;">' +
       _nameHtml(_nl.line1, _nl.line2) +
@@ -613,15 +624,17 @@ function _renderPendingRequests(myUid, receivedIds) {
       var fallbackPhoto2 = initialsUrlP;
 
       var safeUidPending = (uid || '').replace(/'/g, "\\'").replace(/\\/g, "\\\\");
-      html += '<div class="card" style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.45);border-radius:10px;min-width:0;">' +
+      window._exploreProfileCache = window._exploreProfileCache || {};
+      if (uid) window._exploreProfileCache[uid] = u;
+      html += '<div class="card" onclick="window._openUserProfile(\'' + safeUidPending + '\')" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:8px 10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.45);border-radius:10px;min-width:0;">' +
         '<img src="' + photo + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto2 + '\'" style="width:34px;height:34px;border-radius:50%;object-fit:cover;border:2px solid rgba(245,158,11,0.45);flex-shrink:0;">' +
         '<div style="flex:1;min-width:0;">' +
           _nameHtml(_nlP.line1, _nlP.line2) +
           '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:1px;">' + (window._t || function(k){return k;})('explore.wantsToBeFriend') + '</div>' +
         '</div>' +
         '<div style="display:flex;gap:6px;flex-shrink:0;">' +
-          '<button class="btn btn-success btn-sm" onclick="window._spinButton(this, \'Aceitando...\'); _acceptFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.accept') + '</button>' +
-          '<button class="btn btn-danger btn-sm" onclick="window._spinButton(this, \'Rejeitando...\'); _rejectFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.reject') + '</button>' +
+          '<button class="btn btn-success btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Aceitando...\'); _acceptFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.accept') + '</button>' +
+          '<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Rejeitando...\'); _rejectFriend(\'' + safeUidPending + '\')">' + (window._t || function(k){return k;})('explore.reject') + '</button>' +
         '</div>' +
       '</div>';
     });
@@ -680,6 +693,20 @@ function _renderSentRequests(myUid, sentIds) {
     });
     var dedupedGroups = Object.keys(byEmail).map(function(k) { return byEmail[k]; });
 
+    // Cache profiles + store invite groups for instant sheet open
+    dedupedGroups.forEach(function(group) {
+      var u = group.profile;
+      var uid = u._docId;
+      window._exploreProfileCache = window._exploreProfileCache || {};
+      window._exploreInviteGroups = window._exploreInviteGroups || {};
+      if (uid) {
+        window._exploreProfileCache[uid] = u;
+        group.uids.forEach(function(id) {
+          window._exploreInviteGroups[id] = group.uids;
+        });
+      }
+    });
+
     var titleLabel = _t('explore.sentPending');
     if (titleLabel === 'explore.sentPending') titleLabel = 'Convites Pendentes';
 
@@ -699,7 +726,7 @@ function _renderSentRequests(myUid, sentIds) {
       // ambos de uma vez. Evita user clicar ✕ e ainda aparecer outro card.
       var allUidsArg = group.uids.map(function(u){ return "'" + u.replace(/'/g, "\\'").replace(/\\/g, "\\\\") + "'"; }).join(',');
       var cancelBtn = '<button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); window._spinButton(this, \'Cancelando...\'); _cancelFriendRequestMulti([' + allUidsArg + '])" title="' + _t('explore.cancelInviteTitle') + '">✉️ ✕</button>';
-      html += _userCardHtml(u, uid, cancelBtn, 'pending');
+      html += _userCardHtml(u, uid, cancelBtn, 'pending', 'window._openPendingInviteDetail(\'' + safeUid + '\')');
     });
 
     html += '</div></div>';
@@ -728,6 +755,12 @@ function _renderMyFriends(myUid, friendIds) {
 
   return Promise.all(promises).then(function(profiles) {
     profiles = profiles.filter(function(p) { return p; });
+
+    // Cache profiles for instant sheet
+    profiles.forEach(function(p) {
+      var uid = p._docId;
+      if (uid) { window._exploreProfileCache = window._exploreProfileCache || {}; window._exploreProfileCache[uid] = p; }
+    });
 
     // Store friend emails and names for dedup in conhecidos/search
     window._friendEmails = [];
@@ -1252,3 +1285,168 @@ window._removeFriend = function(friendUid) {
     });
   }
 };
+
+// ──────────────────────────────────────────────────────────
+// Profile / invite-detail bottom sheet (opens on card click)
+// ──────────────────────────────────────────────────────────
+
+window._exploreProfileCache = window._exploreProfileCache || {};
+window._exploreInviteGroups = window._exploreInviteGroups || {};
+
+window._closeUserProfileSheet = function () {
+  var sheet = document.getElementById('user-profile-sheet');
+  var backdrop = document.getElementById('user-profile-sheet-backdrop');
+  if (sheet) {
+    sheet.style.transform = 'translateY(100%)';
+    setTimeout(function () { if (backdrop) backdrop.remove(); }, 300);
+  } else if (backdrop) {
+    backdrop.remove();
+  }
+};
+
+window._openUserProfile = function (uid) {
+  if (!uid) return;
+  var cached = window._exploreProfileCache && window._exploreProfileCache[uid];
+  if (cached) { _renderUserProfileSheet(cached); return; }
+  window.FirestoreDB.loadUserProfile(uid)
+    .then(function (p) {
+      if (p) { p._docId = uid; window._exploreProfileCache = window._exploreProfileCache || {}; window._exploreProfileCache[uid] = p; }
+      _renderUserProfileSheet(p || { _docId: uid, displayName: 'Usuário' });
+    })
+    .catch(function () { _renderUserProfileSheet({ _docId: uid, displayName: 'Usuário' }); });
+};
+
+window._openPendingInviteDetail = function (uid) {
+  if (!uid) return;
+  var cached = window._exploreProfileCache && window._exploreProfileCache[uid];
+  if (cached) { _renderInviteDetailSheet(cached); return; }
+  window.FirestoreDB.loadUserProfile(uid)
+    .then(function (p) {
+      if (p) { p._docId = uid; window._exploreProfileCache = window._exploreProfileCache || {}; window._exploreProfileCache[uid] = p; }
+      _renderInviteDetailSheet(p || { _docId: uid, displayName: 'Usuário' });
+    })
+    .catch(function () { _renderInviteDetailSheet({ _docId: uid, displayName: 'Usuário' }); });
+};
+
+function _profileSheetAvatarHtml(u, uid, size, borderColor) {
+  var nl = _nameLines(u.displayName || (u.email ? u.email.split('@')[0] : 'Usuário'));
+  var seed = encodeURIComponent((nl.line1 + (nl.line2 ? ' ' + nl.line2 : '')) || uid || 'User');
+  var fallback = 'https://api.dicebear.com/9.x/initials/svg?seed=' + seed + '&backgroundColor=c0aede,d1d4f9,b6e3f4,ffd5dc,ffdfbf';
+  var src = _isRealPhoto(u.photoURL) ? u.photoURL : fallback;
+  var s = size || 72; var bc = borderColor || 'var(--primary-color)';
+  return '<img src="' + src + '" onerror="this.onerror=null;this.src=\'' + fallback + '\'" style="width:' + s + 'px;height:' + s + 'px;border-radius:50%;object-fit:cover;border:3px solid ' + bc + ';margin-bottom:12px;">';
+}
+
+function _profileSheetSportsHtml(u) {
+  if (u.skillBySport && typeof u.skillBySport === 'object' && Object.keys(u.skillBySport).length > 0) {
+    var pills = Object.keys(u.skillBySport).map(function (sport) {
+      var lvl = u.skillBySport[sport];
+      return '<span style="background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);border-radius:20px;padding:3px 10px;font-size:0.75rem;color:var(--text-bright);">' +
+        window._safeHtml(sport) + ' <b>' + window._safeHtml(String(lvl)) + '</b></span>';
+    }).join('');
+    return '<div style="display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:10px;">' + pills + '</div>';
+  }
+  if (u.preferredSports) {
+    var s = Array.isArray(u.preferredSports) ? u.preferredSports.join(', ') : String(u.preferredSports);
+    if (s) return '<div style="font-size:0.82rem;color:var(--text-muted);margin-top:6px;">🎾 ' + window._safeHtml(s) + '</div>';
+  }
+  return '';
+}
+
+function _mountProfileSheet(innerHtml) {
+  var existing = document.getElementById('user-profile-sheet-backdrop');
+  if (existing) existing.remove();
+  var outer = document.createElement('div');
+  outer.id = 'user-profile-sheet-backdrop';
+  outer.setAttribute('onclick', 'window._closeUserProfileSheet()');
+  outer.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10050;display:flex;align-items:flex-end;justify-content:center;';
+  var panel = document.createElement('div');
+  panel.id = 'user-profile-sheet';
+  panel.setAttribute('onclick', 'event.stopPropagation()');
+  panel.style.cssText = 'background:var(--bg-card);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -4px 40px rgba(0,0,0,0.4);transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;max-height:90vh;';
+  panel.innerHTML = innerHtml;
+  outer.appendChild(panel);
+  document.body.appendChild(outer);
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () { panel.style.transform = 'translateY(0)'; });
+  });
+}
+
+function _renderUserProfileSheet(u) {
+  var cu = window.AppStore.currentUser || {};
+  var myFriends = cu.friends || [];
+  var mySent = cu.friendRequestsSent || [];
+  var uid = u._docId || u.uid || u.email;
+  var isFriend = myFriends.indexOf(uid) !== -1;
+  var isSent = mySent.indexOf(uid) !== -1;
+  var isMe = uid === (cu.uid || cu.email);
+  var safeUid = String(uid || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  var fullName = window._safeHtml(u.displayName || u.email || 'Usuário');
+  var borderColor = isFriend ? 'var(--success-color)' : 'var(--primary-color)';
+
+  var cityHtml = u.city ? '<div style="font-size:0.84rem;color:var(--text-muted);margin-top:5px;">📍 ' + window._safeHtml(u.city) + '</div>' : '';
+  var sportsHtml = _profileSheetSportsHtml(u);
+  var sharedCount = u._sharedTournaments || u._sharedCount || 0;
+  var sharedHtml = sharedCount > 0 ? '<div style="font-size:0.8rem;color:#f59e0b;margin-top:8px;">🏆 ' + sharedCount + ' torneio(s) em comum</div>' : '';
+
+  var actionsHtml = '';
+  if (!isMe) {
+    if (isFriend) {
+      actionsHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:22px;">' +
+        '<button class="btn btn-danger btn-sm" onclick="window._closeUserProfileSheet(); window._removeFriend(\'' + safeUid + '\')">Desfazer amizade</button>' +
+      '</div>';
+    } else if (isSent) {
+      actionsHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:22px;">' +
+        '<button class="btn btn-ghost btn-sm" style="opacity:0.8;pointer-events:none;">✉️ Convite enviado</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="window._closeUserProfileSheet(); window._spinButton(this,\'Cancelando...\'); _cancelFriendRequest(\'' + safeUid + '\')">Cancelar</button>' +
+      '</div>';
+    } else if (u.acceptFriendRequests !== false) {
+      actionsHtml = '<div style="display:flex;gap:10px;justify-content:center;margin-top:22px;">' +
+        '<button class="btn btn-primary" onclick="window._closeUserProfileSheet(); window._spinButton(this,\'Enviando...\'); _sendFriendRequest(\'' + safeUid + '\')">Convidar para amigos</button>' +
+      '</div>';
+    }
+  }
+
+  _mountProfileSheet(
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;">' +
+      '<button onclick="window._closeUserProfileSheet()" style="background:transparent;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;line-height:1;padding:4px 8px;">✕</button>' +
+    '</div>' +
+    '<div style="text-align:center;">' +
+      _profileSheetAvatarHtml(u, uid, 72, borderColor) +
+      '<div style="font-size:1.15rem;font-weight:700;color:var(--text-bright);">' + fullName + '</div>' +
+      cityHtml +
+      sportsHtml +
+      sharedHtml +
+    '</div>' +
+    actionsHtml
+  );
+}
+
+function _renderInviteDetailSheet(u) {
+  var uid = u._docId || u.uid || u.email;
+  var allUids = (window._exploreInviteGroups && window._exploreInviteGroups[uid]) || [uid];
+  var safeUid = String(uid || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  var allUidsJs = allUids.map(function (id) {
+    return "'" + String(id).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+  }).join(',');
+  var fullName = window._safeHtml(u.displayName || u.email || 'Usuário');
+  var cityHtml = u.city ? '<div style="font-size:0.84rem;color:var(--text-muted);margin-top:5px;">📍 ' + window._safeHtml(u.city) + '</div>' : '';
+  var sportsHtml = _profileSheetSportsHtml(u);
+
+  _mountProfileSheet(
+    '<div style="display:flex;justify-content:flex-end;margin-bottom:4px;">' +
+      '<button onclick="window._closeUserProfileSheet()" style="background:transparent;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;line-height:1;padding:4px 8px;">✕</button>' +
+    '</div>' +
+    '<div style="text-align:center;">' +
+      _profileSheetAvatarHtml(u, uid, 64, 'rgba(245,158,11,0.7)') +
+      '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);">' + fullName + '</div>' +
+      cityHtml +
+      sportsHtml +
+      '<div style="margin-top:14px;padding:10px 16px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:10px;font-size:0.82rem;color:#fbbf24;">✉️ Convite enviado — aguardando resposta</div>' +
+    '</div>' +
+    '<div style="display:flex;gap:10px;justify-content:center;margin-top:20px;">' +
+      '<button class="btn btn-warning btn-sm hover-lift" onclick="window._closeUserProfileSheet(); window._spinButton(this,\'Reenviando...\'); _sendFriendRequest(\'' + safeUid + '\')">🔄 Reenviar</button>' +
+      '<button class="btn btn-danger btn-sm" onclick="window._closeUserProfileSheet(); _cancelFriendRequestMulti([' + allUidsJs + '])">✕ Cancelar convite</button>' +
+    '</div>'
+  );
+}
