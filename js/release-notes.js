@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil de amigo — alinhamentos visuais corrigidos.</b><br>' +
+      '• Nome alinhado ao topo do avatar (não mais centralizado verticalmente).<br>' +
+      '• Ícone de gênero (♀️ / ♂️) alinhado verticalmente com o texto na mesma linha.<br>' +
+      '• Ícone de cada modalidade verticalmente centralizado em relação ao nome da modalidade.<br>' +
+      '• Ícone 🗓️ em "Membro desde" alinhado com o texto.<br>' +
+      'Alteração em <code>explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.99-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Perfil de amigo — layout horizontal + ícones por modalidade.</b><br>' +
       '• Foto/avatar agora ao lado esquerdo do nome, aproveitando melhor o espaço — sem desperdício de área centralizada.<br>' +

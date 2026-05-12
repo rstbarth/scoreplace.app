@@ -1634,9 +1634,8 @@ function _profileSheetSportsHtml(u) {
     var icon = sportIcon(sport);
     var lvl = u.skillBySport && u.skillBySport[sport];
     return '<span style="display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:20px;padding:4px 11px;font-size:0.78rem;color:var(--text-bright);">' +
-      '<span style="font-size:0.9rem;line-height:1;">' + icon + '</span>' +
-      window._safeHtml(sport) +
-      (lvl ? ' <b style="opacity:0.85;">' + window._safeHtml(String(lvl)) + '</b>' : '') +
+      '<span style="vertical-align:middle;flex-shrink:0;">' + icon + '</span>' +
+      '<span style="vertical-align:middle;">' + window._safeHtml(sport) + (lvl ? ' <b style="opacity:0.85;">' + window._safeHtml(String(lvl)) + '</b>' : '') + '</span>' +
     '</span>';
   }).join('');
   return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;">' + pills + '</div>';
@@ -1692,12 +1691,14 @@ function _renderUserProfileSheet(u) {
   var genderLabel = (u.gender && genderMap[u.gender]) ? genderMap[u.gender] : '';
 
   // ── Second line: gender · city · birthday ─────────────────
+  // Each token is a <span> inside a flex row so emoji aligns with text baseline
   var line2Parts = [];
-  if (genderLabel) line2Parts.push(genderLabel);
-  if (cityLabel)   line2Parts.push('📍 ' + cityLabel);
-  if (birthdayLabel) line2Parts.push(birthdayLabel);
+  if (genderLabel) line2Parts.push('<span style="display:inline-flex;align-items:center;gap:3px;">' + genderLabel + '</span>');
+  if (cityLabel)   line2Parts.push('<span style="display:inline-flex;align-items:center;gap:3px;"><span>📍</span><span>' + cityLabel + '</span></span>');
+  if (birthdayLabel) line2Parts.push('<span style="display:inline-flex;align-items:center;gap:3px;">' + birthdayLabel + '</span>');
+  var dot = '<span style="opacity:0.35;">·</span>';
   var line2Html = line2Parts.length
-    ? '<div style="font-size:0.78rem;color:var(--text-muted);margin-top:3px;">' + line2Parts.join(' · ') + '</div>'
+    ? '<div style="display:flex;align-items:center;flex-wrap:wrap;gap:3px 6px;font-size:0.78rem;color:var(--text-muted);margin-top:4px;">' + line2Parts.join(dot) + '</div>'
     : '';
 
   // ── Member since ──────────────────────────────────────────
@@ -1706,7 +1707,7 @@ function _renderUserProfileSheet(u) {
     try {
       var sd = new Date(u.createdAt);
       var _mns = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-      sinceHtml = '<div style="font-size:0.73rem;color:var(--text-muted);margin-top:2px;opacity:0.8;">🗓️ Membro desde ' + _mns[sd.getMonth()] + ' ' + sd.getFullYear() + '</div>';
+      sinceHtml = '<div style="display:flex;align-items:center;gap:4px;font-size:0.73rem;color:var(--text-muted);margin-top:3px;opacity:0.8;"><span>🗓️</span><span>Membro desde ' + _mns[sd.getMonth()] + ' ' + sd.getFullYear() + '</span></div>';
     } catch(e) {}
   }
 
@@ -1750,7 +1751,7 @@ function _renderUserProfileSheet(u) {
 
   // ── Header: avatar left + name/info right ─────────────────
   var headerHtml =
-    '<div style="display:flex;align-items:center;gap:14px;padding-bottom:14px;">' +
+    '<div style="display:flex;align-items:flex-start;gap:14px;padding-bottom:14px;">' +
       _profileSheetAvatarHtml(u, uid, 62, borderColor) +
       '<div style="flex:1;min-width:0;">' +
         '<div style="font-size:1.1rem;font-weight:700;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + fullName + '</div>' +
