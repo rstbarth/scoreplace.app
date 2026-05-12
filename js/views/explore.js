@@ -1459,12 +1459,13 @@ function _loadAndRenderFriendStats(friendUid, hr) {
         tournaments: 0, tournamentNames: [],
         casual: 0,
         confrontos: {
-          total: 0, myWins: 0, frWins: 0,
+          total: 0, casual: 0, tournaments: 0,
+          myWins: 0, frWins: 0,
           myPoints: 0, frPoints: 0,
           myGames: 0,  frGames: 0,
           mySets: 0,   frSets: 0
         },
-        parcerias: { total: 0, wins: 0, losses: 0 }
+        parcerias: { total: 0, casual: 0, tournaments: 0, wins: 0, losses: 0 }
       };
       var seenT = {};
 
@@ -1496,12 +1497,16 @@ function _loadAndRenderFriendStats(friendUid, hr) {
 
         if (myTeam === frTeam) {
           stats.parcerias.total++;
+          if (r.matchType === 'casual') stats.parcerias.casual++;
+          else if (r.matchType === 'tournament') stats.parcerias.tournaments++;
           if (r.winnerTeam) {
             if (r.winnerTeam === myTeam) stats.parcerias.wins++;
             else stats.parcerias.losses++;
           }
         } else {
           stats.confrontos.total++;
+          if (r.matchType === 'casual') stats.confrontos.casual++;
+          else if (r.matchType === 'tournament') stats.confrontos.tournaments++;
           if (r.winnerTeam === myTeam)     stats.confrontos.myWins++;
           else if (r.winnerTeam === frTeam) stats.confrontos.frWins++;
           if (myTS) {
@@ -1546,7 +1551,10 @@ function _loadAndRenderFriendStats(friendUid, hr) {
         var hasSets   = (c.mySets   + c.frSets)   > 0;
         var hasPoints = (c.myPoints + c.frPoints)  > 0;
         var cExtra = c.total - c.myWins - c.frWins;
-        var cBadge = c.total + ' partida' + (c.total !== 1 ? 's' : '') + (cExtra > 0 ? ' · ' + cExtra + ' s/res.' : '');
+        var cTypeParts = [];
+        if (c.tournaments > 0) cTypeParts.push('🏆 ' + c.tournaments);
+        if (c.casual > 0)      cTypeParts.push('⚡ ' + c.casual);
+        var cBadge = (cTypeParts.length ? cTypeParts.join(' · ') : c.total + ' partida' + (c.total !== 1 ? 's' : '')) + (cExtra > 0 ? ' · ' + cExtra + ' s/res.' : '');
         // Friend LEFT (red), Me RIGHT (green). Names only on first row.
         var confrontosBody =
           '<div style="display:flex;flex-direction:column;gap:2px;margin-top:2px;">' +
@@ -1562,7 +1570,10 @@ function _loadAndRenderFriendStats(friendUid, hr) {
       if (stats.parcerias.total > 0) {
         var p = stats.parcerias;
         var pExtra = p.total - p.wins - p.losses;
-        var pBadge = p.total + ' partida' + (p.total !== 1 ? 's' : '') + (pExtra > 0 ? ' · ' + pExtra + ' s/res.' : '');
+        var pTypeParts = [];
+        if (p.tournaments > 0) pTypeParts.push('🏆 ' + p.tournaments);
+        if (p.casual > 0)      pTypeParts.push('⚡ ' + p.casual);
+        var pBadge = (pTypeParts.length ? pTypeParts.join(' · ') : p.total + ' partida' + (p.total !== 1 ? 's' : '')) + (pExtra > 0 ? ' · ' + pExtra + ' s/res.' : '');
         var parceriasBody =
           '<div style="margin-top:2px;">' +
             _matchupBar('Como Dupla', 'Derrotas', 'Vitórias', p.losses, p.wins, '#ef4444', '#22c55e') +
@@ -1696,8 +1707,15 @@ function _mountProfileSheet(innerHtml) {
   var panel = document.createElement('div');
   panel.id = 'user-profile-sheet';
   panel.setAttribute('onclick', 'event.stopPropagation()');
-  panel.style.cssText = 'background:var(--bg-card);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;box-shadow:0 -4px 40px rgba(0,0,0,0.4);transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;max-height:90vh;';
-  panel.innerHTML = innerHtml;
+  panel.style.cssText = 'background:var(--bg-card);border-radius:20px 20px 0 0;padding:0 0 36px;width:100%;max-width:480px;box-shadow:0 -4px 40px rgba(0,0,0,0.4);transform:translateY(100%);transition:transform 0.28s cubic-bezier(0.32,0.72,0,1);overflow-y:auto;max-height:90vh;';
+  var backRow =
+    '<div style="display:flex;align-items:center;padding:14px 20px 0;margin-bottom:6px;">' +
+      '<button onclick="window._closeUserProfileSheet()" style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.08);border:none;border-radius:20px;padding:7px 16px;color:var(--text-muted,#94a3b8);font-size:0.85rem;font-weight:600;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.13)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.08)\'">' +
+        '<span style="font-size:0.8rem;">←</span> Voltar' +
+      '</button>' +
+    '</div>' +
+    '<div style="padding:0 20px 0;">';
+  panel.innerHTML = backRow + innerHtml + '</div>';
   outer.appendChild(panel);
   document.body.appendChild(outer);
   requestAnimationFrame(function () {

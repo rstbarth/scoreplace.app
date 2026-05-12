@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.4-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil de amigo — botão Voltar no topo + tipo de partida no badge.</b><br>' +
+      '• Botão "← Voltar" aparece agora no topo da ficha do perfil, antes do nome/avatar, no padrão consistente do app.<br>' +
+      '• Badge das seções Confrontos e Parcerias mostra 🏆 N (torneios) · ⚡ N (casuais) em vez de "N partidas" genérico.<br>' +
+      'Alteração em <code>explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.3-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Perfil de amigo — polimento das stats.</b><br>' +
       '• Botão ✕ removido do card (o Voltar no topo já fecha).<br>' +
