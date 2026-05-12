@@ -1372,30 +1372,78 @@ function _loadAndRenderFriendStats(friendUid, hr) {
     return;
   }
 
-  // Inline dual-bar builder — same logic as _compareBar in bracket-ui.js.
-  // Numbers displayed as "XX% (N)": percentage prominent, absolute in parens.
-  var _dualBar = function(label, icon, leftVal, rightVal, leftClr, rightClr) {
+  // ── Visual helpers — mirror _diffBarRow / _sectionShell from tournaments-analytics.js ──
+  // Section container — same visual language as _sectionShell in tournaments-analytics.js
+  var _sectionBox = function(title, icon, accent, badge, bodyHtml) {
+    return (
+      '<div style="margin-top:10px;padding:12px;border-radius:14px;background:var(--info-box-bg,rgba(255,255,255,0.04));border:1px solid ' + accent + '44;display:flex;flex-direction:column;gap:8px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<span style="font-size:1rem;">' + icon + '</span>' +
+          '<span style="font-size:0.85rem;font-weight:900;color:' + accent + ';text-transform:uppercase;letter-spacing:0.8px;">' + title + '</span>' +
+          '<span style="margin-left:auto;font-size:0.62rem;color:var(--text-muted,#94a3b8);font-weight:700;">' + badge + '</span>' +
+        '</div>' +
+        bodyHtml +
+      '</div>'
+    );
+  };
+
+  // Stat box — same visual as _boxStat in tournaments-analytics.js
+  var _statBox = function(label, value, icon, accent) {
+    return (
+      '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 6px;border-radius:10px;background:var(--stat-box-bg,rgba(255,255,255,0.05));border:1px solid var(--border-color,rgba(255,255,255,0.08));">' +
+        '<span style="font-size:1rem;">' + icon + '</span>' +
+        '<span style="font-size:1.15rem;font-weight:900;color:' + accent + ';font-variant-numeric:tabular-nums;line-height:1;">' + value + '</span>' +
+        '<span style="font-size:0.55rem;font-weight:700;color:var(--text-muted,#94a3b8);text-transform:uppercase;letter-spacing:0.5px;text-align:center;">' + label + '</span>' +
+      '</div>'
+    );
+  };
+
+  // Matchup bar — mirrors _diffBarRow in tournaments-analytics.js but for a single
+  // value per side (no casual/tournament split — comparing two people, not two sources).
+  // 3-column header: leftLabel | CENTERMETRIC | rightLabel
+  // Numbers: "XX% (N)" — pct prominent (data-stat-count), absolute in parens.
+  // Bars: diverge from center, share-of-total (sum = 100%).
+  // Animated on-scroll via data-stat-bar + data-stat-count (window._initStatsAnimation).
+  var _matchupBar = function(centerLabel, leftLabel, rightLabel, leftVal, rightVal, leftClr, rightClr) {
     var sum = (leftVal || 0) + (rightVal || 0);
-    var leftPct  = sum > 0 ? Math.round((leftVal  || 0) / sum * 100) : 0;
-    var rightPct = sum > 0 ? (100 - leftPct) : 0;
-    var fmtNum = function(pct, n) {
-      if (sum === 0) return '<span style="font-size:0.88rem;font-weight:900;">–</span>';
-      return '<span style="font-size:0.88rem;font-weight:900;font-variant-numeric:tabular-nums;">' + pct + '%</span>' +
-             '<span style="font-size:0.62rem;font-weight:500;opacity:0.7;"> (' + n + ')</span>';
+    var lp = sum > 0 ? Math.round((leftVal || 0) / sum * 100) : 0;
+    var rp = sum > 0 ? (100 - lp) : 0;
+    var col = function(pct, n, clr) {
+      if (sum === 0) {
+        return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">' +
+          '<span style="font-size:0.9rem;font-weight:900;color:' + clr + ';">–</span>' +
+        '</div>';
+      }
+      return (
+        '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">' +
+          '<div style="display:flex;align-items:baseline;gap:2px;">' +
+            '<span data-stat-count="' + pct + '" data-stat-count-suffix="%" style="font-size:0.9rem;font-weight:900;color:' + clr + ';font-variant-numeric:tabular-nums;line-height:1;">0%</span>' +
+            '<span data-stat-count="' + (n || 0) + '" data-stat-count-prefix="(" data-stat-count-suffix=")" style="font-size:0.58rem;font-weight:600;color:' + clr + ';opacity:0.65;font-variant-numeric:tabular-nums;line-height:1;">(0)</span>' +
+          '</div>' +
+        '</div>'
+      );
     };
     return (
-      '<div style="display:flex;flex-direction:column;gap:3px;">' +
-        '<div style="text-align:center;font-size:0.58rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;">' + icon + ' ' + label + '</div>' +
-        '<div style="display:flex;align-items:center;gap:5px;">' +
-          '<span style="flex:0 0 auto;min-width:56px;text-align:right;color:' + leftClr + ';">' + fmtNum(leftPct, leftVal || 0) + '</span>' +
-          '<div style="flex:1;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.06);display:flex;justify-content:flex-end;">' +
-            '<div style="width:' + leftPct + '%;height:100%;background:linear-gradient(90deg,' + leftClr + '44,' + leftClr + ');border-radius:4px 0 0 4px;transition:width 0.7s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
+      '<div style="display:flex;flex-direction:column;gap:4px;padding:6px 0;">' +
+        // 3-column header: [left label] [center metric] [right label]
+        '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:baseline;">' +
+          '<div style="font-size:0.62rem;font-weight:700;color:' + leftClr + ';text-transform:uppercase;letter-spacing:0.6px;text-align:left;">' + (leftLabel || '') + '</div>' +
+          '<div style="font-size:0.72rem;font-weight:800;color:var(--text-bright,#fff);text-transform:uppercase;letter-spacing:0.8px;text-align:center;white-space:nowrap;">' + (centerLabel || '') + '</div>' +
+          '<div style="font-size:0.62rem;font-weight:700;color:' + rightClr + ';text-transform:uppercase;letter-spacing:0.6px;text-align:right;">' + (rightLabel || '') + '</div>' +
+        '</div>' +
+        // Numbers row — pushed to extreme edges
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:end;">' +
+          '<div style="display:flex;justify-content:flex-start;">' + col(lp, leftVal || 0, leftClr) + '</div>' +
+          '<div style="display:flex;justify-content:flex-end;">' + col(rp, rightVal || 0, rightClr) + '</div>' +
+        '</div>' +
+        // Bars diverge from center
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:center;">' +
+          '<div style="height:8px;border-radius:4px 0 0 4px;background:var(--stat-box-bg,rgba(255,255,255,0.05));display:flex;justify-content:flex-end;overflow:hidden;">' +
+            '<div data-stat-bar="' + lp + '" style="width:0%;height:100%;background:linear-gradient(90deg,' + leftClr + '44,' + leftClr + ');transition:width 0.8s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
           '</div>' +
-          '<div style="width:1px;height:13px;background:rgba(255,255,255,0.22);flex-shrink:0;"></div>' +
-          '<div style="flex:1;height:8px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,0.06);display:flex;">' +
-            '<div style="width:' + rightPct + '%;height:100%;background:linear-gradient(90deg,' + rightClr + ',' + rightClr + '44);border-radius:0 4px 4px 0;transition:width 0.7s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
+          '<div style="height:8px;border-radius:0 4px 4px 0;background:var(--stat-box-bg,rgba(255,255,255,0.05));display:flex;justify-content:flex-start;overflow:hidden;border-left:2px solid var(--border-color,rgba(255,255,255,0.12));">' +
+            '<div data-stat-bar="' + rp + '" style="width:0%;height:100%;background:linear-gradient(90deg,' + rightClr + ',' + rightClr + '44);transition:width 0.8s cubic-bezier(0.2,0.8,0.2,1);"></div>' +
           '</div>' +
-          '<span style="flex:0 0 auto;min-width:56px;color:' + rightClr + ';">' + fmtNum(rightPct, rightVal || 0) + '</span>' +
         '</div>' +
       '</div>'
     );
@@ -1485,6 +1533,10 @@ function _loadAndRenderFriendStats(friendUid, hr) {
       var myClr = '#3b82f6';
       var frClr = '#f59e0b';
 
+      var frFirstName = window._safeHtml(
+        (window._exploreProfileCache && window._exploreProfileCache[friendUid] &&
+         (window._exploreProfileCache[friendUid].displayName || '').split(/[\s.@_\-]+/)[0]) || 'Amigo'
+      );
       var html = '';
 
       // ── Confrontos block ──────────────────────────────────────────────────
@@ -1494,54 +1546,53 @@ function _loadAndRenderFriendStats(friendUid, hr) {
         var hasSets   = (c.mySets   + c.frSets)   > 0;
         var hasPoints = (c.myPoints + c.frPoints)  > 0;
         var cExtra = c.total - c.myWins - c.frWins;
-        var extraNote = cExtra > 0 ? ' <span style="font-size:0.68rem;color:var(--text-muted);">(' + cExtra + ' sem resultado)</span>' : '';
-
-        html +=
-          '<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px 14px;margin-bottom:10px;">' +
-            // section label
-            '<div style="text-align:center;font-size:0.58rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">⚔️ Confrontos diretos · ' + c.total + ' partida' + (c.total !== 1 ? 's' : '') + extraNote + '</div>' +
-            // player names header
-            '<div style="display:flex;justify-content:space-between;margin-bottom:10px;">' +
-              '<span style="font-size:0.8rem;font-weight:700;color:' + myClr + ';">' + window._safeHtml(myFirstName) + '</span>' +
-              '<span style="font-size:0.8rem;font-weight:700;color:' + frClr + ';">' + window._safeHtml(window._exploreProfileCache && window._exploreProfileCache[friendUid] && (window._exploreProfileCache[friendUid].displayName || '').split(/\s+/)[0] || 'Amigo') + '</span>' +
-            '</div>' +
-            '<div style="display:flex;flex-direction:column;gap:10px;">' +
-              _dualBar('Vitórias', '🏆', c.myWins, c.frWins, myClr, frClr) +
-              (hasPoints ? _dualBar('Pontos', '🎯', c.myPoints, c.frPoints, myClr, frClr) : '') +
-              (hasGames  ? _dualBar('Games',  '🎾', c.myGames,  c.frGames,  myClr, frClr) : '') +
-              (hasSets   ? _dualBar('Sets',   '🏅', c.mySets,   c.frSets,   myClr, frClr) : '') +
-            '</div>' +
+        var cBadge = c.total + ' partida' + (c.total !== 1 ? 's' : '') + (cExtra > 0 ? ' · ' + cExtra + ' s/res.' : '');
+        var confrontosBody =
+          '<div style="display:flex;flex-direction:column;gap:2px;margin-top:2px;">' +
+            _matchupBar('Vitórias', window._safeHtml(myFirstName), frFirstName, c.myWins,   c.frWins,   myClr, frClr) +
+            (hasPoints ? _matchupBar('Pontos',  window._safeHtml(myFirstName), frFirstName, c.myPoints, c.frPoints, myClr, frClr) : '') +
+            (hasGames  ? _matchupBar('Games',   window._safeHtml(myFirstName), frFirstName, c.myGames,  c.frGames,  myClr, frClr) : '') +
+            (hasSets   ? _matchupBar('Sets',    window._safeHtml(myFirstName), frFirstName, c.mySets,   c.frSets,   myClr, frClr) : '') +
           '</div>';
+        html += _sectionBox('Confrontos Diretos', '⚔️', myClr, cBadge, confrontosBody);
       }
 
       // ── Parcerias block ───────────────────────────────────────────────────
       if (stats.parcerias.total > 0) {
         var p = stats.parcerias;
-        var pClr = '#10b981'; // green for partnership
         var pExtra = p.total - p.wins - p.losses;
-        var pNote = pExtra > 0 ? ' <span style="font-size:0.68rem;color:var(--text-muted);">(' + pExtra + ' s/res.)</span>' : '';
-        html +=
-          '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:12px 14px;margin-bottom:10px;">' +
-            '<div style="text-align:center;font-size:0.58rem;font-weight:800;color:' + pClr + ';text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px;">🤝 Parcerias · ' + p.total + ' partida' + (p.total !== 1 ? 's' : '') + pNote + '</div>' +
-            _dualBar('Derrotas · Vitórias como dupla', '🏆', p.losses, p.wins, '#ef4444', pClr) +
+        var pBadge = p.total + ' partida' + (p.total !== 1 ? 's' : '') + (pExtra > 0 ? ' · ' + pExtra + ' s/res.' : '');
+        var parceriasBody =
+          '<div style="margin-top:2px;">' +
+            _matchupBar('Como Dupla', 'Derrotas', 'Vitórias', p.losses, p.wins, '#ef4444', '#22c55e') +
           '</div>';
+        html += _sectionBox('Parcerias', '🤝', '#22c55e', pBadge, parceriasBody);
       }
 
-      // ── Summary row: casuais + torneios ───────────────────────────────────
-      var summaryParts = [];
-      if (stats.casual > 0)      summaryParts.push('⚡ ' + stats.casual + ' casual' + (stats.casual !== 1 ? 'is' : ''));
-      if (stats.tournaments > 0) summaryParts.push('🏆 ' + stats.tournaments + ' torneio' + (stats.tournaments !== 1 ? 's' : ''));
-      if (summaryParts.length > 0) {
+      // ── Summary row: casuais + torneios as stat boxes ─────────────────────
+      var summaryBoxes = '';
+      if (stats.casual > 0) {
+        summaryBoxes += _statBox('Partidas Casuais', stats.casual, '⚡', '#f59e0b');
+      }
+      if (stats.tournaments > 0) {
+        summaryBoxes += _statBox('Torneios', stats.tournaments, '🏆', '#6366f1');
+      }
+      if (summaryBoxes) {
         html +=
-          '<div style="text-align:center;font-size:0.75rem;color:var(--text-muted);padding:2px 0;">' +
-            summaryParts.join(' · ') +
+          '<div style="display:grid;grid-template-columns:' + (stats.casual > 0 && stats.tournaments > 0 ? '1fr 1fr' : '1fr') + ';gap:6px;margin-top:6px;">' +
+            summaryBoxes +
           '</div>';
-        if (stats.tournamentNames.length > 0) {
-          html += '<div style="text-align:center;font-size:0.7rem;color:var(--text-muted);opacity:0.7;margin-top:3px;">' + stats.tournamentNames.join(' · ') + (stats.tournaments > stats.tournamentNames.length ? ' · +' + (stats.tournaments - stats.tournamentNames.length) : '') + '</div>';
-        }
+      }
+      if (stats.tournamentNames.length > 0) {
+        html +=
+          '<div style="text-align:center;font-size:0.68rem;color:var(--text-muted,#94a3b8);opacity:0.75;margin-top:4px;">' +
+            stats.tournamentNames.join(' · ') +
+            (stats.tournaments > stats.tournamentNames.length ? ' · +' + (stats.tournaments - stats.tournamentNames.length) : '') +
+          '</div>';
       }
 
       el.innerHTML = html;
+      if (typeof window._initStatsAnimation === 'function') window._initStatsAnimation(el);
     })
     .catch(function(e) {
       console.warn('[FriendStats]', e);
