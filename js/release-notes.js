@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.96-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil de amigo — estatísticas carregadas do histórico real (torneios + partidas casuais).</b><br>' +
+      '• As estatísticas agora lêem o histórico de partidas gravado no Firestore (<code>matchHistory</code> subcoleção) em vez do cache em memória — cobrem todos os torneios em que os dois participaram, independente de quem organizou, mais todas as partidas casuais finalizadas.<br>' +
+      '• O sheet abre imediatamente e o histórico carrega em paralelo (indicador "⏳ Carregando histórico..." enquanto busca).<br>' +
+      '• Seção mostra: ⚔️ Confrontos diretos com placar (V × D), 🤝 Parcerias com vitórias/derrotas, ⚡ Partidas casuais juntos, 🏆 Torneios em comum com nomes.<br>' +
+      '• Quando não há histórico compartilhado: "Ainda não jogaram partidas juntos".<br>' +
+      'Alteração em <code>js/views/explore.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.3.95-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Perfil de amigo — aniversário sem ano + estatísticas de confrontos e parcerias.</b><br>' +
       '• Idade removida de todos os perfis. Exibe apenas aniversário no formato dd/mm (ex: 🎂 12/05) — sem revelar o ano.<br>' +

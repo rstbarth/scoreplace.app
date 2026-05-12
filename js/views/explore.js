@@ -1360,6 +1360,131 @@ function _playerInSlot(slot, email, name) {
   return false;
 }
 
+// Async: loads matchHistory from Firestore for currentUser, filters by friendUid,
+// computes confrontos/parcerias/torneios+casual, updates #friend-stats-section in DOM.
+function _loadAndRenderFriendStats(friendUid, hr) {
+  if (!window.FirestoreDB || !friendUid) return;
+  var cu = window.AppStore ? (window.AppStore.currentUser || {}) : {};
+  var myUid = cu.uid;
+  if (!myUid) {
+    var el = document.getElementById('friend-stats-section');
+    if (el) el.innerHTML = '';
+    return;
+  }
+
+  window.FirestoreDB.loadUserMatchHistory(myUid, { limit: 200 })
+    .then(function(history) {
+      // filter to records where friend participated
+      var shared = history.filter(function(r) {
+        return Array.isArray(r.playerUids) && r.playerUids.indexOf(friendUid) !== -1;
+      });
+
+      var stats = {
+        tournaments: 0, tournamentNames: [],
+        casual: 0,
+        confrontos: { total: 0, myWins: 0, frWins: 0 },
+        parcerias:  { total: 0, wins: 0, losses: 0 }
+      };
+      var seenT = {};
+
+      shared.forEach(function(r) {
+        // count unique tournaments by tournamentId
+        if (r.matchType === 'tournament' && r.tournamentId) {
+          if (!seenT[r.tournamentId]) {
+            seenT[r.tournamentId] = true;
+            stats.tournaments++;
+            if (stats.tournamentNames.length < 3 && r.tournamentName) {
+              stats.tournamentNames.push(window._safeHtml(r.tournamentName));
+            }
+          }
+        } else if (r.matchType === 'casual') {
+          stats.casual++;
+        }
+
+        // determine teams from players[] array (each has .uid + .team 1 or 2)
+        var myTeam = 0, frTeam = 0;
+        if (Array.isArray(r.players)) {
+          r.players.forEach(function(p) {
+            if (!p) return;
+            if (p.uid === myUid)     myTeam = p.team || 0;
+            if (p.uid === friendUid) frTeam = p.team || 0;
+          });
+        }
+        if (!myTeam || !frTeam) return; // can't determine sides
+
+        if (myTeam === frTeam) {
+          // parceria — same side
+          stats.parcerias.total++;
+          if (r.winnerTeam) {
+            if (r.winnerTeam === myTeam) stats.parcerias.wins++;
+            else stats.parcerias.losses++;
+          }
+        } else {
+          // confronto — opposite sides
+          stats.confrontos.total++;
+          if (r.winnerTeam) {
+            if (r.winnerTeam === myTeam)     stats.confrontos.myWins++;
+            else if (r.winnerTeam === frTeam) stats.confrontos.frWins++;
+          }
+        }
+      });
+
+      var el = document.getElementById('friend-stats-section');
+      if (!el) return;
+
+      var rows = '';
+
+      if (stats.confrontos.total > 0) {
+        var cScore = stats.confrontos.myWins + ' × ' + stats.confrontos.frWins;
+        var cExtra = stats.confrontos.total - stats.confrontos.myWins - stats.confrontos.frWins;
+        var cLabel = cScore + (cExtra > 0 ? ' · ' + cExtra + ' s/res.' : '');
+        rows += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+          '<span style="font-size:0.82rem;color:var(--text-bright);">⚔️ Confrontos diretos</span>' +
+          '<span style="font-size:0.8rem;color:var(--text-muted);">' + stats.confrontos.total + ' partida' + (stats.confrontos.total !== 1 ? 's' : '') + ' &nbsp;<b style="color:var(--text-bright);">' + cLabel + '</b></span>' +
+        '</div>';
+      }
+      if (stats.parcerias.total > 0) {
+        var pLabel = stats.parcerias.wins + 'V · ' + stats.parcerias.losses + 'D';
+        var pExtra = stats.parcerias.total - stats.parcerias.wins - stats.parcerias.losses;
+        if (pExtra > 0) pLabel += ' · ' + pExtra + ' s/res.';
+        rows += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+          '<span style="font-size:0.82rem;color:var(--text-bright);">🤝 Parcerias</span>' +
+          '<span style="font-size:0.8rem;color:var(--text-muted);">' + stats.parcerias.total + ' partida' + (stats.parcerias.total !== 1 ? 's' : '') + ' &nbsp;<b style="color:var(--text-bright);">' + pLabel + '</b></span>' +
+        '</div>';
+      }
+      if (stats.casual > 0) {
+        rows += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
+          '<span style="font-size:0.82rem;color:var(--text-bright);">⚡ Partidas casuais</span>' +
+          '<span style="font-size:0.8rem;color:#f59e0b;font-weight:600;">' + stats.casual + '</span>' +
+        '</div>';
+      }
+      if (stats.tournaments > 0) {
+        var tNames = stats.tournamentNames.join(' · ') + (stats.tournaments > stats.tournamentNames.length ? ' · +' + (stats.tournaments - stats.tournamentNames.length) : '');
+        rows += '<div style="padding:6px 0;">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+            '<span style="font-size:0.82rem;color:var(--text-bright);">🏆 Torneios juntos</span>' +
+            '<span style="font-size:0.8rem;color:#f59e0b;font-weight:600;">' + stats.tournaments + '</span>' +
+          '</div>' +
+          (tNames ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + tNames + '</div>' : '') +
+        '</div>';
+      }
+
+      if (rows) {
+        el.innerHTML =
+          '<div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Histórico entre vocês</div>' +
+          rows;
+      } else {
+        el.innerHTML = '<div style="font-size:0.78rem;color:var(--text-muted);text-align:center;font-style:italic;">Ainda não jogaram partidas juntos</div>';
+      }
+    })
+    .catch(function(e) {
+      console.warn('[FriendStats]', e);
+      var el = document.getElementById('friend-stats-section');
+      if (el) el.innerHTML = '<div style="font-size:0.75rem;color:var(--text-muted);text-align:center;font-style:italic;">Histórico indisponível</div>';
+    });
+}
+
+// Fallback sync stats from AppStore.tournaments (used when matchHistory is unavailable)
 // Computes confrontos/parcerias/torneios stats between currentUser and friend u
 function _computeFriendStats(u) {
   var cu = window.AppStore ? (window.AppStore.currentUser || {}) : {};
@@ -1522,50 +1647,11 @@ function _renderUserProfileSheet(u) {
   // ── Sports / skill pills ──────────────────────────────────
   var sportsHtml = _profileSheetSportsHtml(u);
 
-  // ── Stats: confrontos + parcerias + torneios em comum ─────
-  var statsHtml = '';
-  if (isFriend) {
-    var st = _computeFriendStats(u);
-    var frFirstName = window._safeHtml((u.displayName || 'Amigo').split(/\s+/)[0]);
-    var rows = '';
-
-    if (st.confrontos.total > 0) {
-      var cScore = st.confrontos.myWins + ' × ' + st.confrontos.frWins;
-      var cExtra = st.confrontos.total - st.confrontos.myWins - st.confrontos.frWins;
-      var cLabel = cScore + (cExtra > 0 ? ' · ' + cExtra + ' sem resultado' : '');
-      rows += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
-        '<span style="font-size:0.82rem;color:var(--text-bright);">⚔️ Confrontos diretos</span>' +
-        '<span style="font-size:0.8rem;color:var(--text-muted);">' + st.confrontos.total + ' partida' + (st.confrontos.total !== 1 ? 's' : '') + ' &nbsp;<b style="color:var(--text-bright);">' + cLabel + '</b></span>' +
-      '</div>';
-    }
-    if (st.parcerias.total > 0) {
-      var pLabel = st.parcerias.wins + 'V · ' + st.parcerias.losses + 'D';
-      var pExtra = st.parcerias.total - st.parcerias.wins - st.parcerias.losses;
-      if (pExtra > 0) pLabel += ' · ' + pExtra + ' s/res.';
-      rows += '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);">' +
-        '<span style="font-size:0.82rem;color:var(--text-bright);">🤝 Parcerias</span>' +
-        '<span style="font-size:0.8rem;color:var(--text-muted);">' + st.parcerias.total + ' partida' + (st.parcerias.total !== 1 ? 's' : '') + ' &nbsp;<b style="color:var(--text-bright);">' + pLabel + '</b></span>' +
-      '</div>';
-    }
-    if (st.tournaments > 0) {
-      var tNames = st.tournamentNames.join(' · ') + (st.tournaments > st.tournamentNames.length ? ' · +' + (st.tournaments - st.tournamentNames.length) : '');
-      rows += '<div style="padding:6px 0;">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-          '<span style="font-size:0.82rem;color:var(--text-bright);">🏆 Torneios juntos</span>' +
-          '<span style="font-size:0.8rem;color:#f59e0b;font-weight:600;">' + st.tournaments + '</span>' +
-        '</div>' +
-        (tNames ? '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + tNames + '</div>' : '') +
-      '</div>';
-    }
-
-    if (rows) {
-      statsHtml = hr +
-        '<div style="font-size:0.72rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Histórico entre vocês</div>' +
-        rows;
-    } else if (st.tournaments === 0) {
-      statsHtml = hr + '<div style="font-size:0.78rem;color:var(--text-muted);text-align:center;font-style:italic;">Ainda não jogaram torneios juntos</div>';
-    }
-  }
+  // ── Stats placeholder — filled async by _loadAndRenderFriendStats ─────────
+  // Section always rendered for friends; async fetch replaces the spinner.
+  var statsHtml = isFriend
+    ? hr + '<div id="friend-stats-section" style="text-align:center;font-size:0.75rem;color:var(--text-muted);padding:6px 0;">⏳ Carregando histórico...</div>'
+    : '';
 
   // ── Empty state when profile is bare ─────────────────────
   var hasBasicInfo = cityHtml || infoRowHtml || sportsHtml;
@@ -1606,6 +1692,9 @@ function _renderUserProfileSheet(u) {
     statsHtml +
     actionsHtml
   );
+
+  // Kick off async stats load AFTER sheet is in DOM
+  if (isFriend) { _loadAndRenderFriendStats(uid, hr); }
 }
 
 function _renderInviteDetailSheet(u) {
