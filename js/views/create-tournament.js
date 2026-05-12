@@ -4510,8 +4510,8 @@ window._renderCreateTournamentHeader = function() {
     st.textContent =
       '#modal-create-tournament .sticky-back-header{position:sticky;top:0;background:var(--bg-card);padding:0.5rem 0.75rem;border-bottom:1px solid var(--border-color);z-index:10;}' +
       '@media(max-width:600px){' +
-        '#modal-create-tournament .create-hdr-actions .hdr-label{display:none;}' +
-        '#modal-create-tournament .create-hdr-actions .btn{padding:5px 8px!important;}' +
+        '.create-hdr-actions .hdr-label{display:none!important;}' +
+        '.create-hdr-actions .btn{padding:5px 8px!important;}' +
       '}';
     document.head.appendChild(st);
   }
