@@ -4803,7 +4803,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
 
     // ── FINISHED STATE: render result summary instead of plates ──
-    if (state.isFinished) {
+    if (state.isFinished && state.winner) {  // v1.4.23-beta: guard against race where isFinished=true but winner not yet set (iOS instrument)
       var winTeam = state.winner; // 1 or 2
       var winPlayers = winTeam === 1 ? p1Players : p2Players;
       var losePlayers = winTeam === 1 ? p2Players : p1Players;

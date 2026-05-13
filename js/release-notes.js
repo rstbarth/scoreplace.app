@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
+      '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.23-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(13 de Maio, 2026)</span></div>' +
+      '<p><b>Fix: crash no fim de partida casual no iOS (race condition winTeam).</b><br>' +
+      '• Causa raiz: <code>state.isFinished</code> era <code>true</code> mas <code>state.winner</code> ainda estava <code>undefined</code> — race condition no iOS Safari entre o tick de render e a escrita do vencedor. O bloco de renderização do resultado entrava sem <code>winTeam</code> válido, gerando <code>undefined is not an object (evaluating \'winT.holdServed\')</code>.<br>' +
+      '• Fix: guard <code>if (state.isFinished && state.winner)</code> — quando <code>winner</code> não está setado ainda, o bloco de resultado é pulado e a tela continua em modo "em andamento" até o estado estabilizar.<br>' +
+      'Alteração em <code>bracket-ui.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.22-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(12 de Maio, 2026)</span></div>' +
       '<p><b>Fix: ícones de gênero desalinhados nos botões de categoria.</b><br>' +
       '• Causa raiz: <code>_applyGenderCatUI()</code> usa <code>btn.style.cssText = onStyle/offStyle</code> para aplicar o estilo ativo/inativo — isso sobrescreve <em>todo</em> o inline style do botão, apagando o <code>display:inline-flex;align-items:center;gap</code> adicionado no HTML.<br>' +
