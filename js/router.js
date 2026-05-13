@@ -366,6 +366,14 @@ function initRouter() {
           return;
         }
         break;
+      case 'trofeus':
+        if (typeof window.renderTrophiesPage === 'function') {
+          window.renderTrophiesPage(viewContainer);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       default:
         // Rota desconhecida — redireciona para dashboard
         window.location.replace('#dashboard');

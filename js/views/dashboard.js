@@ -1777,6 +1777,7 @@ function renderDashboard(container) {
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
           <button id="btn-people" class="btn hover-lift" title="Encontre jogadores e expanda sua rede" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#explore'">👥 ${_t('dashboard.people') || 'Pessoas'}</button>
           <button id="btn-invite-app" class="btn hover-lift" title="${_t('invite.appQrTitle')}" style="background: #7c3aed; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#invite'">📱 ${_t('invite.inviteFriends')}</button>
+          <button id="btn-trophies" class="btn hover-lift" title="Troféus e conquistas" style="background: linear-gradient(135deg,#f59e0b,#d97706); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#trofeus'">🏆 Troféus</button>
         </div>
         <!-- Row 3: Pro + Apoie (utilitários menores, mais discretos) -->
         <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: -2px;">

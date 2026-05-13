@@ -2222,6 +2222,13 @@ window._saveResultInline = function (tId, matchId) {
   // so we derive minimal stats (games/points/sets) from s1/s2 directly.
   try { _persistInlineTournamentMatchRecord(t, m, s1, s2, tbP1, tbP2, isTiebreakEntry, useSets); } catch(e) {}
 
+  // Trophy hook — resultado de partida de torneio
+  try {
+    if (typeof window._trophyOnTournamentMatchResult === 'function') {
+      window._trophyOnTournamentMatchResult({ matchId: matchId, winner: m.winner, draw: m.draw, tournamentId: tId });
+    }
+  } catch(_te) {}
+
   // Notify match participants about the result
   if (typeof window._sendUserNotification === 'function') {
     var _resultText = m.draw
@@ -4014,6 +4021,16 @@ window._openLiveScoring = function(tId, matchId, opts) {
             });
           }
         } catch (_e) {}
+        // Trophy hook — partida casual encerrada
+        try {
+          if (typeof window._trophyOnCasualMatchFinished === 'function') {
+            window._trophyOnCasualMatchFinished({
+              sport: (opts && opts.sportName) || '',
+              winner: matchWinner,
+              wasComeback: false  // futuramente pode detectar via pointLog
+            });
+          }
+        } catch (_e2) {}
       }
     } else {
       // Start new set

@@ -1,0 +1,623 @@
+// scoreplace.app — Trophy Catalog
+// v1.0.0-beta
+//
+// Catálogo estático de troféus e marcos (milestones). Não tem dependência de
+// Firebase ou estado do usuário — é carregado uma vez e usado por trophies.js.
+//
+// Estrutura de troféu:
+//   id:        string único (snake_case)
+//   category:  'perfil' | 'casual' | 'torneio' | 'presenca' | 'social' | 'especial'
+//   title:     nome curto (≤30 chars)
+//   desc:      o que o usuário precisa fazer (presente, concreto)
+//   icon:      emoji
+//   tier:      null (calculado dinamicamente via raridade) | 'bronze'|'prata'|'ouro'|'platina'
+//   hidden:    true → só aparece após conquistado (troféus surpresa)
+//   trigger:   qual evento dispara a checagem
+//   check:     function(ctx) → boolean — verificação idempotente
+//
+// Estrutura de milestone:
+//   id:          string base (e.g. 'casual_jogadas')
+//   category:    mesma lista dos troféus
+//   metric:      chave em userStats (e.g. 'casualMatchesPlayed')
+//   step:        incremento aritmético entre níveis (e.g. 25)
+//   startAt:     primeiro threshold (e.g. 25)
+//   icon:        emoji
+//   titleFn:     function(n) → label do nível (e.g. '25 Partidas Casuais')
+//   descFn:      function(n, next) → desc do que falta
+//   trigger:     evento que dispara a checagem
+//
+// ─── Utilitário ──────────────────────────────────────────────────────────────
+
+// Gera array aritmético de thresholds: [start, start+step, start+2*step, ...]
+// com maxLevels valores (padrão 200 — infinito na prática).
+function _arithmeticThresholds(start, step, maxLevels) {
+  maxLevels = maxLevels || 200;
+  var arr = [];
+  for (var i = 0; i < maxLevels; i++) {
+    arr.push(start + step * i);
+  }
+  return arr;
+}
+
+// ─── Catálogo de Troféus Fixos ────────────────────────────────────────────────
+// ~40 troféus cobrindo os 5 pilares + especiais.
+// Tier "null" → calculado dinamicamente por raridade em trophies.js.
+// Tier fixo → sempre essa raridade independente de %  (ex: troféu especial/hidden).
+
+window.TROPHY_CATALOG = [
+
+  // ── PERFIL ────────────────────────────────────────────────────────────────
+  {
+    id: 'perfil_completo',
+    category: 'perfil',
+    title: 'Identidade Completa',
+    desc: 'Preencha nome, esporte preferido, gênero, cidade e habilidade no perfil.',
+    icon: '👤',
+    tier: null,
+    trigger: 'profile_saved',
+    check: function(ctx) {
+      var u = ctx.currentUser;
+      if (!u) return false;
+      return !!(u.displayName && u.preferredSports && u.preferredSports.length > 0
+                && u.gender && u.city && (u.skill || (u.skillBySport && Object.keys(u.skillBySport).length > 0)));
+    }
+  },
+  {
+    id: 'perfil_foto',
+    category: 'perfil',
+    title: 'Com Rosto',
+    desc: 'Faça login com Google (terá foto de perfil real, não apenas iniciais).',
+    icon: '📸',
+    tier: null,
+    trigger: 'login',
+    check: function(ctx) {
+      var u = ctx.currentUser;
+      return !!(u && u.photoURL && u.photoURL.indexOf('googleusercontent') !== -1);
+    }
+  },
+  {
+    id: 'perfil_local',
+    category: 'perfil',
+    title: 'Sou de Aqui',
+    desc: 'Adicione pelo menos um local esportivo favorito ao seu perfil.',
+    icon: '📍',
+    tier: null,
+    trigger: 'profile_saved',
+    check: function(ctx) {
+      var u = ctx.currentUser;
+      return !!(u && u.preferredLocations && u.preferredLocations.length > 0);
+    }
+  },
+  {
+    id: 'perfil_skills',
+    category: 'perfil',
+    title: 'Multiesportista',
+    desc: 'Declare seu nível de habilidade em 3 ou mais modalidades.',
+    icon: '🏅',
+    tier: null,
+    trigger: 'profile_saved',
+    check: function(ctx) {
+      var u = ctx.currentUser;
+      return !!(u && u.skillBySport && Object.keys(u.skillBySport).length >= 3);
+    }
+  },
+
+  // ── PARTIDAS CASUAIS ──────────────────────────────────────────────────────
+  {
+    id: 'casual_primeira',
+    category: 'casual',
+    title: 'Primeira Bola',
+    desc: 'Jogue sua primeira partida casual.',
+    icon: '⚡',
+    tier: null,
+    trigger: 'casual_match_finished',
+    check: function(ctx) { return (ctx.stats.casualMatchesPlayed || 0) >= 1; }
+  },
+  {
+    id: 'casual_primeira_vitoria',
+    category: 'casual',
+    title: 'Gostinho de Vitória',
+    desc: 'Vença sua primeira partida casual.',
+    icon: '🏆',
+    tier: null,
+    trigger: 'casual_match_finished',
+    check: function(ctx) { return (ctx.stats.casualMatchesWon || 0) >= 1; }
+  },
+  {
+    id: 'casual_virada',
+    category: 'casual',
+    title: 'Nunca Desisto',
+    desc: 'Vença uma partida casual estando perdendo no primeiro set.',
+    icon: '🔄',
+    tier: null,
+    trigger: 'casual_match_finished',
+    check: function(ctx) { return !!(ctx.matchResult && ctx.matchResult.wasComeback); }
+  },
+  {
+    id: 'casual_sequencia_5',
+    category: 'casual',
+    title: '5 em Sequência',
+    desc: 'Vença 5 partidas casuais consecutivas.',
+    icon: '🔥',
+    tier: null,
+    trigger: 'casual_match_finished',
+    check: function(ctx) { return (ctx.stats.casualWinStreak || 0) >= 5; }
+  },
+  {
+    id: 'casual_maratonista',
+    category: 'casual',
+    title: 'Maratonista',
+    desc: 'Jogue partidas casuais em 7 dias diferentes no mesmo mês.',
+    icon: '🗓️',
+    tier: null,
+    trigger: 'casual_match_finished',
+    check: function(ctx) { return (ctx.stats.casualActiveDaysThisMonth || 0) >= 7; }
+  },
+  {
+    id: 'casual_multimodalidade',
+    category: 'casual',
+    title: 'Poliesportista',
+    desc: 'Jogue partidas casuais em 3 modalidades diferentes.',
+    icon: '🎮',
+    tier: null,
+    trigger: 'casual_match_finished',
+    check: function(ctx) { return (ctx.stats.casualSportsPlayed || 0) >= 3; }
+  },
+
+  // ── TORNEIOS ──────────────────────────────────────────────────────────────
+  {
+    id: 'torneio_primeiro_inscrito',
+    category: 'torneio',
+    title: 'Presente!',
+    desc: 'Se inscreva em seu primeiro torneio.',
+    icon: '📋',
+    tier: null,
+    trigger: 'tournament_enrolled',
+    check: function(ctx) { return (ctx.stats.tournamentsEnrolled || 0) >= 1; }
+  },
+  {
+    id: 'torneio_primeira_vitoria',
+    category: 'torneio',
+    title: 'Estreia com Pé Direito',
+    desc: 'Vença sua primeira partida em um torneio.',
+    icon: '🎯',
+    tier: null,
+    trigger: 'tournament_match_result',
+    check: function(ctx) { return (ctx.stats.tournamentMatchesWon || 0) >= 1; }
+  },
+  {
+    id: 'torneio_campeao',
+    category: 'torneio',
+    title: 'Campeão!',
+    desc: 'Vença seu primeiro torneio.',
+    icon: '🥇',
+    tier: null,
+    trigger: 'tournament_finished',
+    check: function(ctx) { return (ctx.stats.tournamentWins || 0) >= 1; }
+  },
+  {
+    id: 'torneio_podio',
+    category: 'torneio',
+    title: 'No Pódio',
+    desc: 'Termine em 1º, 2º ou 3º lugar em um torneio.',
+    icon: '🥈',
+    tier: null,
+    trigger: 'tournament_finished',
+    check: function(ctx) { return (ctx.stats.tournamentPodiums || 0) >= 1; }
+  },
+  {
+    id: 'torneio_criou_primeiro',
+    category: 'torneio',
+    title: 'Organizador',
+    desc: 'Crie e publique seu primeiro torneio.',
+    icon: '🏗️',
+    tier: null,
+    trigger: 'tournament_created',
+    check: function(ctx) { return (ctx.stats.tournamentsCreated || 0) >= 1; }
+  },
+  {
+    id: 'torneio_50_inscritos',
+    category: 'torneio',
+    title: 'Arena Cheia',
+    desc: 'Organize um torneio com 50 ou mais inscritos.',
+    icon: '🏟️',
+    tier: null,
+    trigger: 'tournament_created',
+    check: function(ctx) { return !!(ctx.tournamentData && ctx.tournamentData.maxParticipantsReached >= 50); }
+  },
+  {
+    id: 'torneio_liga',
+    category: 'torneio',
+    title: 'Temporadista',
+    desc: 'Participe de uma Liga (temporada completa com rodadas múltiplas).',
+    icon: '🔄',
+    tier: null,
+    trigger: 'tournament_enrolled',
+    check: function(ctx) { return !!(ctx.stats.ligaParticipations || 0); }
+  },
+
+  // ── PRESENÇA ──────────────────────────────────────────────────────────────
+  {
+    id: 'presenca_primeira',
+    category: 'presenca',
+    title: 'Estou Aqui!',
+    desc: 'Faça seu primeiro check-in em um local esportivo.',
+    icon: '📡',
+    tier: null,
+    trigger: 'checkin',
+    check: function(ctx) { return (ctx.stats.checkinsTotal || 0) >= 1; }
+  },
+  {
+    id: 'presenca_planejou',
+    category: 'presenca',
+    title: 'Planejador',
+    desc: 'Use "Planejar ida" para avisar amigos que você vai jogar.',
+    icon: '🗓️',
+    tier: null,
+    trigger: 'plan_created',
+    check: function(ctx) { return (ctx.stats.plansCreated || 0) >= 1; }
+  },
+  {
+    id: 'presenca_3_locais',
+    category: 'presenca',
+    title: 'Explorador',
+    desc: 'Faça check-in em 3 locais esportivos diferentes.',
+    icon: '🗺️',
+    tier: null,
+    trigger: 'checkin',
+    check: function(ctx) { return (ctx.stats.uniqueVenuesVisited || 0) >= 3; }
+  },
+  {
+    id: 'presenca_madrugador',
+    category: 'presenca',
+    title: 'Madrugador',
+    desc: 'Faça check-in antes das 8h da manhã.',
+    icon: '🌅',
+    tier: null,
+    hidden: true,
+    trigger: 'checkin',
+    check: function(ctx) {
+      if (!ctx.presencePayload) return false;
+      var h = new Date(ctx.presencePayload.startsAt).getHours();
+      return h < 8;
+    }
+  },
+  {
+    id: 'presenca_noturno',
+    category: 'presenca',
+    title: 'Coruja',
+    desc: 'Faça check-in após as 21h.',
+    icon: '🌙',
+    tier: null,
+    hidden: true,
+    trigger: 'checkin',
+    check: function(ctx) {
+      if (!ctx.presencePayload) return false;
+      var h = new Date(ctx.presencePayload.startsAt).getHours();
+      return h >= 21;
+    }
+  },
+  {
+    id: 'presenca_toda_semana',
+    category: 'presenca',
+    title: 'Frequentador VIP',
+    desc: 'Faça check-in em 4 semanas seguidas.',
+    icon: '🎽',
+    tier: null,
+    trigger: 'checkin',
+    check: function(ctx) { return (ctx.stats.checkInWeekStreak || 0) >= 4; }
+  },
+
+  // ── SOCIAL ────────────────────────────────────────────────────────────────
+  {
+    id: 'social_primeiro_amigo',
+    category: 'social',
+    title: 'Primeiro Amigo',
+    desc: 'Adicione seu primeiro amigo no scoreplace.',
+    icon: '🤝',
+    tier: null,
+    trigger: 'friend_added',
+    check: function(ctx) { return (ctx.stats.friendsCount || 0) >= 1; }
+  },
+  {
+    id: 'social_convidou',
+    category: 'social',
+    title: 'Evangelista',
+    desc: 'Convide alguém para entrar no scoreplace via link de convite.',
+    icon: '📨',
+    tier: null,
+    trigger: 'invite_sent',
+    check: function(ctx) { return (ctx.stats.invitesSent || 0) >= 1; }
+  },
+  {
+    id: 'social_encontrou_amigos',
+    category: 'social',
+    title: 'Rede Formada',
+    desc: 'Tenha 5 amigos no scoreplace.',
+    icon: '👥',
+    tier: null,
+    trigger: 'friend_added',
+    check: function(ctx) { return (ctx.stats.friendsCount || 0) >= 5; }
+  },
+  {
+    id: 'social_notificou_amigos',
+    category: 'social',
+    title: 'Galera Avisada',
+    desc: 'Notifique seus amigos de check-in ou plano em 5 ocasiões.',
+    icon: '📣',
+    tier: null,
+    trigger: 'checkin',
+    check: function(ctx) { return (ctx.stats.friendNotifications || 0) >= 5; }
+  },
+
+  // ── ESPECIAIS (hidden) ────────────────────────────────────────────────────
+  {
+    id: 'especial_fundador',
+    category: 'especial',
+    title: 'Fundador Beta',
+    desc: 'Uma das primeiras 50 pessoas a usar o scoreplace em beta.',
+    icon: '🧪',
+    tier: 'platina',
+    hidden: false,
+    trigger: 'login',
+    check: function(ctx) {
+      // Conquistado na inicialização se a conta foi criada antes de 2026-06-01
+      var u = ctx.currentUser;
+      if (!u || !u.createdAt) return false;
+      var created = new Date(u.createdAt);
+      var cutoff = new Date('2026-06-01T00:00:00Z');
+      return created < cutoff;
+    }
+  },
+  {
+    id: 'especial_streak_30',
+    category: 'especial',
+    title: 'Mês de Ferro',
+    desc: 'Use o scoreplace (qualquer ação) em 30 dias consecutivos.',
+    icon: '💎',
+    tier: null,
+    hidden: true,
+    trigger: 'daily_activity',
+    check: function(ctx) { return (ctx.stats.activityDayStreak || 0) >= 30; }
+  },
+  {
+    id: 'especial_all_modalities',
+    category: 'especial',
+    title: 'Omniesportista',
+    desc: 'Jogue partidas casuais em todas as 9 modalidades do app.',
+    icon: '🌟',
+    tier: 'ouro',
+    hidden: true,
+    trigger: 'casual_match_finished',
+    check: function(ctx) { return (ctx.stats.casualSportsPlayed || 0) >= 9; }
+  },
+  {
+    id: 'especial_organizador_serie',
+    category: 'especial',
+    title: 'Organizador Série',
+    desc: 'Organize 5 torneios diferentes com pelo menos 10 inscritos cada.',
+    icon: '🎪',
+    tier: null,
+    hidden: false,
+    trigger: 'tournament_created',
+    check: function(ctx) { return (ctx.stats.tournamentsWithTenPlus || 0) >= 5; }
+  }
+];
+
+// ─── Catálogo de Milestones (Progressão Aritmética) ───────────────────────────
+// Cada milestone gera thresholds infinitos com step constante.
+// Exemplo: casual matches, step=25 → 25, 50, 75, 100, 125, ... para sempre.
+
+window.MILESTONE_CATALOG = [
+
+  // PARTIDAS CASUAIS: +25 por nível (começa em 25)
+  {
+    id: 'milestone_casual_jogadas',
+    category: 'casual',
+    metric: 'casualMatchesPlayed',
+    step: 25,
+    startAt: 25,
+    icon: '⚡',
+    titleFn: function(n) { return n + ' Partidas Casuais'; },
+    descFn: function(n, next) {
+      return 'Você jogou ' + n + ' partidas casuais. Próximo nível: ' + next + '.';
+    },
+    trigger: 'casual_match_finished'
+  },
+
+  // VITÓRIAS CASUAIS: +25 por nível (começa em 25)
+  {
+    id: 'milestone_casual_vitorias',
+    category: 'casual',
+    metric: 'casualMatchesWon',
+    step: 25,
+    startAt: 25,
+    icon: '🏆',
+    titleFn: function(n) { return n + ' Vitórias Casuais'; },
+    descFn: function(n, next) {
+      return 'Você venceu ' + n + ' partidas casuais. Próximo: ' + next + '.';
+    },
+    trigger: 'casual_match_finished'
+  },
+
+  // TORNEIOS PARTICIPADOS: +3 por nível (começa em 3)
+  {
+    id: 'milestone_torneios_participados',
+    category: 'torneio',
+    metric: 'tournamentsEnrolled',
+    step: 3,
+    startAt: 3,
+    icon: '📋',
+    titleFn: function(n) { return n + ' Torneios Jogados'; },
+    descFn: function(n, next) {
+      return 'Você participou de ' + n + ' torneios. Próximo: ' + next + '.';
+    },
+    trigger: 'tournament_enrolled'
+  },
+
+  // VITÓRIAS DE TORNEIO: +2 por nível (começa em 2)
+  {
+    id: 'milestone_torneios_campeao',
+    category: 'torneio',
+    metric: 'tournamentWins',
+    step: 2,
+    startAt: 2,
+    icon: '🥇',
+    titleFn: function(n) { return n + ' Títulos'; },
+    descFn: function(n, next) {
+      return 'Você venceu ' + n + ' torneios. Próximo: ' + next + '.';
+    },
+    trigger: 'tournament_finished'
+  },
+
+  // TORNEIOS CRIADOS: +3 por nível (começa em 3)
+  {
+    id: 'milestone_torneios_criados',
+    category: 'torneio',
+    metric: 'tournamentsCreated',
+    step: 3,
+    startAt: 3,
+    icon: '🏗️',
+    titleFn: function(n) { return n + ' Torneios Organizados'; },
+    descFn: function(n, next) {
+      return 'Você organizou ' + n + ' torneios. Próximo: ' + next + '.';
+    },
+    trigger: 'tournament_created'
+  },
+
+  // VITÓRIAS EM PARTIDAS DE TORNEIO: +25 por nível (começa em 25)
+  {
+    id: 'milestone_partidas_torneio_vitorias',
+    category: 'torneio',
+    metric: 'tournamentMatchesWon',
+    step: 25,
+    startAt: 25,
+    icon: '🎯',
+    titleFn: function(n) { return n + ' Vitórias em Torneios'; },
+    descFn: function(n, next) {
+      return n + ' vitórias em partidas de torneio. Próximo: ' + next + '.';
+    },
+    trigger: 'tournament_match_result'
+  },
+
+  // CHECK-INS: +10 por nível (começa em 10)
+  {
+    id: 'milestone_checkins',
+    category: 'presenca',
+    metric: 'checkinsTotal',
+    step: 10,
+    startAt: 10,
+    icon: '📍',
+    titleFn: function(n) { return n + ' Check-ins'; },
+    descFn: function(n, next) {
+      return 'Você fez ' + n + ' check-ins. Próximo: ' + next + '.';
+    },
+    trigger: 'checkin'
+  },
+
+  // LOCAIS ÚNICOS VISITADOS: +5 por nível (começa em 5)
+  {
+    id: 'milestone_locais_visitados',
+    category: 'presenca',
+    metric: 'uniqueVenuesVisited',
+    step: 5,
+    startAt: 5,
+    icon: '🏢',
+    titleFn: function(n) { return n + ' Locais Visitados'; },
+    descFn: function(n, next) {
+      return 'Você visitou ' + n + ' locais únicos. Próximo: ' + next + '.';
+    },
+    trigger: 'checkin'
+  },
+
+  // AMIGOS: +5 por nível (começa em 5)
+  {
+    id: 'milestone_amigos',
+    category: 'social',
+    metric: 'friendsCount',
+    step: 5,
+    startAt: 5,
+    icon: '👥',
+    titleFn: function(n) { return n + ' Amigos'; },
+    descFn: function(n, next) {
+      return 'Você tem ' + n + ' amigos no scoreplace. Próximo: ' + next + '.';
+    },
+    trigger: 'friend_added'
+  }
+];
+
+// ─── Índices para acesso rápido ───────────────────────────────────────────────
+
+window.TROPHY_CATALOG_BY_ID = {};
+window.TROPHY_CATALOG.forEach(function(t) {
+  window.TROPHY_CATALOG_BY_ID[t.id] = t;
+});
+
+window.TROPHY_CATALOG_BY_CATEGORY = {};
+window.TROPHY_CATALOG.forEach(function(t) {
+  if (!window.TROPHY_CATALOG_BY_CATEGORY[t.category]) {
+    window.TROPHY_CATALOG_BY_CATEGORY[t.category] = [];
+  }
+  window.TROPHY_CATALOG_BY_CATEGORY[t.category].push(t);
+});
+
+window.MILESTONE_CATALOG_BY_ID = {};
+window.MILESTONE_CATALOG.forEach(function(m) {
+  window.MILESTONE_CATALOG_BY_ID[m.id] = m;
+});
+
+window.MILESTONE_CATALOG_BY_TRIGGER = {};
+window.MILESTONE_CATALOG.forEach(function(m) {
+  if (!window.MILESTONE_CATALOG_BY_TRIGGER[m.trigger]) {
+    window.MILESTONE_CATALOG_BY_TRIGGER[m.trigger] = [];
+  }
+  window.MILESTONE_CATALOG_BY_TRIGGER[m.trigger].push(m);
+});
+
+window.TROPHY_CATALOG_BY_TRIGGER = {};
+window.TROPHY_CATALOG.forEach(function(t) {
+  if (!window.TROPHY_CATALOG_BY_TRIGGER[t.trigger]) {
+    window.TROPHY_CATALOG_BY_TRIGGER[t.trigger] = [];
+  }
+  window.TROPHY_CATALOG_BY_TRIGGER[t.trigger].push(t);
+});
+
+// ─── Helper: calcula threshold do nível N (1-based) de um milestone ──────────
+window._milestoneThresholdAt = function(milestone, level) {
+  // level=1 → startAt; level=2 → startAt+step; ...
+  return milestone.startAt + milestone.step * (level - 1);
+};
+
+// ─── Helper: dado um valor atual, retorna o nível conquistado (0 se nenhum) ──
+window._milestoneCurrentLevel = function(milestone, currentValue) {
+  if (!currentValue || currentValue < milestone.startAt) return 0;
+  return Math.floor((currentValue - milestone.startAt) / milestone.step) + 1;
+};
+
+// ─── Helper: tier por label ───────────────────────────────────────────────────
+window.TROPHY_TIER_ORDER = ['bronze', 'prata', 'ouro', 'platina'];
+window.TROPHY_TIER_COLORS = {
+  bronze:  { bg: 'rgba(180,100,40,0.15)',  border: 'rgba(180,100,40,0.4)',  text: '#cd7f32', glow: 'rgba(180,100,40,0.25)' },
+  prata:   { bg: 'rgba(160,165,175,0.15)', border: 'rgba(160,165,175,0.4)', text: '#a8a9ad', glow: 'rgba(160,165,175,0.25)' },
+  ouro:    { bg: 'rgba(218,165,32,0.15)',  border: 'rgba(218,165,32,0.5)',  text: '#fbbf24', glow: 'rgba(218,165,32,0.35)' },
+  platina: { bg: 'rgba(120,200,255,0.15)', border: 'rgba(120,200,255,0.5)', text: '#67e8f9', glow: 'rgba(120,200,255,0.4)' }
+};
+
+// Tier por raridade: % de usuários que têm o troféu → tier
+// >60% → bronze | 20-60% → prata | 5-20% → ouro | <5% → platina
+window._trophyTierFromPct = function(pct) {
+  if (pct > 60) return 'bronze';
+  if (pct > 20) return 'prata';
+  if (pct > 5)  return 'ouro';
+  return 'platina';
+};
+
+// Tier de milestone por nível: cada 10 níveis sobe um tier
+window._milestoneTierFromLevel = function(level) {
+  if (level <= 4)  return 'bronze';
+  if (level <= 8)  return 'prata';
+  if (level <= 12) return 'ouro';
+  return 'platina';
+};
+
+console.log('[trophy-catalog] loaded — ' + window.TROPHY_CATALOG.length + ' trophies, ' + window.MILESTONE_CATALOG.length + ' milestones');

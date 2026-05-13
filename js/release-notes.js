@@ -8,6 +8,19 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #a78bfa;border-radius:12px;padding:14px 16px;background:rgba(167,139,250,0.08);">' +
+      '<div style="font-weight:800; color:#a78bfa; font-size:1rem; margin-bottom:8px;">🏆 v1.5.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(13 de Maio, 2026)</span></div>' +
+      '<p><b>Sistema de Troféus e Conquistas.</b><br>' +
+      '• Nova página <code>#trofeus</code> com troféus no estilo PS/Xbox/Steam: ganhos, bloqueados, barra de XP, ranking de amigos e milestones.<br>' +
+      '• ~40 troféus fixos em 6 categorias (perfil, partidas casuais, torneios, presença, social, especiais) + raridade dinâmica calculada sobre % da base que já ganhou cada troféu.<br>' +
+      '• 9 linhas de milestone com progressão aritmética (incremento constante): partidas casuais, vitórias casuais, inscrições, vitórias em torneios, torneios criados, vitórias em matches, check-ins, venues únicos e amigos.<br>' +
+      '• Sistema de XP: bronze=10, prata=25, ouro=60, platina=150. Nível = XP÷100+1. Rank: Bronze→Prata→Ouro→Platina→Diamante.<br>' +
+      '• Overlay rico animado para conquistas ouro/platina; toast discreto para bronze/prata.<br>' +
+      '• Ranking de amigos por 3 métricas (partidas/check-ins/torneios).<br>' +
+      '• Engine não-bloqueante: todos os checks via <code>setTimeout(0)</code> para nunca atrasar o UX principal.<br>' +
+      '• Hooks inseridos em 8 pontos: login, perfil salvo, inscrição em torneio, torneio criado, torneio encerrado, resultado de match, amigo adicionado, check-in e plano de presença.<br>' +
+      'Novos arquivos: <code>trophy-catalog.js</code>, <code>trophies.js</code>, <code>trophies-view.js</code>, <code>trophies.css</code>.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #4ade80;border-radius:12px;padding:14px 16px;background:rgba(74,222,128,0.08);">' +
       '<div style="font-weight:800; color:#4ade80; font-size:1rem; margin-bottom:8px;">⚡ v1.4.23-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(13 de Maio, 2026)</span></div>' +
       '<p><b>Fix: crash no fim de partida casual no iOS (race condition winTeam).</b><br>' +

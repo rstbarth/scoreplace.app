@@ -704,6 +704,10 @@ window.FirestoreDB = {
         friends: firebase.firestore.FieldValue.arrayUnion(myUid),
         friendRequestsSent: firebase.firestore.FieldValue.arrayRemove(myUid)
       }, { merge: true });
+      // Trophy hook
+      setTimeout(function() {
+        if (typeof window._trophyOnFriendAdded === 'function') window._trophyOnFriendAdded();
+      }, 500);
     } catch (e) {
       console.error('Erro ao aceitar amizade:', e);
     }

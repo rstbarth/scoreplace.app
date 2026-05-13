@@ -182,6 +182,10 @@ window._doEnrollCurrentUser = function(tId, selectedCategories) {
 
     // Show success and navigate immediately (no wait for network)
     if (typeof showNotification !== 'undefined') showNotification(_t('enroll.enrolledTitle'), _t('enroll.enrolledMsg', { name: window._safeHtml(t.name) }), 'success');
+    // Trophy hook — enrollment milestone
+    setTimeout(function() {
+      try { if (typeof window._trophyOnTournamentEnrolled === 'function') window._trophyOnTournamentEnrolled(t); } catch(_te) {}
+    }, 500);
     window._scrollToParticipant(tId, user.displayName);
 
     // --- Background: Firestore transaction for consistency ---

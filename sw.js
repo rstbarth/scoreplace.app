@@ -53,7 +53,7 @@ self.addEventListener('notificationclick', function(event) {
   );
 });
 
-var CACHE_NAME = 'scoreplace-v1.4.23-beta';
+var CACHE_NAME = 'scoreplace-v1.5.0-beta';
 // NOTE: js/release-notes.js NÃO entra aqui de propósito — é lazy-loaded só
 // quando o usuário abre "Notas de versões" no Help. Adicioná-lo ao precache
 // faria cache.addAll baixar 1MB durante o SW install, anulando o ganho do
@@ -67,6 +67,7 @@ var STATIC_ASSETS = [
   '/css/layout.css',
   '/css/bracket.css',
   '/css/responsive.css',
+  '/css/trophies.css',
   '/js/theme.js',
   '/js/sentry-init.js',
   '/js/logger.js',
@@ -105,8 +106,9 @@ var STATIC_ASSETS = [
   '/js/views/privacy.js',
   '/js/views/terms.js',
   '/js/views/terms-acceptance.js',
-  '/js/views/privacy.js',
-  '/js/views/terms.js',
+  '/js/trophy-catalog.js',
+  '/js/trophies.js',
+  '/js/views/trophies-view.js',
 
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',

@@ -1032,6 +1032,10 @@
       // duplicata visual quando o snapshot chegava ANTES do .then (race real
       // observada em produção). O listener é agora a única fonte de verdade.
       payload._id = id;
+      // Trophy hook — check-in milestone
+      setTimeout(function() {
+        try { if (typeof window._trophyOnCheckin === 'function') window._trophyOnCheckin(payload); } catch(_te) {}
+      }, 500);
       _notifyFriendsOfCheckin(payload);
     }).catch(function(e) {
       console.error(e);
@@ -1209,6 +1213,10 @@
       payload._id = id;
       // onSnapshot rebuilda state.myActive/presences do Firestore — push manual
       // aqui causava duplicata visual quando o snapshot chegava antes do .then.
+      // Trophy hook — plan creation milestone
+      setTimeout(function() {
+        try { if (typeof window._trophyOnPlanCreated === 'function') window._trophyOnPlanCreated(payload); } catch(_te) {}
+      }, 500);
       _notifyFriendsOfPlan(payload);
     }).catch(function(e) {
       console.error(e);

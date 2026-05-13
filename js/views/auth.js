@@ -2203,6 +2203,14 @@ async function simulateLoginSuccess(user) {
     if (typeof window._checkLigaAutoDraws === 'function') {
       window._checkLigaAutoDraws().catch(function(e) { console.warn('Liga auto-draw error:', e); });
     }
+    // Bootstrap trophy engine — varre todos os troféus/milestones ao logar.
+    // Não-bloqueante; roda após 3s para não competir com auth/routing init.
+    if (typeof window._bootstrapTrophiesForUser === 'function' && window.AppStore.currentUser && window.AppStore.currentUser.uid) {
+      window._bootstrapTrophiesForUser(window.AppStore.currentUser.uid);
+    }
+    if (typeof window._trophyOnLogin === 'function') {
+      window._trophyOnLogin();
+    }
   }, 3000);
 
   // v0.17.93: helper extraído pra ser chamável early na função (vide
@@ -5065,6 +5073,10 @@ function setupProfileModal() {
             'Suas alterações foram salvas.',
             'success'
           );
+          // Trophy hook — checa troféus de perfil após salvar com sucesso
+          setTimeout(function() {
+            if (typeof window._trophyOnProfileSaved === 'function') window._trophyOnProfileSaved();
+          }, 500);
         }
       }
 

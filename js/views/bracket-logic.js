@@ -1517,6 +1517,14 @@ function _maybeFinishElimination(t) {
       level: 'important'
     });
   }
+  // Trophy hook — tournament finished (checks win/podium for current user)
+  setTimeout(function() {
+    try {
+      if (typeof window._trophyOnTournamentFinished === 'function') {
+        window._trophyOnTournamentFinished(t, _finChampion);
+      }
+    } catch(_te) {}
+  }, 500);
 }
 
 // ─── 3rd place ────────────────────────────────────────────────────────────────

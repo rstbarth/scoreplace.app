@@ -3703,6 +3703,10 @@ function setupCreateTournamentModal() {
           try {
             if (typeof window._trackTournamentCreated === 'function') window._trackTournamentCreated(tourData);
           } catch (_e) {}
+          // Trophy hook — tournament created milestone
+          setTimeout(function() {
+            try { if (typeof window._trophyOnTournamentCreated === 'function') window._trophyOnTournamentCreated(tourData); } catch(_te) {}
+          }, 500);
         }
 
         // Persiste no localStorage
