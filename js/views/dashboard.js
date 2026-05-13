@@ -1783,13 +1783,6 @@ function renderDashboard(container) {
           <button id="btn-upgrade-pro" class="btn hover-lift" title="${_t('common.pro')}" style="display: none; background: linear-gradient(135deg,#3b82f6,#6366f1); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.78rem; font-weight: 600; padding: 0 14px; height: 34px; border-radius: 9px; opacity: 0.9;" onclick="window._showUpgradeModal()">🚀 ${_t('common.pro')}</button>
           <button id="btn-support-pix" class="btn hover-lift" title="${_t('common.support')}" style="background: #047857; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.78rem; font-weight: 600; padding: 0 14px; height: 34px; border-radius: 9px; opacity: 0.9;" onclick="window.location.hash='#support'">💚 ${_t('common.support')}</button>
         </div>
-        ${(_cuRef && _cuRef.email === 'rstbarth@gmail.com') ? `
-        <!-- Admin-only: trophy backfill panel -->
-        <div id="admin-trophy-panel" style="margin-top:10px;padding:8px 14px;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center;">
-          <span style="font-size:0.7rem;font-weight:700;color:#ef4444;letter-spacing:0.5px;">🔧 ADMIN</span>
-          <button id="btn-backfill-trophies" class="btn hover-lift" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;font-size:0.75rem;font-weight:700;padding:4px 14px;height:30px;border-radius:8px;cursor:pointer;" onclick="window._adminRunTrophyBackfill()" title="Retroactive trophy backfill para todos os usuários">🏆 Backfill Troféus</button>
-          <span id="admin-backfill-status" style="font-size:0.7rem;color:rgba(255,255,255,0.5);"></span>
-        </div>` : ''}
       </div>
 
       <!-- v0.17.50: trocado de grid auto-fit pra flex centralizado.
@@ -2546,40 +2539,3 @@ function _checkPendingInvitesAndRedirect(allTournaments) {
     }
   }
 }
-
-// ─── Admin: retroactive trophy backfill (owner-only) ─────────────────────────
-window._adminRunTrophyBackfill = async function() {
-  var cu = window.AppStore && window.AppStore.currentUser;
-  if (!cu || cu.email !== 'rstbarth@gmail.com') {
-    if (typeof window.showNotification === 'function')
-      window.showNotification('Sem permissão', 'Só o owner pode rodar o backfill.', 'error');
-    return;
-  }
-
-  var btn = document.getElementById('btn-backfill-trophies');
-  var statusEl = document.getElementById('admin-backfill-status');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Rodando…'; }
-  if (statusEl) statusEl.textContent = 'Aguarde — pode levar até 9 min…';
-
-  try {
-    var fn = firebase.functions().httpsCallable('backfillAllUserTrophies');
-    var result = await fn({});
-    var d = result.data || {};
-    var msg = 'Processados: ' + (d.processed || 0) +
-              ' | Troféus: ' + (d.trophiesAwarded || 0) +
-              ' | Milestones: ' + (d.milestonesAwarded || 0);
-    if (d.errors && d.errors.length) msg += ' | Erros: ' + d.errors.length;
-    if (typeof window.showNotification === 'function')
-      window.showNotification('✅ Backfill concluído', msg, 'success');
-    if (statusEl) statusEl.textContent = msg;
-    console.log('[AdminBackfill] result:', d);
-  } catch (err) {
-    var errMsg = (err && err.message) || String(err);
-    if (typeof window.showNotification === 'function')
-      window.showNotification('❌ Backfill falhou', errMsg, 'error');
-    if (statusEl) statusEl.textContent = 'Erro: ' + errMsg;
-    console.error('[AdminBackfill] error:', err);
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = '🏆 Backfill Troféus'; }
-  }
-};

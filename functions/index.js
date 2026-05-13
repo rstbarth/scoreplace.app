@@ -1437,6 +1437,17 @@ exports.backfillAllUserTrophies = onCall(
 
         if (hasMilestoneBatch) await milestoneBatch.commit();
 
+        // ── 4.5. Write _rankStats snapshot to user doc ─────────────────────
+        // Persisted as a direct field so _loadFriendRanking (client-side)
+        // can read cross-user metrics in a single users collection query.
+        const rankStats = {
+          casualMatchesPlayed: stats.casualMatchesPlayed || 0,
+          checkinsTotal:       stats.checkinsTotal       || 0,
+          tournamentsEnrolled: stats.tournamentsEnrolled  || 0,
+          tournamentWins:      stats.tournamentWins       || 0
+        };
+        await db.collection("users").doc(uid).update({ _rankStats: rankStats }).catch(() => {});
+
       } catch (e) {
         console.warn(`[backfill] uid=${uid} email=${userData.email} error:`, e.message || e);
         errors++;

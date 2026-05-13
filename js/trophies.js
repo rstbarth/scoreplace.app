@@ -528,6 +528,22 @@
               _isSilentBootstrap = false;
               _markBootstrapped(uid);
 
+              // Persiste snapshot de ranking no doc do usuário para que
+              // _loadFriendRanking possa comparar métricas entre amigos sem
+              // precisar de subcoleções — campos diretos no doc de usuário.
+              var _rdb = _db();
+              if (_rdb) {
+                var _rankSnap = {
+                  casualMatchesPlayed: stats.casualMatchesPlayed || 0,
+                  checkinsTotal:       stats.checkinsTotal       || 0,
+                  tournamentsEnrolled: stats.tournamentsEnrolled  || 0,
+                  tournamentWins:      stats.tournamentWins       || 0
+                };
+                _rdb.collection('users').doc(uid)
+                  .update({ _rankStats: _rankSnap })
+                  .catch(function() {});
+              }
+
               // Se ganhou troféus retroativos, mostra resumo único em vez de N pop-ups
               if (newlyAwarded > 0) {
                 if (typeof window.showNotification === 'function') {
@@ -751,10 +767,13 @@
           var d = doc.data();
           var value = 0;
           if (metric === 'xp') {
-            // Carrega trophies do usuário para calcular XP — simplificado
             value = d.xpSnapshot || 0;
           } else {
-            value = d[metric] || 0;
+            // Lê do snapshot de ranking (_rankStats) que é persistido no doc
+            // pelo bootstrap e pelo backfill — campos como casualMatchesPlayed,
+            // checkinsTotal, tournamentsEnrolled ficam acessíveis cross-user.
+            var rs = d._rankStats || {};
+            value = (rs[metric] !== undefined) ? rs[metric] : (d[metric] || 0);
           }
           entries.push({ uid: doc.id, name: d.displayName || 'Jogador', photo: d.photoURL, value: value });
         });
