@@ -66,19 +66,19 @@ window.TROPHY_CATALOG = [
     id: 'perfil_foto',
     category: 'perfil',
     title: 'Com Rosto',
-    desc: 'Faça login com Google (terá foto de perfil real, não apenas iniciais).',
+    desc: 'Adicione uma foto de perfil real (Google, Apple ou upload direto).',
     icon: '📸',
     tier: null,
     trigger: 'login',
     check: function(ctx) {
       var u = ctx.currentUser;
-      return !!(u && u.photoURL && u.photoURL.indexOf('googleusercontent') !== -1);
+      return !!(u && u.photoURL && u.photoURL.length > 0);
     }
   },
   {
     id: 'perfil_local',
     category: 'perfil',
-    title: 'Sou de Aqui',
+    title: 'Estou na área',
     desc: 'Adicione pelo menos um local esportivo favorito ao seu perfil.',
     icon: '📍',
     tier: null,

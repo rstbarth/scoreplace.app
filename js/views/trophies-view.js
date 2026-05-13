@@ -58,8 +58,8 @@
       '<div class="trophy-card-icon" style="' + iconOpacity + '">' + (trophy.icon || '🏅') + '</div>' +
       '<div class="trophy-card-name" style="' + nameStyle + '">' + lockIcon + _s(trophy.title) + '</div>' +
       badgeHtml +
-      awardedHtml +
       '<div class="trophy-card-desc">' + _s(trophy.desc) + '</div>' +
+      awardedHtml +
     '</div>';
   }
 

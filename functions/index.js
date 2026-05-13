@@ -1064,7 +1064,7 @@ exports.notifyLeagueRoundWhatsApp = onCall(
 const BACKFILL_TROPHY_DEFS = [
   // PERFIL
   { id: "perfil_completo",    check: (u, s) => !!(u.displayName && u.preferredSports && u.preferredSports.length > 0 && u.gender && u.city && (u.skill || (u.skillBySport && Object.keys(u.skillBySport).length > 0))) },
-  { id: "perfil_foto",        check: (u, s) => !!(u.photoURL && u.photoURL.includes("googleusercontent")) },
+  { id: "perfil_foto",        check: (u, s) => !!(u.photoURL && u.photoURL.length > 0) },
   { id: "perfil_local",       check: (u, s) => !!(u.preferredLocations && u.preferredLocations.length > 0) },
   { id: "perfil_skills",      check: (u, s) => !!(u.skillBySport && Object.keys(u.skillBySport).length >= 3) },
   // CASUAIS
