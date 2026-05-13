@@ -42,16 +42,12 @@
   // Route helper — maps a locked trophy to the section where user can earn it
   function _trophyRoute(trophy) {
     var cat = trophy.category;
-    var id  = trophy.id;
     if (cat === 'perfil')   return '#profile';
-    if (cat === 'casual')   return '#dashboard';
+    if (cat === 'casual')   return '__casual__';   // abre partida casual diretamente
     if (cat === 'presenca') return '#place';
     if (cat === 'social')   return '#explore';
-    if (cat === 'torneio') {
-      if (id === 'torneio_criou_primeiro' || id === 'torneio_50_inscritos' || id === 'torneio_liga') return '#dashboard';
-      return '#explore';
-    }
-    return null; // especial: sem rota especifica
+    if (cat === 'torneio')  return '__torneio__';  // dashboard com inscrições ou cria torneio
+    return null; // especial: sem rota específica
   }
 
   function _trophyCard(trophy, awarded, tier, pct) {
@@ -78,11 +74,24 @@
     // Tick verde no canto superior direito dos trofeus conquistados
     var tickHtml = !locked ? '<div class="trophy-earned-tick">&#10003;</div>' : '';
 
-    // Clique nos nao-conquistados navega para o local onde a missao e cumprida
+    // Clique nos nao-conquistados navega/age para completar a missão
     var route      = locked ? _trophyRoute(trophy) : null;
-    var clickAttr  = route ? 'onclick="window.location.hash=\'' + route + '\'"' : '';
-    var extraStyle = route ? 'cursor:pointer;' : '';
-    var navHint    = route ? '<div class="trophy-nav-hint">Ir la →</div>' : '';
+    var clickAttr  = '';
+    var extraStyle = '';
+    var navHint    = '';
+    if (route === '__casual__') {
+      clickAttr  = 'onclick="if(typeof window._trophyOpenCasual===\'function\')window._trophyOpenCasual()"';
+      extraStyle = 'cursor:pointer;';
+      navHint    = '<div class="trophy-nav-hint">Iniciar partida →</div>';
+    } else if (route === '__torneio__') {
+      clickAttr  = 'onclick="if(typeof window._trophyGoToTournament===\'function\')window._trophyGoToTournament()"';
+      extraStyle = 'cursor:pointer;';
+      navHint    = '<div class="trophy-nav-hint">Ver torneios →</div>';
+    } else if (route) {
+      clickAttr  = 'onclick="window.location.hash=\'' + route + '\'"';
+      extraStyle = 'cursor:pointer;';
+      navHint    = '<div class="trophy-nav-hint">Ir lá →</div>';
+    }
 
     return '<div class="trophy-card ' + (locked ? 'trophy-locked' : 'trophy-earned') + '" ' +
            clickAttr + ' ' +
@@ -387,6 +396,55 @@
       }
       if (btn) { btn.textContent = '🔄 Sincronizar dados de ranking'; btn.disabled = false; }
     });
+  };
+
+  // ─── Ação: abre partida casual diretamente ──────────────────────────────────
+  window._trophyOpenCasual = function() {
+    if (typeof window._openCasualMatch === 'function') {
+      // Já estamos na página — abre direto
+      window._openCasualMatch();
+    } else {
+      // Navega para o dashboard e tenta abrir após render
+      window.location.hash = '#dashboard';
+      var attempts = 0;
+      var poll = setInterval(function() {
+        attempts++;
+        if (typeof window._openCasualMatch === 'function') {
+          clearInterval(poll);
+          window._openCasualMatch();
+        } else if (attempts > 20) {
+          clearInterval(poll);
+        }
+      }, 150);
+    }
+  };
+
+  // ─── Ação: vai para torneios abertos ou abre criação com dica ────────────────
+  window._trophyGoToTournament = function() {
+    var all = ((window.AppStore && window.AppStore.tournaments) || [])
+      .concat((window.AppStore && window.AppStore.publicDiscovery) || []);
+
+    var hasOpen = all.some(function(t) {
+      return t.status === 'open' || !t.status;
+    });
+
+    if (hasOpen) {
+      // Há torneios com inscrições abertas — vai para o dashboard
+      window.location.hash = '#dashboard';
+    } else {
+      // Nenhum torneio aberto — vai para o dashboard e abre "Novo Torneio" com dica
+      window.location.hash = '#dashboard';
+      setTimeout(function() {
+        if (typeof openModal === 'function') openModal('modal-quick-create');
+        if (typeof window.showNotification === 'function') {
+          window.showNotification(
+            '🏆 Crie um torneio!',
+            'Não há torneios com inscrições abertas agora. Que tal criar o seu?',
+            'info'
+          );
+        }
+      }, 500);
+    }
   };
 
   console.log('[trophies-view] loaded');
