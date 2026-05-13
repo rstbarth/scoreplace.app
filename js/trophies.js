@@ -67,30 +67,79 @@
       casualActiveDaysThisMonth: cu.casualActiveDaysThisMonth || 0
     };
 
+    // ── Partidas casuais: coleta host + guest em paralelo, dedup por docId,
+    //    aplica anti-fraude (qualificação individual + limite diário). ────────
+    var _casualMatchMap = {};  // docId → {data, role}
+    var _casualHostDone = false, _casualGuestDone = false;
+
+    function _processCasualMatchMap() {
+      if (!_casualHostDone || !_casualGuestDone) return;
+      // Converte mapa para array e filtra por qualificação anti-fraude
+      var allMatches = Object.keys(_casualMatchMap).map(function(id) {
+        return _casualMatchMap[id];
+      });
+      var qualified = allMatches.filter(function(item) {
+        return typeof window._isCasualMatchQualified === 'function'
+          ? window._isCasualMatchQualified(item.data)
+          : item.data.status === 'finished';
+      });
+      // Aplica limite diário (max 5 partidas por dia-calendário)
+      if (typeof window._applyDailyMatchLimit === 'function') {
+        qualified = window._applyDailyMatchLimit(
+          qualified.map(function(i) { return i.data; })
+        ).map(function(d) { return { data: d, role: _casualMatchMap[d._docId] && _casualMatchMap[d._docId].role }; });
+      }
+      var played = qualified.length;
+      var won = 0;
+      var sportsSet = {};
+      qualified.forEach(function(item) {
+        var d = item.data;
+        var myColor = item.role === 'host' ? d.hostColor : d.guestColor;
+        if (d.winner && d.winner === myColor) won++;
+        if (d.sport) sportsSet[d.sport] = true;
+      });
+      stats.casualMatchesPlayed = played;
+      stats.casualMatchesWon    = won;
+      stats.casualSportsPlayed  = Object.keys(sportsSet).length;
+    }
+
     // Busca contadores de coleções Firestore em paralelo
     var promises = [
-      // Partidas casuais
+      // Partidas casuais — host
       db.collection('casualMatches')
         .where('hostUid', '==', uid)
         .where('status', '==', 'finished')
         .get()
         .then(function(snap) {
-          var played = snap.size;
-          var won = 0;
-          var sportsSet = {};
           snap.forEach(function(doc) {
-            var d = doc.data();
-            var winner = d.winner;
-            var isHost = d.hostUid === uid;
-            var myColor = isHost ? d.hostColor : d.guestColor;
-            if (winner && winner === myColor) won++;
-            if (d.sport) sportsSet[d.sport] = true;
+            if (!_casualMatchMap[doc.id]) {
+              var d = doc.data();
+              d._docId = doc.id;
+              _casualMatchMap[doc.id] = { data: d, role: 'host' };
+            }
           });
-          stats.casualMatchesPlayed = played;
-          stats.casualMatchesWon = won;
-          stats.casualSportsPlayed = Object.keys(sportsSet).length;
+          _casualHostDone = true;
+          _processCasualMatchMap();
         })
-        .catch(function() {}),
+        .catch(function() { _casualHostDone = true; _processCasualMatchMap(); }),
+
+      // Partidas casuais — guest (dedup via _casualMatchMap)
+      db.collection('casualMatches')
+        .where('guestUid', '==', uid)
+        .where('status', '==', 'finished')
+        .get()
+        .then(function(snap) {
+          snap.forEach(function(doc) {
+            if (!_casualMatchMap[doc.id]) {
+              var d = doc.data();
+              d._docId = doc.id;
+              _casualMatchMap[doc.id] = { data: d, role: 'guest' };
+            }
+          });
+          _casualGuestDone = true;
+          _processCasualMatchMap();
+        })
+        .catch(function() { _casualGuestDone = true; _processCasualMatchMap(); }),
 
       // Torneios
       db.collection('tournaments')
@@ -98,26 +147,29 @@
         .get()
         .then(function(snap) {
           var enrolled = 0, wins = 0, podiums = 0, ligaPart = 0, withTenPlus = 0;
-          var tournamentMatchesWon = 0;
           snap.forEach(function(doc) {
             var t = doc.data();
             enrolled++;
             if (typeof window._isLigaFormat === 'function' && window._isLigaFormat(t)) ligaPart++;
-            // Detectar vitória/pódio pelo winner / standings
-            if (t.winner && (t.winner === (cu.displayName || '') || t.winner === cu.email)) wins++;
+            // Vitória só conta em torneios com >= 4 participantes (anti-fraude)
+            var qualifiedT = typeof window._isTournamentQualifiedForTrophy === 'function'
+              ? window._isTournamentQualifiedForTrophy(t)
+              : (t.status === 'finished');
+            if (qualifiedT) {
+              if (t.winner && (t.winner === (cu.displayName || '') || t.winner === cu.email)) wins++;
+            }
             // Torneios com ≥10 inscritos que o user organizou
             if (t.organizerEmail === cu.email || t.organizerEmail === uid) {
               var count = (t.participants && t.participants.length) || 0;
               if (count >= 10) withTenPlus++;
             }
           });
-          stats.tournamentsEnrolled = enrolled;
-          stats.tournamentWins = wins;
-          stats.tournamentPodiums = podiums;
-          stats.ligaParticipations = ligaPart;
+          stats.tournamentsEnrolled    = enrolled;
+          stats.tournamentWins         = wins;
+          stats.tournamentPodiums      = podiums;
+          stats.ligaParticipations     = ligaPart;
           stats.tournamentsWithTenPlus = withTenPlus;
-          // Vitórias em partidas de torneio – aproximação por matches com resultado
-          stats.tournamentMatchesWon = tournamentMatchesWon;
+          stats.tournamentMatchesWon   = 0;
         })
         .catch(function() {}),
 

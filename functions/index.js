@@ -1151,6 +1151,51 @@ async function _computeBackfillStats(db, uid, userData) {
 
   const LIGA_KEYWORDS = ["Liga", "Ranking", "Suíço", "Suico", "Swiss"];
 
+  // ── Anti-fraude (inline — mesma lógica de trophy-catalog.js) ─────────────
+  const DAILY_MATCH_LIMIT = 5;
+
+  function _isMatchQualified(d) {
+    if (d.status !== "finished") return false;
+    const h = String(d.hostUid  || "").trim();
+    const g = String(d.guestUid || "").trim();
+    if (!h || !g || h === g) return false;
+    if (/^bot[_\-]|^bot$/i.test(h) || /^bot[_\-]|^bot$/i.test(g)) return false;
+    const created  = d.createdAt  || d.startedAt;
+    const finished = d.finishedAt || d.updatedAt;
+    if (created && finished) {
+      const ts = (t) => (t && typeof t.toDate === "function" ? t.toDate() : new Date(t));
+      const t0 = ts(created).getTime();
+      const t1 = ts(finished).getTime();
+      if (!isNaN(t0) && !isNaN(t1) && t1 > t0 && (t1 - t0) < 3 * 60 * 1000) return false;
+    }
+    return true;
+  }
+
+  function _applyDailyLimit(docs, limitPerDay) {
+    const byDay = {};
+    const out   = [];
+    for (const d of docs) {
+      const ts = d.finishedAt || d.updatedAt || d.createdAt;
+      if (!ts) { out.push(d); continue; }
+      const dt = typeof ts.toDate === "function" ? ts.toDate() : new Date(ts);
+      if (isNaN(dt.getTime())) { out.push(d); continue; }
+      const key = `${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}`;
+      byDay[key] = (byDay[key] || 0) + 1;
+      if (byDay[key] <= limitPerDay) out.push(d);
+    }
+    return out;
+  }
+
+  function _isTournamentQualified(t) {
+    if (t.status !== "finished") return false;
+    const count = (t.participants && t.participants.length) ||
+                  (t.memberEmails && t.memberEmails.length) || 0;
+    return count >= 4;
+  }
+
+  // Coleta casual matches (host + guest) com dedup por docId
+  const _casualMap = {};  // docId → {data, role}
+
   const queries = [
     // Casual matches where user is host
     db.collection("casualMatches")
@@ -1158,27 +1203,20 @@ async function _computeBackfillStats(db, uid, userData) {
       .where("status", "==", "finished")
       .get()
       .then((snap) => {
-        const sportsSet = {};
         snap.forEach((doc) => {
-          const d = doc.data();
-          stats.casualMatchesPlayed++;
-          if (d.winner === d.hostColor) stats.casualMatchesWon++;
-          if (d.sport) sportsSet[d.sport] = true;
+          if (!_casualMap[doc.id]) _casualMap[doc.id] = { data: doc.data(), role: "host" };
         });
-        stats.casualSportsPlayed = Object.keys(sportsSet).length;
       })
       .catch(() => {}),
 
-    // Casual matches where user is guest (any uid field)
+    // Casual matches where user is guest
     db.collection("casualMatches")
       .where("guestUid", "==", uid)
       .where("status", "==", "finished")
       .get()
       .then((snap) => {
         snap.forEach((doc) => {
-          const d = doc.data();
-          stats.casualMatchesPlayed++;
-          if (d.winner === d.guestColor) stats.casualMatchesWon++;
+          if (!_casualMap[doc.id]) _casualMap[doc.id] = { data: doc.data(), role: "guest" };
         });
       })
       .catch(() => {}),
@@ -1192,17 +1230,18 @@ async function _computeBackfillStats(db, uid, userData) {
           snap.forEach((doc) => {
             const t = doc.data();
             stats.tournamentsEnrolled++;
-            // Liga / Suíço check
             if (t.format && LIGA_KEYWORDS.some((k) => t.format.includes(k))) {
               stats.ligaParticipations++;
             }
-            // Win check
-            const displayName = userData.displayName || "";
-            if (t.winner && (t.winner === displayName || t.winner === email)) {
-              stats.tournamentWins++;
+            // Vitória só conta em torneios com >= 4 participantes (anti-fraude)
+            if (_isTournamentQualified(t)) {
+              const displayName = userData.displayName || "";
+              if (t.winner && (t.winner === displayName || t.winner === email)) {
+                stats.tournamentWins++;
+              }
             }
             // Organizer with 10+ participants
-            if ((t.organizerEmail === email || t.organizerUid === uid)) {
+            if (t.organizerEmail === email || t.organizerUid === uid) {
               const count = (t.participants && t.participants.length) || 0;
               if (count >= 10) stats.tournamentsWithTenPlus++;
             }
@@ -1241,6 +1280,38 @@ async function _computeBackfillStats(db, uid, userData) {
   ];
 
   await Promise.all(queries);
+
+  // ── Processa casual matches com anti-fraude após ambas as queries ──────────
+  // _casualMap: { docId → { data, role } }
+  // Etapas: qualificação individual → limite diário → contagem de stats
+  {
+    // 1. Filtra por qualificação individual, preservando o role
+    const qualified = Object.entries(_casualMap)
+      .filter(([, item]) => _isMatchQualified(item.data));
+
+    // 2. Aplica limite diário sobre os dados, mantendo mapeamento para role
+    // Injeta docId no data temporariamente para rastreamento
+    const dataWithIds = qualified.map(([docId, item]) => {
+      return Object.assign({ _backfillDocId: docId }, item.data);
+    });
+    const limited = _applyDailyLimit(dataWithIds, DAILY_MATCH_LIMIT);
+
+    // 3. Conta stats a partir do conjunto limitado
+    const sportsSet = {};
+    let played = 0, won = 0;
+    for (const d of limited) {
+      const item = _casualMap[d._backfillDocId];
+      if (!item) continue;
+      played++;
+      const myColor = item.role === "host" ? d.hostColor : d.guestColor;
+      if (d.winner && d.winner === myColor) won++;
+      if (d.sport) sportsSet[d.sport] = true;
+    }
+    stats.casualMatchesPlayed = played;
+    stats.casualMatchesWon    = won;
+    stats.casualSportsPlayed  = Object.keys(sportsSet).length;
+  }
+
   return stats;
 }
 

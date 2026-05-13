@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #f87171;border-radius:12px;padding:14px 16px;background:rgba(248,113,113,0.08);">' +
+      '<div style="font-weight:800; color:#f87171; font-size:1rem; margin-bottom:8px;">🛡️ v1.5.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(13 de Maio, 2026)</span></div>' +
+      '<p><b>Antifraude nas conquistas + botão Conquistas no dashboard.</b><br>' +
+      '• Sistema antifraude em 3 camadas (client, engine, backfill): partida casual precisa ter 2 UIDs distintos e não-bot, duração mínima de 3 min, e no máximo 5 partidas por dia contam para as conquistas.<br>' +
+      '• Torneios só contam para troféus se tiverem ≥ 4 participantes e status "finished".<br>' +
+      '• Engine agora consulta tanto <code>hostUid</code> quanto <code>guestUid</code> com dedup por docId — partidas onde o usuário foi convidado também eram ignoradas antes.<br>' +
+      '• Cloud Function <code>backfillAllUserTrophies</code> atualizada com as mesmas regras antifraude.<br>' +
+      '• Dashboard: botão "🏆 Conquistas" reposicionado acima de "📊 Estatísticas" no cabeçalho do hero; removido da Row 2.<br>' +
+      'Alterações em <code>trophy-catalog.js</code>, <code>trophies.js</code>, <code>dashboard.js</code>, <code>functions/index.js</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #f87171;border-radius:12px;padding:14px 16px;background:rgba(248,113,113,0.08);">' +
       '<div style="font-weight:800; color:#f87171; font-size:1rem; margin-bottom:8px;">⚙️ v1.5.1-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(13 de Maio, 2026)</span></div>' +
       '<p><b>Backfill retroativo de troféus.</b><br>' +
       '• Cloud Function <code>backfillAllUserTrophies</code>: varre todos os usuários cadastrados e concede troféus e milestones baseados no histórico real (partidas casuais, torneios, presenças, perfil) sem precisar que cada usuário faça login.<br>' +

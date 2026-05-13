@@ -620,4 +620,72 @@ window._milestoneTierFromLevel = function(level) {
   return 'platina';
 };
 
+// ─── Anti-fraude: regras de qualificação para troféus e milestones ────────────
+// Impede que partidas/torneios fabricados (solo, bots, muito rápidos) contem.
+//
+// Regras para uma partida casual qualificar:
+//   1. status === 'finished'
+//   2. hostUid e guestUid distintos, não-vazios, não-bot, não self-play
+//   3. Duração mínima 3 min (se createdAt + finishedAt disponíveis)
+//
+window._isCasualMatchQualified = function(match) {
+  if (!match) return false;
+  if (match.status !== 'finished') return false;
+
+  var hUid = String(match.hostUid || '').trim();
+  var gUid = String(match.guestUid || '').trim();
+
+  // Dois jogadores distintos obrigatórios
+  if (!hUid || !gUid) return false;
+  if (hUid === gUid) return false;
+
+  // Rejeita UIDs de bot (bot_, bot- ou literal "bot")
+  if (/^bot[_\-]|^bot$/i.test(hUid) || /^bot[_\-]|^bot$/i.test(gUid)) return false;
+
+  // Duração mínima: 3 minutos (quando timestamps disponíveis)
+  var created  = match.createdAt  || match.startedAt;
+  var finished = match.finishedAt || match.updatedAt;
+  if (created && finished) {
+    var t0 = (created.toDate  ? created.toDate()  : new Date(created )).getTime();
+    var t1 = (finished.toDate ? finished.toDate() : new Date(finished)).getTime();
+    if (!isNaN(t0) && !isNaN(t1) && t1 > t0 && (t1 - t0) < 3 * 60 * 1000) return false;
+  }
+
+  return true;
+};
+
+// Limite diário: máximo N partidas por dia-calendário contam para milestones
+// (evita grinding de partidas rápidas em série no mesmo dia).
+window.TROPHY_DAILY_MATCH_LIMIT = 5;
+
+// Recebe array de match objects já qualificados individualmente.
+// Retorna subconjunto respeitando TROPHY_DAILY_MATCH_LIMIT por dia.
+window._applyDailyMatchLimit = function(matches, limitPerDay) {
+  if (typeof limitPerDay !== 'number') limitPerDay = window.TROPHY_DAILY_MATCH_LIMIT;
+  var byDay = {};
+  var out   = [];
+  for (var i = 0; i < matches.length; i++) {
+    var m  = matches[i];
+    var ts = m.finishedAt || m.updatedAt || m.createdAt;
+    if (!ts) { out.push(m); continue; }
+    var d = ts.toDate ? ts.toDate() : new Date(ts);
+    if (isNaN(d.getTime())) { out.push(m); continue; }
+    var key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    byDay[key] = (byDay[key] || 0) + 1;
+    if (byDay[key] <= limitPerDay) out.push(m);
+  }
+  return out;
+};
+
+// Torneio qualifica para troféus de vitória/participação se:
+//   1. status === 'finished'
+//   2. Mínimo 4 participantes (impede torneios solo/fabricados)
+window._isTournamentQualifiedForTrophy = function(t) {
+  if (!t) return false;
+  if (t.status !== 'finished') return false;
+  var count = (t.participants && t.participants.length) ||
+              (t.memberEmails && t.memberEmails.length) || 0;
+  return count >= 4;
+};
+
 console.log('[trophy-catalog] loaded — ' + window.TROPHY_CATALOG.length + ' trophies, ' + window.MILESTONE_CATALOG.length + ' milestones');
