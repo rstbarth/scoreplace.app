@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.5.0-beta';
+window.SCOREPLACE_VERSION = '1.5.1-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -2056,6 +2056,11 @@ window.AppStore = {
       try {
         document.dispatchEvent(new CustomEvent('scoreplace:profile-loaded', { detail: { uid: uid } }));
       } catch (e) {}
+      // Belt+suspenders: se trophies.js já carregou e o usuário não foi
+      // bootstrapped ainda (sessão persistente sem re-login), dispara agora.
+      if (typeof window._trophyCheckPersistentSession === 'function') {
+        window._trophyCheckPersistentSession();
+      }
       return profile;
     } catch (e) {
       console.error('Erro ao carregar perfil:', e);

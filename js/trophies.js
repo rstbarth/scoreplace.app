@@ -409,34 +409,106 @@
   };
 
   // ─── Bootstrap: verifica todos os troféus ao logar ───────────────────────
-  window._bootstrapTrophiesForUser = function(uid) {
+  // Chave de localStorage para rastrear se este usuário já foi bootstrapped
+  // com o sistema de troféus v1.5.0+. Impede re-varredura desnecessária
+  // em cada reload de página.
+  function _bootstrapKey(uid) { return 'scoreplace_trophy_boot_v1_' + uid; }
+  function _markBootstrapped(uid) {
+    try { localStorage.setItem(_bootstrapKey(uid), '1'); } catch(e) {}
+  }
+  function _wasBootstrapped(uid) {
+    try { return localStorage.getItem(_bootstrapKey(uid)) === '1'; } catch(e) { return false; }
+  }
+
+  // Flag para suprimir overlays durante varredura retroativa (bootstrap silencioso).
+  // Quando true, apenas toasts discretos são exibidos, nunca pop-ups ricos.
+  var _isSilentBootstrap = false;
+
+  window._bootstrapTrophiesForUser = function(uid, opts) {
     if (!uid) return;
+    opts = opts || {};
+
+    // Se já bootstrappou e não é força (ex: botão manual), pula.
+    if (!opts.force && _wasBootstrapped(uid)) return;
 
     // Carrega troféus existentes do Firestore primeiro (evita re-award)
     window._loadUserTrophies(uid).then(function() {
-      // Aguarda um tick para garantir que o resto da app inicializou
+      // Aguarda 3s para não competir com loaders iniciais da app
       setTimeout(function() {
-        window._getUserTrophyStats(uid).then(function(stats) {
-          var ctx = {
-            stats: stats,
-            currentUser: (window.AppStore && window.AppStore.currentUser) || {}
-          };
+        // Garante perfil carregado antes de checar troféus de perfil
+        var profilePromise = (typeof window.loadUserProfile === 'function' && !(window.AppStore && window.AppStore.currentUser && window.AppStore.currentUser.displayName))
+          ? window.loadUserProfile(uid)
+          : Promise.resolve();
 
-          // Varre todos os troféus não-conquistados
-          (window.TROPHY_CATALOG || []).forEach(function(trophy) {
-            var userTrophies = _cache.trophies[uid] || {};
-            if (!userTrophies[trophy.id]) {
-              window._checkAndAwardTrophy(trophy.id, uid, ctx);
-            }
-          });
+        profilePromise.then(function() {
+          window._getUserTrophyStats(uid).then(function(stats) {
+            var cu = (window.AppStore && window.AppStore.currentUser) || {};
+            var ctx = { stats: stats, currentUser: cu };
 
-          // Varre todos os milestones
-          (window.MILESTONE_CATALOG || []).forEach(function(milestone) {
-            window._checkMilestoneAward(milestone.id, uid, ctx);
-          });
-        }).catch(function() {});
-      }, 3000); // 3s após login para não competir com outros loaders
+            // Bootstrap silencioso: não mostrar overlay rico para cada troféu histórico
+            // (poderia acumular 10+ pop-ups). Apenas toasts discretos para novos.
+            _isSilentBootstrap = true;
+            var newlyAwarded = 0;
+
+            // Varre todos os troféus não-conquistados
+            var awardsPromises = [];
+            (window.TROPHY_CATALOG || []).forEach(function(trophy) {
+              var userTrophies = _cache.trophies[uid] || {};
+              if (!userTrophies[trophy.id]) {
+                awardsPromises.push(
+                  window._checkAndAwardTrophy(trophy.id, uid, ctx).then(function(awarded) {
+                    if (awarded) newlyAwarded++;
+                  }).catch(function() {})
+                );
+              }
+            });
+
+            // Varre todos os milestones
+            (window.MILESTONE_CATALOG || []).forEach(function(milestone) {
+              awardsPromises.push(
+                window._checkMilestoneAward(milestone.id, uid, ctx).then(function(awarded) {
+                  if (awarded) newlyAwarded++;
+                }).catch(function() {})
+              );
+            });
+
+            Promise.all(awardsPromises).then(function() {
+              _isSilentBootstrap = false;
+              _markBootstrapped(uid);
+
+              // Se ganhou troféus retroativos, mostra resumo único em vez de N pop-ups
+              if (newlyAwarded > 0) {
+                if (typeof window.showNotification === 'function') {
+                  window.showNotification(
+                    '🏆 ' + newlyAwarded + ' conquista' + (newlyAwarded > 1 ? 's' : '') + ' desbloqueada' + (newlyAwarded > 1 ? 's' : '') + '!',
+                    'Veja seus troféus em #trofeus',
+                    'success'
+                  );
+                }
+              }
+            }).catch(function() {
+              _isSilentBootstrap = false;
+              _markBootstrapped(uid);
+            });
+
+          }).catch(function() { _isSilentBootstrap = false; });
+        }).catch(function() { _isSilentBootstrap = false; });
+      }, 3000);
     }).catch(function() {});
+  };
+
+  // ─── Auto-bootstrap para usuários com sessão persistida ──────────────────
+  // Usuários que já estavam logados quando o sistema de troféus foi deployado
+  // nunca passam por simulateLoginSuccess. Este listener detecta a sessão
+  // persistida e dispara o bootstrap se ainda não foi feito.
+  window._trophyCheckPersistentSession = function() {
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!cu || !cu.uid) return;
+    if (_wasBootstrapped(cu.uid)) return;
+    // Pequeno delay para deixar o restante da app inicializar
+    setTimeout(function() {
+      window._bootstrapTrophiesForUser(cu.uid);
+    }, 2000);
   };
 
   // ─── Overlay de conquista ────────────────────────────────────────────────

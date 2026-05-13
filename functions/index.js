@@ -102,6 +102,121 @@ exports.cleanupOldCasualMatches = onSchedule(
   }
 );
 
+// ─── Scheduled cleanup: abandoned Firebase Auth accounts + merged ghosts ─────
+//
+// Dois tipos de lixo limpos aqui:
+//
+// TIPO 1 — "Incompletos": contas Auth sem doc Firestore (iniciaram login mas
+// nunca completaram o perfil). Regra: criada + último login ambos > 30 dias.
+// Por que 30 dias? Alguém pode receber convite de torneio, iniciar o flow e
+// demorar semanas pra voltar. 30 dias = definitivamente abandonado.
+//
+// TIPO 2 — "Ghosts": contas cuja duplicata foi mergeada em outra conta. O doc
+// Firestore fica com `mergedInto: <uid_canonico>` como tombstone. Após 7 dias
+// do merge o ghost é apagado de Auth E Firestore — sem fantasmas no sistema.
+// Por que 7 dias? É tempo suficiente pra qualquer sessão ativa do ghost expirar
+// naturalmente. Firebase tokens duram 1h; refresh tokens duram mais, mas após
+// o merge a conta não tem mais dados úteis.
+//
+// Implementação segura:
+// - Pagina via listUsers() (1000 por vez)
+// - Checa Firestore em lotes de 50
+// - Contas com perfil real nunca são tocadas
+exports.cleanupAbandonedAuth = onSchedule(
+  {
+    schedule: "every day 04:15",
+    timeZone: "America/Sao_Paulo",
+    region: "us-central1",
+    timeoutSeconds: 300,
+    memory: "256MiB",
+  },
+  async () => {
+    const db = admin.firestore();
+    const auth = admin.auth();
+    const ABANDONED_THRESHOLD_MS = 30 * 24 * 60 * 60 * 1000; // 30 dias
+    const GHOST_THRESHOLD_MS     =  7 * 24 * 60 * 60 * 1000; //  7 dias
+    const now = Date.now();
+    let totalChecked = 0;
+    let deletedAbandoned = 0;
+    let deletedGhosts = 0;
+    let pageToken = undefined;
+
+    do {
+      const listResult = await auth.listUsers(1000, pageToken);
+      totalChecked += listResult.users.length;
+
+      // Candidatos a incompletos (> 30 dias, sem login recente)
+      const candidates = listResult.users.filter((u) => {
+        const createdMs = u.metadata && u.metadata.creationTime
+          ? new Date(u.metadata.creationTime).getTime() : 0;
+        if (now - createdMs < ABANDONED_THRESHOLD_MS) return false;
+        const lastSignInMs = u.metadata && u.metadata.lastSignInTime
+          ? new Date(u.metadata.lastSignInTime).getTime() : 0;
+        if (now - lastSignInMs < ABANDONED_THRESHOLD_MS) return false;
+        return true;
+      });
+
+      // Todos os usuários (para detectar ghosts mesmo recentes)
+      const allUsers = listResult.users;
+
+      // ── TIPO 1: Incompletos sem Firestore doc ────────────────────────
+      for (let i = 0; i < candidates.length; i += 50) {
+        const batch = candidates.slice(i, i + 50);
+        const refs = batch.map((u) => db.collection("users").doc(u.uid));
+        const snaps = await db.getAll(...refs);
+        for (let j = 0; j < batch.length; j++) {
+          if (!snaps[j].exists) {
+            try {
+              await auth.deleteUser(batch[j].uid);
+              deletedAbandoned++;
+              console.log(`[cleanupAbandonedAuth] abandoned: uid=${batch[j].uid} email=${batch[j].email || batch[j].phoneNumber || "(anon)"}`);
+            } catch (err) {
+              console.warn(`[cleanupAbandonedAuth] failed abandoned uid=${batch[j].uid}:`, err.message);
+            }
+          }
+        }
+      }
+
+      // ── TIPO 2: Ghosts com mergedInto ───────────────────────────────
+      // Lê os docs Firestore de todos os usuários desta página em lotes de 50
+      for (let i = 0; i < allUsers.length; i += 50) {
+        const batch = allUsers.slice(i, i + 50);
+        const refs = batch.map((u) => db.collection("users").doc(u.uid));
+        const snaps = await db.getAll(...refs);
+        for (let j = 0; j < batch.length; j++) {
+          if (!snaps[j].exists) continue; // incompleto — já tratado acima
+          const data = snaps[j].data() || {};
+          if (!data.mergedInto) continue; // conta real — não tocar
+          // É um ghost. Checar quando foi mergeado (campo createdAt ou updatedAt)
+          const mergedAtStr = data.updatedAt || data.createdAt || "";
+          const mergedMs = mergedAtStr ? new Date(mergedAtStr).getTime() : 0;
+          if (mergedMs && (now - mergedMs) < GHOST_THRESHOLD_MS) continue; // recente, aguardar
+          // Ghost velho o suficiente → apagar Auth + Firestore
+          try {
+            await auth.deleteUser(batch[j].uid);
+          } catch (err) {
+            if (err.code !== "auth/user-not-found") {
+              console.warn(`[cleanupAbandonedAuth] failed ghost auth uid=${batch[j].uid}:`, err.message);
+              continue;
+            }
+          }
+          try {
+            await snaps[j].ref.delete();
+          } catch (err) {
+            console.warn(`[cleanupAbandonedAuth] failed ghost fs uid=${batch[j].uid}:`, err.message);
+          }
+          deletedGhosts++;
+          console.log(`[cleanupAbandonedAuth] ghost: uid=${batch[j].uid} mergedInto=${data.mergedInto}`);
+        }
+      }
+
+      pageToken = listResult.pageToken;
+    } while (pageToken);
+
+    console.log(`[cleanupAbandonedAuth] checked=${totalChecked} abandoned=${deletedAbandoned} ghosts=${deletedGhosts}`);
+  }
+);
+
 // ─── Scheduled cleanup: expired magic link wrappers ──────────────────────────
 // v1.0.34-beta: docs em magicLinks/{token} guardam o firebaseLink resolvido
 // pelo wrapper-URL no clique do email. Cada doc tem expiresAt = createdAt+90min
@@ -664,5 +779,614 @@ exports.cleanupOldWhatsAppQueue = onSchedule(
       .where("processedAt", "<", threshold);
     const deleted = await _batchDeleteQuery(query);
     console.log(`[cleanupOldWhatsAppQueue] deleted ${deleted} docs (threshold: ${threshold})`);
+  }
+);
+
+// ─── notifyLeagueRoundWhatsApp ─────────────────────────────────────────────
+// Chamada pelo cliente após sortear nova rodada da Liga/Suíço.
+// Para cada partida da rodada, busca o telefone de cada jogador no Firestore,
+// cria um grupo no WhatsApp com eles via Evolution API e envia uma mensagem
+// informando que precisam combinar o jogo e lançar o resultado antes do
+// próximo sorteio agendado.
+//
+// Input: {
+//   tournamentId: string,
+//   roundIndex: number,       // índice do round em t.rounds (0-based)
+//   nextDrawDateStr: string,  // "DD/MM/YYYY às HH:MM" ou "Não agendado"
+// }
+// Output: { ok: true, groups: [{match, created, groupJid, error?}] }
+exports.notifyLeagueRoundWhatsApp = onCall(
+  {
+    region: "us-central1",
+    timeoutSeconds: 120,
+    memory: "256MiB",
+    secrets: [EVOLUTION_API_URL, EVOLUTION_API_KEY, EVOLUTION_INSTANCE],
+  },
+  async (request) => {
+    const { tournamentId, roundIndex, nextDrawDateStr } = request.data || {};
+    if (!tournamentId) return { ok: false, reason: "missing-tournament-id" };
+
+    const db = admin.firestore();
+    const apiUrl = EVOLUTION_API_URL.value();
+    const apiKey = EVOLUTION_API_KEY.value();
+    const instance = EVOLUTION_INSTANCE.value();
+
+    // ── 1. Fetch tournament ──────────────────────────────────────────
+    let t;
+    try {
+      const snap = await db.collection("tournaments").doc(String(tournamentId)).get();
+      if (!snap.exists) return { ok: false, reason: "tournament-not-found" };
+      t = snap.data();
+    } catch (e) {
+      console.error("[notifyLeagueRoundWhatsApp] fetch tournament failed:", e.message);
+      return { ok: false, reason: "firestore-error" };
+    }
+
+    // ── 2. Get the round ────────────────────────────────────────────
+    const rounds = t.rounds || [];
+    const ri = (typeof roundIndex === "number") ? roundIndex : rounds.length - 1;
+    const round = rounds[ri];
+    if (!round || !Array.isArray(round.matches)) {
+      return { ok: false, reason: "round-not-found" };
+    }
+    const realMatches = round.matches.filter((m) => !m.isSitOut && !m.isBye);
+    if (realMatches.length === 0) return { ok: false, reason: "no-matches" };
+
+    // ── 3. Build phone lookup from participants + users collection ───
+    // participants[] can have: { displayName, name, uid, email, phone }
+    const participants = Array.isArray(t.participants)
+      ? t.participants
+      : Object.values(t.participants || {});
+
+    // Map: normalizedName → { uid, email, phone }
+    // For doubles teams ("Alice/Bob"), we add entries for:
+    //  1. The full team name ("alice/bob") → primary registrant's uid/email/phone
+    //  2. Each nested member in p.participants[] → their own uid/email/phone (best path)
+    //  3. Each slash-split individual ("alice", "bob") → fallback to team entry
+    // This ensures resolvePhone works for all 4 players in a doubles match.
+    const participantMap = {};
+    const normalize = (s) => String(s || "").trim().toLowerCase();
+    participants.forEach((p) => {
+      if (!p || typeof p !== "object") return;
+      const fullName = normalize(p.displayName || p.name || "");
+      const teamEntry = {
+        uid: p.uid || null,
+        email: p.email || null,
+        phone: p.phone || null,
+      };
+      if (fullName) participantMap[fullName] = teamEntry;
+
+      // Path 1: nested participants[] — each member has their own uid (doubles teams with full data)
+      if (Array.isArray(p.participants)) {
+        p.participants.forEach((member) => {
+          if (!member || typeof member !== "object") return;
+          const mName = normalize(member.displayName || member.name || "");
+          if (mName && !participantMap[mName]) {
+            participantMap[mName] = {
+              uid: member.uid || null,
+              email: member.email || null,
+              phone: member.phone || null,
+            };
+          }
+        });
+      }
+
+      // Path 2: slash-split fallback — "alice/bob" → also map "alice" and "bob"
+      // Points to the team entry (uid = primary registrant); at minimum, the primary's
+      // phone will be found. If the partner has their own nested entry (path 1), that
+      // was already added above and won't be overwritten here (check `!participantMap[m]`).
+      if (fullName && fullName.includes("/")) {
+        fullName.split("/").map((s) => s.trim()).filter(Boolean).forEach((m) => {
+          const mKey = normalize(m);
+          if (mKey && !participantMap[mKey]) {
+            participantMap[mKey] = teamEntry;
+          }
+        });
+      }
+    });
+
+    // Resolve phone for a player name: first from participants map, then
+    // from users collection (by uid or by email_lower).
+    async function resolvePhone(playerName) {
+      const key = normalize(playerName);
+      const entry = participantMap[key];
+      if (!entry) return null;
+      // Direct phone on participant record
+      if (entry.phone) return _normalizePhone(entry.phone);
+      // Look up by uid
+      if (entry.uid) {
+        try {
+          const userDoc = await db.collection("users").doc(entry.uid).get();
+          if (userDoc.exists) {
+            const phone = (userDoc.data() || {}).phone;
+            if (phone) return _normalizePhone(phone);
+          }
+        } catch (_) {}
+      }
+      // Look up by email_lower (field stored by the app)
+      if (entry.email) {
+        try {
+          const emailLower = String(entry.email).toLowerCase().trim();
+          const q = await db.collection("users")
+            .where("email_lower", "==", emailLower).limit(1).get();
+          if (!q.empty) {
+            const phone = (q.docs[0].data() || {}).phone;
+            if (phone) return _normalizePhone(phone);
+          }
+        } catch (_) {}
+      }
+      return null;
+    }
+
+    const tournamentName = t.name || "Liga";
+    const roundNumber = ri + 1;
+    const tId = String(tournamentId);
+
+    // ── 4. For each match: create WA group + send message ───────────
+    const results = [];
+    for (const match of realMatches) {
+      // Extract player names (supports singles p1/p2 and doubles team1/team2)
+      let playerNames = [];
+      if (Array.isArray(match.team1) && match.team1.length > 0) {
+        playerNames = [...match.team1, ...(match.team2 || [])];
+      } else {
+        if (match.p1) playerNames.push(match.p1);
+        if (match.p2) playerNames.push(match.p2);
+      }
+      // For doubles: expand "Alice/Bob" → ["Alice/Bob", "Alice", "Bob"]
+      // We include both the full team name AND individual members so that resolvePhone
+      // can match via the team-key fallback AND via individual participant entries.
+      const expandedNames = [];
+      playerNames.forEach((n) => {
+        const teamName = String(n).trim();
+        if (!teamName) return;
+        expandedNames.push(teamName); // full name (e.g. "Alice/Bob") — covers slash-map fallback
+        if (teamName.includes("/")) {
+          // Also add individual members so their own uid/phone can be found
+          teamName.split("/").map((s) => s.trim()).filter(Boolean).forEach((m) => {
+            if (m && m !== teamName) expandedNames.push(m);
+          });
+        }
+      });
+
+      // Resolve phones (in parallel) — deduplicate so same phone isn't added twice
+      // (e.g. "Alice/Bob" and "Alice" both resolving to Alice's phone)
+      const phoneResults = await Promise.all(expandedNames.map(resolvePhone));
+      const phones = [...new Set(phoneResults.filter(Boolean))];
+
+      if (phones.length < 2) {
+        console.log(`[notifyLeagueRoundWhatsApp] match "${match.p1 || (match.team1||[]).join('+')} vs ${match.p2 || (match.team2||[]).join('+')}": only ${phones.length} phone(s) found — skipping group creation`);
+        results.push({ match: `${match.p1} vs ${match.p2}`, created: false, reason: "insufficient-phones" });
+        continue;
+      }
+
+      // Group subject — max 100 chars for WA
+      const matchLabel = Array.isArray(match.team1)
+        ? `${(match.team1 || []).join("+")} vs ${(match.team2 || []).join("+")}`
+        : `${match.p1 || "?"} vs ${match.p2 || "?"}`;
+      const subject = `${tournamentName} R${roundNumber}: ${matchLabel}`.substring(0, 100);
+
+      // Message body
+      const nextDrawLabel = nextDrawDateStr || "Não agendado";
+      const link = `https://scoreplace.app/#bracket/${tId}`;
+      const message =
+        `🎾 *${tournamentName} — Rodada ${roundNumber}*\n\n` +
+        `Olá! Vocês foram sorteados para jogar juntos nesta rodada.\n\n` +
+        `📋 *Partida:* ${matchLabel}\n` +
+        `⏰ *Prazo:* Lancem o resultado antes do próximo sorteio:\n` +
+        `📅 *Próximo sorteio:* ${nextDrawLabel}\n\n` +
+        `Combinem o horário aqui no grupo e registrem o placar no app:\n${link}`;
+
+      // ── Create group ────────────────────────────────────────────────
+      let groupJid = null;
+      try {
+        const createUrl = apiUrl.replace(/\/+$/, "") + "/group/create/" + encodeURIComponent(instance);
+        // Evolution API expects participants as "55XXXXXXXXXXX" (no @s.whatsapp.net for creation)
+        const participantsList = phones.map((p) => p.replace(/[^0-9]/g, ""));
+        const createResp = await fetch(createUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": apiKey,
+          },
+          body: JSON.stringify({
+            subject: subject,
+            description: `Partida da ${tournamentName}. Combinem e lancem o resultado antes de ${nextDrawLabel}.`,
+            participants: participantsList,
+          }),
+        });
+        const createData = await createResp.json().catch(() => null);
+        if (!createResp.ok) {
+          const errMsg = (createData && createData.message) ? JSON.stringify(createData.message) : createResp.statusText;
+          console.error(`[notifyLeagueRoundWhatsApp] group create failed for "${matchLabel}": HTTP ${createResp.status} — ${errMsg}`);
+          results.push({ match: matchLabel, created: false, reason: `group-create-failed: ${createResp.status}` });
+          continue;
+        }
+        // Extract group JID — Evolution returns different shapes depending on version
+        groupJid =
+          (createData && createData._serialized) ||
+          (createData && createData.id && createData.id._serialized) ||
+          (createData && createData.id && typeof createData.id === "string" ? createData.id : null) ||
+          null;
+        if (!groupJid && createData) {
+          // Try to find any key containing "@g.us"
+          const raw = JSON.stringify(createData);
+          const m = raw.match(/"([0-9\-]+@g\.us)"/);
+          if (m) groupJid = m[1];
+        }
+        console.log(`[notifyLeagueRoundWhatsApp] group created for "${matchLabel}": jid=${groupJid}`);
+      } catch (e) {
+        console.error(`[notifyLeagueRoundWhatsApp] group create exception for "${matchLabel}":`, e.message);
+        results.push({ match: matchLabel, created: false, reason: `group-create-exception: ${e.message}` });
+        continue;
+      }
+
+      if (!groupJid) {
+        results.push({ match: matchLabel, created: true, groupJid: null, reason: "group-jid-not-found-in-response" });
+        continue;
+      }
+
+      // Small delay before sending message
+      await new Promise((r) => setTimeout(r, 1500));
+
+      // ── Send message to the group ───────────────────────────────────
+      const msgResult = await _sendWhatsAppText(apiUrl, apiKey, instance, groupJid, message);
+      console.log(`[notifyLeagueRoundWhatsApp] message to group ${groupJid}:`, msgResult.ok ? "ok" : msgResult.error);
+      results.push({ match: matchLabel, created: true, groupJid, messageSent: msgResult.ok, messageError: msgResult.error });
+
+      // Small delay between groups to avoid rate limiting
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+
+    const created = results.filter((r) => r.created).length;
+    console.log(`[notifyLeagueRoundWhatsApp] tournament ${tId} round ${roundNumber}: ${created}/${realMatches.length} groups created`);
+    return { ok: true, groups: results };
+  }
+);
+
+// ─── Retroactive Trophy Backfill ─────────────────────────────────────────────
+// Callable function that sweeps ALL existing users and awards trophies/milestones
+// based on their historical Firestore data.  Uses Admin SDK so it bypasses
+// Firestore security rules (no user login required per target uid).
+//
+// Only callable by the app owner (rstbarth@gmail.com).
+// Expected runtime: a few minutes for tens of users; ~5-10 min for hundreds.
+//
+// Trophies that depend on real-time event payload (madrugador, noturno, virada)
+// are SKIPPED in backfill — they will be awarded going forward on new events.
+//
+// Returns: { processed, trophiesAwarded, milestonesAwarded, errors, counts }
+//
+// Trigger from the app: click "🔧 Backfill Troféus" on the admin dashboard panel.
+
+// ── Inline trophy conditions (ported from trophy-catalog.js) ─────────────────
+// Only includes trophies that CAN be retroactively verified from stored data.
+const BACKFILL_TROPHY_DEFS = [
+  // PERFIL
+  { id: "perfil_completo",    check: (u, s) => !!(u.displayName && u.preferredSports && u.preferredSports.length > 0 && u.gender && u.city && (u.skill || (u.skillBySport && Object.keys(u.skillBySport).length > 0))) },
+  { id: "perfil_foto",        check: (u, s) => !!(u.photoURL && u.photoURL.includes("googleusercontent")) },
+  { id: "perfil_local",       check: (u, s) => !!(u.preferredLocations && u.preferredLocations.length > 0) },
+  { id: "perfil_skills",      check: (u, s) => !!(u.skillBySport && Object.keys(u.skillBySport).length >= 3) },
+  // CASUAIS
+  { id: "casual_primeira",            check: (u, s) => (s.casualMatchesPlayed || 0) >= 1 },
+  { id: "casual_primeira_vitoria",    check: (u, s) => (s.casualMatchesWon || 0) >= 1 },
+  { id: "casual_multimodalidade",     check: (u, s) => (s.casualSportsPlayed || 0) >= 3 },
+  { id: "casual_maratonista",         check: (u, s) => (s.casualActiveDaysThisMonth || 0) >= 7 },
+  // especial_all_modalities
+  { id: "especial_all_modalities",    check: (u, s) => (s.casualSportsPlayed || 0) >= 9 },
+  // TORNEIOS
+  { id: "torneio_primeiro_inscrito",  check: (u, s) => (s.tournamentsEnrolled || 0) >= 1 },
+  { id: "torneio_campeao",            check: (u, s) => (s.tournamentWins || 0) >= 1 },
+  { id: "torneio_liga",               check: (u, s) => (s.ligaParticipations || 0) >= 1 },
+  { id: "torneio_criou_primeiro",     check: (u, s) => (s.tournamentsCreated || 0) >= 1 },
+  { id: "especial_organizador_serie", check: (u, s) => (s.tournamentsWithTenPlus || 0) >= 5 },
+  // PRESENÇA
+  { id: "presenca_primeira",          check: (u, s) => (s.checkinsTotal || 0) >= 1 },
+  { id: "presenca_planejou",          check: (u, s) => (s.plansCreated || 0) >= 1 },
+  { id: "presenca_3_locais",          check: (u, s) => (s.uniqueVenuesVisited || 0) >= 3 },
+  { id: "presenca_toda_semana",       check: (u, s) => (s.checkInWeekStreak || 0) >= 4 },
+  // SOCIAL
+  { id: "social_primeiro_amigo",      check: (u, s) => (s.friendsCount || 0) >= 1 },
+  { id: "social_encontrou_amigos",    check: (u, s) => (s.friendsCount || 0) >= 5 },
+  { id: "social_convidou",            check: (u, s) => (s.invitesSent || 0) >= 1 },
+  { id: "social_notificou_amigos",    check: (u, s) => (s.friendNotifications || 0) >= 5 },
+  // ESPECIAL FUNDADOR (criou conta antes de 2026-06-01)
+  { id: "especial_fundador",          check: (u, s) => {
+    if (!u.createdAt) return false;
+    return new Date(u.createdAt) < new Date("2026-06-01T00:00:00Z");
+  }},
+];
+
+// Milestones: id, metric, step, startAt
+const BACKFILL_MILESTONES = [
+  { id: "milestone_casual_jogadas",              metric: "casualMatchesPlayed",  step: 25, startAt: 25 },
+  { id: "milestone_casual_vitorias",             metric: "casualMatchesWon",     step: 25, startAt: 25 },
+  { id: "milestone_torneios_participados",       metric: "tournamentsEnrolled",  step: 3,  startAt: 3  },
+  { id: "milestone_torneios_campeao",            metric: "tournamentWins",       step: 2,  startAt: 2  },
+  { id: "milestone_torneios_criados",            metric: "tournamentsCreated",   step: 3,  startAt: 3  },
+  { id: "milestone_partidas_torneio_vitorias",   metric: "tournamentMatchesWon", step: 25, startAt: 25 },
+  { id: "milestone_checkins",                    metric: "checkinsTotal",        step: 10, startAt: 10 },
+  { id: "milestone_locais_visitados",            metric: "uniqueVenuesVisited",  step: 5,  startAt: 5  },
+  { id: "milestone_amigos",                      metric: "friendsCount",         step: 5,  startAt: 5  },
+];
+
+function _milestoneTierFromLevel(level) {
+  if (level <= 4)  return "bronze";
+  if (level <= 8)  return "prata";
+  if (level <= 12) return "ouro";
+  return "platina";
+}
+
+function _trophyTierFromPct(pct) {
+  if (pct > 60) return "bronze";
+  if (pct > 20) return "prata";
+  if (pct > 5)  return "ouro";
+  return "platina";
+}
+
+// Compute all user stats from Firestore collections
+async function _computeBackfillStats(db, uid, userData) {
+  const email = (userData.email || "").toLowerCase();
+  const stats = {
+    friendsCount:              (userData.friends && userData.friends.length) || 0,
+    invitesSent:               userData.invitesSent || 0,
+    friendNotifications:       userData.friendNotifications || 0,
+    activityDayStreak:         userData.activityDayStreak || 0,
+    checkInWeekStreak:         userData.checkInWeekStreak || 0,
+    casualActiveDaysThisMonth: userData.casualActiveDaysThisMonth || 0,
+    casualMatchesPlayed:       0,
+    casualMatchesWon:          0,
+    casualSportsPlayed:        0,
+    tournamentsEnrolled:       0,
+    tournamentWins:            0,
+    tournamentPodiums:         0,
+    ligaParticipations:        0,
+    tournamentsWithTenPlus:    0,
+    tournamentsCreated:        0,
+    tournamentMatchesWon:      0,
+    checkinsTotal:             0,
+    uniqueVenuesVisited:       0,
+    plansCreated:              0,
+  };
+
+  const LIGA_KEYWORDS = ["Liga", "Ranking", "Suíço", "Suico", "Swiss"];
+
+  const queries = [
+    // Casual matches where user is host
+    db.collection("casualMatches")
+      .where("hostUid", "==", uid)
+      .where("status", "==", "finished")
+      .get()
+      .then((snap) => {
+        const sportsSet = {};
+        snap.forEach((doc) => {
+          const d = doc.data();
+          stats.casualMatchesPlayed++;
+          if (d.winner === d.hostColor) stats.casualMatchesWon++;
+          if (d.sport) sportsSet[d.sport] = true;
+        });
+        stats.casualSportsPlayed = Object.keys(sportsSet).length;
+      })
+      .catch(() => {}),
+
+    // Casual matches where user is guest (any uid field)
+    db.collection("casualMatches")
+      .where("guestUid", "==", uid)
+      .where("status", "==", "finished")
+      .get()
+      .then((snap) => {
+        snap.forEach((doc) => {
+          const d = doc.data();
+          stats.casualMatchesPlayed++;
+          if (d.winner === d.guestColor) stats.casualMatchesWon++;
+        });
+      })
+      .catch(() => {}),
+
+    // Tournaments the user is enrolled in
+    ...(email ? [
+      db.collection("tournaments")
+        .where("memberEmails", "array-contains", email)
+        .get()
+        .then((snap) => {
+          snap.forEach((doc) => {
+            const t = doc.data();
+            stats.tournamentsEnrolled++;
+            // Liga / Suíço check
+            if (t.format && LIGA_KEYWORDS.some((k) => t.format.includes(k))) {
+              stats.ligaParticipations++;
+            }
+            // Win check
+            const displayName = userData.displayName || "";
+            if (t.winner && (t.winner === displayName || t.winner === email)) {
+              stats.tournamentWins++;
+            }
+            // Organizer with 10+ participants
+            if ((t.organizerEmail === email || t.organizerUid === uid)) {
+              const count = (t.participants && t.participants.length) || 0;
+              if (count >= 10) stats.tournamentsWithTenPlus++;
+            }
+          });
+        })
+        .catch(() => {})
+    ] : []),
+
+    // Tournaments created
+    ...(email ? [
+      db.collection("tournaments")
+        .where("organizerEmail", "==", email)
+        .get()
+        .then((snap) => { stats.tournamentsCreated = snap.size; })
+        .catch(() => {})
+    ] : []),
+
+    // Presences
+    db.collection("presences")
+      .where("uid", "==", uid)
+      .where("type", "in", ["checkin", "plan"])
+      .get()
+      .then((snap) => {
+        const venueSet = {};
+        snap.forEach((doc) => {
+          const d = doc.data();
+          if (d.type === "checkin") {
+            stats.checkinsTotal++;
+            if (d.placeId) venueSet[d.placeId] = true;
+          }
+          if (d.type === "plan") stats.plansCreated++;
+        });
+        stats.uniqueVenuesVisited = Object.keys(venueSet).length;
+      })
+      .catch(() => {}),
+  ];
+
+  await Promise.all(queries);
+  return stats;
+}
+
+exports.backfillAllUserTrophies = onCall(
+  {
+    region: "us-central1",
+    memory: "512MiB",
+    timeoutSeconds: 540,
+    cors: ["https://scoreplace.app", "http://localhost:9876"],
+  },
+  async (request) => {
+    // ── Auth guard: only owner ───────────────────────────────────────────────
+    const callerUid = request.auth && request.auth.uid;
+    if (!callerUid) throw new HttpsError("unauthenticated", "Login required");
+
+    const db = admin.firestore();
+    const callerDoc = await db.collection("users").doc(callerUid).get().catch(() => null);
+    if (!callerDoc || !callerDoc.exists) throw new HttpsError("permission-denied", "No profile");
+    const callerData = callerDoc.data() || {};
+    if (callerData.email !== "rstbarth@gmail.com") {
+      throw new HttpsError("permission-denied", "Owner only");
+    }
+
+    // ── Fetch all user docs ──────────────────────────────────────────────────
+    const usersSnap = await db.collection("users").get();
+    const totalUsers = usersSnap.docs.filter((d) => d.data() && d.data().email).length;
+    console.log(`[backfill] Starting trophy backfill: ${totalUsers} users with profiles`);
+
+    // Update totalUsers in trophyStats so rarity calculations work
+    await db.collection("_meta").doc("trophyStats").set(
+      { totalUsers: Math.max(totalUsers, 1) },
+      { merge: true }
+    ).catch(() => {});
+
+    let processed = 0;
+    let trophiesAwarded = 0;
+    let milestonesAwarded = 0;
+    let errors = 0;
+    const trophyCounts = {};  // trophyId → how many new awards
+
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+      const userData = userDoc.data() || {};
+      if (!userData.email) continue;  // skip incomplete/ghost docs
+
+      try {
+        // ── 1. Compute stats ───────────────────────────────────────────────
+        const stats = await _computeBackfillStats(db, uid, userData);
+
+        // ── 2. Load existing trophies (idempotent) ─────────────────────────
+        const existTrophySnap = await db.collection("users").doc(uid)
+          .collection("trophies").get().catch(() => null);
+        const existTrophies = {};
+        if (existTrophySnap) existTrophySnap.forEach((d) => { existTrophies[d.id] = true; });
+
+        // ── 3. Check and award trophies ────────────────────────────────────
+        const newTrophies = [];
+        for (const def of BACKFILL_TROPHY_DEFS) {
+          if (existTrophies[def.id]) continue;
+          try {
+            if (def.check(userData, stats)) newTrophies.push(def.id);
+          } catch (_) {}
+        }
+
+        if (newTrophies.length > 0) {
+          const now = new Date().toISOString();
+          // Use batched writes (max 500 per batch)
+          for (let i = 0; i < newTrophies.length; i += 400) {
+            const batch = db.batch();
+            const chunk = newTrophies.slice(i, i + 400);
+            for (const tid of chunk) {
+              // Tier starts as bronze; will be recalculated client-side when user opens trophies page
+              const ref = db.collection("users").doc(uid).collection("trophies").doc(tid);
+              batch.set(ref, { awardedAt: now, tier: "bronze", backfilled: true });
+              trophyCounts[tid] = (trophyCounts[tid] || 0) + 1;
+            }
+            await batch.commit();
+            trophiesAwarded += chunk.length;
+          }
+        }
+
+        // ── 4. Check milestones ────────────────────────────────────────────
+        const existMilestoneSnap = await db.collection("users").doc(uid)
+          .collection("milestones").get().catch(() => null);
+        const existMilestones = {};
+        if (existMilestoneSnap) existMilestoneSnap.forEach((d) => {
+          existMilestones[d.id] = d.data() || {};
+        });
+
+        const milestoneBatch = db.batch();
+        let hasMilestoneBatch = false;
+
+        for (const ms of BACKFILL_MILESTONES) {
+          const currentValue = stats[ms.metric] || 0;
+          if (currentValue < ms.startAt) continue;
+
+          const newLevel = Math.floor((currentValue - ms.startAt) / ms.step) + 1;
+          if (newLevel <= 0) continue;
+
+          const prevLevel = (existMilestones[ms.id] && existMilestones[ms.id].level) || 0;
+          if (newLevel <= prevLevel) continue;
+
+          const now = new Date().toISOString();
+
+          // Award individual level documents for new levels
+          for (let lvl = prevLevel + 1; lvl <= newLevel; lvl++) {
+            // Check if this level doc already exists
+            const levelId = ms.id + "_" + lvl;
+            if (existMilestones[levelId]) continue;  // already awarded
+            const threshold = ms.startAt + ms.step * (lvl - 1);
+            const tier = _milestoneTierFromLevel(lvl);
+            const ref = db.collection("users").doc(uid).collection("milestones").doc(levelId);
+            milestoneBatch.set(ref, { level: lvl, threshold, tier, awardedAt: now, metric: ms.metric, value: currentValue, backfilled: true });
+            hasMilestoneBatch = true;
+            milestonesAwarded++;
+          }
+
+          // Update root milestone doc
+          const rootRef = db.collection("users").doc(uid).collection("milestones").doc(ms.id);
+          milestoneBatch.set(rootRef, { level: newLevel, awardedAt: new Date().toISOString(), backfilled: true }, { merge: true });
+          hasMilestoneBatch = true;
+        }
+
+        if (hasMilestoneBatch) await milestoneBatch.commit();
+
+      } catch (e) {
+        console.warn(`[backfill] uid=${uid} email=${userData.email} error:`, e.message || e);
+        errors++;
+      }
+
+      processed++;
+      if (processed % 10 === 0) {
+        console.log(`[backfill] progress: ${processed} / ${totalUsers} users processed`);
+      }
+    }
+
+    // ── 5. Update global trophy counts ────────────────────────────────────────
+    if (Object.keys(trophyCounts).length > 0) {
+      const countsUpdate = {};
+      Object.entries(trophyCounts).forEach(([id, count]) => {
+        countsUpdate["counts." + id] = admin.firestore.FieldValue.increment(count);
+      });
+      await db.collection("_meta").doc("trophyStats").update(countsUpdate).catch(() => {});
+    }
+
+    console.log(`[backfill] DONE: processed=${processed} trophiesAwarded=${trophiesAwarded} milestonesAwarded=${milestonesAwarded} errors=${errors}`);
+    return { ok: true, processed, trophiesAwarded, milestonesAwarded, errors, trophyCounts };
   }
 );

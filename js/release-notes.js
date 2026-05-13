@@ -8,6 +8,14 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #f87171;border-radius:12px;padding:14px 16px;background:rgba(248,113,113,0.08);">' +
+      '<div style="font-weight:800; color:#f87171; font-size:1rem; margin-bottom:8px;">⚙️ v1.5.1-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(13 de Maio, 2026)</span></div>' +
+      '<p><b>Backfill retroativo de troféus.</b><br>' +
+      '• Cloud Function <code>backfillAllUserTrophies</code>: varre todos os usuários cadastrados e concede troféus e milestones baseados no histórico real (partidas casuais, torneios, presenças, perfil) sem precisar que cada usuário faça login.<br>' +
+      '• Painel de administração visível só para o owner no dashboard — botão "🏆 Backfill Troféus" dispara o cálculo retroativo com status em tempo real.<br>' +
+      '• Belt+suspenders: <code>_trophyCheckPersistentSession()</code> chamado após carregamento do perfil em sessões persistentes.<br>' +
+      'Alterações em <code>functions/index.js</code>, <code>dashboard.js</code>, <code>store.js</code>.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #a78bfa;border-radius:12px;padding:14px 16px;background:rgba(167,139,250,0.08);">' +
       '<div style="font-weight:800; color:#a78bfa; font-size:1rem; margin-bottom:8px;">🏆 v1.5.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(13 de Maio, 2026)</span></div>' +
       '<p><b>Sistema de Troféus e Conquistas.</b><br>' +
