@@ -200,6 +200,14 @@
         '</div>';
 
       // ── SEÇÃO: Ranking de amigos ───────────────────────────────────────
+      // Botão admin (só visível para rstbarth@gmail.com) para popular _rankStats
+      var isAdmin = cu && cu.email === 'rstbarth@gmail.com';
+      var adminSyncBtn = isAdmin
+        ? '<button id="trophy-ranking-sync-btn" onclick="window._trophyRankingSync()" ' +
+          'style="margin-top:10px;font-size:0.75rem;color:var(--text-muted);background:none;border:none;cursor:pointer;padding:4px 0;text-decoration:underline;">' +
+          '🔄 Sincronizar dados de ranking</button>'
+        : '';
+
       var rankingHtml =
         '<div class="trophy-section">' +
           '<h3 class="trophy-section-title">👥 Ranking de Amigos</h3>' +
@@ -209,6 +217,7 @@
             '<button class="btn btn-sm btn-outline ranking-tab-btn" onclick="window._switchRankingTab(\'tournamentsEnrolled\')">Torneios</button>' +
           '</div>' +
           '<div id="trophy-ranking-container"><p style="color:var(--text-muted);font-size:0.85rem;padding:8px 0;">Carregando ranking...</p></div>' +
+          adminSyncBtn +
         '</div>';
 
       // ── SEÇÃO: Troféus por categoria ───────────────────────────────────
@@ -300,6 +309,46 @@
   // Expose helper para abrir diretamente da dashboard
   window._openTrophiesPage = function() {
     window.location.hash = '#trofeus';
+  };
+
+  // ─── Admin: sincroniza _rankStats para todos os usuários ─────────────────
+  window._trophyRankingSync = function() {
+    var btn = document.getElementById('trophy-ranking-sync-btn');
+    if (btn) { btn.textContent = '⏳ Sincronizando...'; btn.disabled = true; }
+
+    var fn = window.firebase && window.firebase.functions
+      ? window.firebase.functions().httpsCallable('backfillAllUserTrophies')
+      : null;
+
+    if (!fn) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('Erro', 'Firebase Functions não disponível.', 'error');
+      }
+      if (btn) { btn.textContent = '🔄 Sincronizar dados de ranking'; btn.disabled = false; }
+      return;
+    }
+
+    fn({}).then(function(result) {
+      var d = result.data || {};
+      if (typeof window.showNotification === 'function') {
+        window.showNotification(
+          '✅ Ranking sincronizado',
+          'Processados: ' + (d.processed || '?') + ' usuários.',
+          'success'
+        );
+      }
+      // Recarrega o ranking atual
+      var cu = window.AppStore && window.AppStore.currentUser;
+      if (cu && window._currentRankingMetric) {
+        _loadAndRenderRanking(window._currentRankingMetric, cu.uid);
+      }
+      if (btn) { btn.textContent = '✅ Sincronizado'; btn.disabled = true; }
+    }).catch(function(e) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('Erro ao sincronizar', e.message || 'Tente novamente.', 'error');
+      }
+      if (btn) { btn.textContent = '🔄 Sincronizar dados de ranking'; btn.disabled = false; }
+    });
   };
 
   console.log('[trophies-view] loaded');

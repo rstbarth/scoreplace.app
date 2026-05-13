@@ -464,7 +464,9 @@
   // Chave de localStorage para rastrear se este usuário já foi bootstrapped
   // com o sistema de troféus v1.5.0+. Impede re-varredura desnecessária
   // em cada reload de página.
-  function _bootstrapKey(uid) { return 'scoreplace_trophy_boot_v1_' + uid; }
+  // v2: invalidates v1 flags so everyone gets re-bootstrapped once,
+  // which now also writes _rankStats to their user doc for ranking.
+  function _bootstrapKey(uid) { return 'scoreplace_trophy_boot_v2_' + uid; }
   function _markBootstrapped(uid) {
     try { localStorage.setItem(_bootstrapKey(uid), '1'); } catch(e) {}
   }
