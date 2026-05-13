@@ -235,6 +235,8 @@
       });
   }
 
+  window._loadTrophyStats = _loadTrophyStats;
+
   // ─── Incrementar contador global de um troféu ────────────────────────────
   function _incrementTrophyStat(trophyId) {
     var db = _db();
@@ -295,6 +297,7 @@
     ctx = ctx || {};
     ctx.currentUser = (window.AppStore && window.AppStore.currentUser) || ctx.currentUser || {};
     ctx.stats = ctx.stats || (_cache.stats[uid] || {});
+    ctx.userTrophies = ctx.userTrophies || (_cache.trophies[uid] || {});
 
     var conditionMet = false;
     try {
@@ -337,6 +340,22 @@
 
           // Incrementa contador global
           _incrementTrophyStat(trophyId);
+
+          // Verifica troféu de categoria completa (após 300ms para cache estar fresco)
+          if (trophy.category && trophyId.indexOf('cat_') !== 0) {
+            var _catId = 'cat_' + trophy.category;
+            if (window.TROPHY_CATALOG_BY_ID && window.TROPHY_CATALOG_BY_ID[_catId]) {
+              (function(_cid) {
+                setTimeout(function() {
+                  window._checkAndAwardTrophy(_cid, uid, {
+                    stats: ctx.stats,
+                    currentUser: ctx.currentUser,
+                    userTrophies: _cache.trophies[uid] || {}
+                  }).catch(function() {});
+                }, 300);
+              })(_catId);
+            }
+          }
 
           // Exibe overlay de conquista
           _showTrophyUnlockOverlay(trophy, tier);
@@ -466,7 +485,9 @@
   // em cada reload de página.
   // v2: invalidates v1 flags so everyone gets re-bootstrapped once,
   // which now also writes _rankStats to their user doc for ranking.
-  function _bootstrapKey(uid) { return 'scoreplace_trophy_boot_v2_' + uid; }
+  // v3: invalidates v2 flags so everyone gets re-bootstrapped once
+  // to pick up category completion trophies (cat_*) added in v1.5.6.
+  function _bootstrapKey(uid) { return 'scoreplace_trophy_boot_v3_' + uid; }
   function _markBootstrapped(uid) {
     try { localStorage.setItem(_bootstrapKey(uid), '1'); } catch(e) {}
   }
@@ -504,9 +525,10 @@
             _isSilentBootstrap = true;
             var newlyAwarded = 0;
 
-            // Varre todos os troféus não-conquistados
+            // Primeira passagem: troféus normais (sem cat_* de categoria completa)
             var awardsPromises = [];
             (window.TROPHY_CATALOG || []).forEach(function(trophy) {
+              if (trophy.id.indexOf('cat_') === 0) return; // segunda passagem
               var userTrophies = _cache.trophies[uid] || {};
               if (!userTrophies[trophy.id]) {
                 awardsPromises.push(
@@ -527,6 +549,23 @@
             });
 
             Promise.all(awardsPromises).then(function() {
+              // Segunda passagem: troféus de categoria completa (cat_*)
+              var _compPromises = [];
+              (window.TROPHY_CATALOG || []).forEach(function(trophy) {
+                if (trophy.id.indexOf('cat_') !== 0) return;
+                var _uTr = _cache.trophies[uid] || {};
+                if (!_uTr[trophy.id]) {
+                  _compPromises.push(
+                    window._checkAndAwardTrophy(trophy.id, uid, {
+                      stats: ctx.stats,
+                      currentUser: ctx.currentUser,
+                      userTrophies: _cache.trophies[uid] || {}
+                    }).then(function(awarded) { if (awarded) newlyAwarded++; }).catch(function() {})
+                  );
+                }
+              });
+              return Promise.all(_compPromises);
+            }).then(function() {
               _isSilentBootstrap = false;
               _markBootstrapped(uid);
 

@@ -401,6 +401,109 @@ window.TROPHY_CATALOG = [
     hidden: false,
     trigger: 'tournament_created',
     check: function(ctx) { return (ctx.stats.tournamentsWithTenPlus || 0) >= 5; }
+  },
+
+  // ── TROFEUS DE CATEGORIA COMPLETA ────────────────────────────────────────────
+  // Concedido ao completar TODOS os troféus de uma categoria.
+  // IDs prefixados com cat_ para que o bootstrap os trate em segundo passo.
+
+  {
+    id: 'cat_perfil',
+    category: 'perfil',
+    title: 'Perfil Perfeito',
+    desc: 'Complete todos os troféus da categoria Perfil.',
+    icon: '⭐',
+    tier: 'ouro',
+    trigger: 'category_complete',
+    check: function(ctx) {
+      var all = (window.TROPHY_CATALOG_BY_CATEGORY && window.TROPHY_CATALOG_BY_CATEGORY['perfil']) || [];
+      var earned = ctx.userTrophies || {};
+      return all.length > 0 && all.every(function(t) {
+        return t.id.indexOf('cat_') === 0 || !!earned[t.id];
+      });
+    }
+  },
+  {
+    id: 'cat_casual',
+    category: 'casual',
+    title: 'Mestre Casual',
+    desc: 'Complete todos os troféus da categoria Partidas Casuais.',
+    icon: '🎮',
+    tier: 'platina',
+    trigger: 'category_complete',
+    check: function(ctx) {
+      var all = (window.TROPHY_CATALOG_BY_CATEGORY && window.TROPHY_CATALOG_BY_CATEGORY['casual']) || [];
+      var earned = ctx.userTrophies || {};
+      return all.length > 0 && all.every(function(t) {
+        return t.id.indexOf('cat_') === 0 || !!earned[t.id];
+      });
+    }
+  },
+  {
+    id: 'cat_torneio',
+    category: 'torneio',
+    title: 'Lorde dos Torneios',
+    desc: 'Complete todos os troféus da categoria Torneios.',
+    icon: '👑',
+    tier: 'platina',
+    trigger: 'category_complete',
+    check: function(ctx) {
+      var all = (window.TROPHY_CATALOG_BY_CATEGORY && window.TROPHY_CATALOG_BY_CATEGORY['torneio']) || [];
+      var earned = ctx.userTrophies || {};
+      return all.length > 0 && all.every(function(t) {
+        return t.id.indexOf('cat_') === 0 || !!earned[t.id];
+      });
+    }
+  },
+  {
+    id: 'cat_presenca',
+    category: 'presenca',
+    title: 'Presença Total',
+    desc: 'Complete todos os troféus da categoria Presença.',
+    icon: '🌍',
+    tier: 'ouro',
+    trigger: 'category_complete',
+    check: function(ctx) {
+      var all = (window.TROPHY_CATALOG_BY_CATEGORY && window.TROPHY_CATALOG_BY_CATEGORY['presenca']) || [];
+      var earned = ctx.userTrophies || {};
+      return all.length > 0 && all.every(function(t) {
+        return t.id.indexOf('cat_') === 0 || !!earned[t.id];
+      });
+    }
+  },
+  {
+    id: 'cat_social',
+    category: 'social',
+    title: 'Alma Social',
+    desc: 'Complete todos os troféus da categoria Social.',
+    icon: '🌐',
+    tier: 'ouro',
+    trigger: 'category_complete',
+    check: function(ctx) {
+      var all = (window.TROPHY_CATALOG_BY_CATEGORY && window.TROPHY_CATALOG_BY_CATEGORY['social']) || [];
+      var earned = ctx.userTrophies || {};
+      return all.length > 0 && all.every(function(t) {
+        return t.id.indexOf('cat_') === 0 || !!earned[t.id];
+      });
+    }
+  },
+  {
+    id: 'cat_especial',
+    category: 'especial',
+    title: 'Lenda do scoreplace',
+    desc: 'Complete todos os troféus Especiais (exceto Fundador Beta).',
+    icon: '💎',
+    tier: 'platina',
+    trigger: 'category_complete',
+    check: function(ctx) {
+      var all = (window.TROPHY_CATALOG_BY_CATEGORY && window.TROPHY_CATALOG_BY_CATEGORY['especial']) || [];
+      var earned = ctx.userTrophies || {};
+      // Exclui especial_fundador (reconhecimento por data, não é missão) e os próprios cat_
+      var skip = { cat_especial: true, especial_fundador: true };
+      return all.length > 0 && all.every(function(t) {
+        return skip[t.id] || t.id.indexOf('cat_') === 0 || !!earned[t.id];
+      });
+    }
   }
 ];
 

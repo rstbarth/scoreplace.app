@@ -54,15 +54,23 @@
     return null; // especial: sem rota especifica
   }
 
-  function _trophyCard(trophy, awarded, tier) {
+  function _trophyCard(trophy, awarded, tier, pct) {
     var locked = !awarded;
     var style = locked ? '' : _tierStyle(tier);
     var nameStyle = locked ? 'color:var(--text-muted);' : _tierTextStyle(tier);
     var lockIcon = locked ? '🔒 ' : '';
     var iconOpacity = locked ? 'opacity:0.35;' : '';
-    var badgeHtml = (!locked && tier)
-      ? '<div class="trophy-tier-badge" style="' + _tierTextStyle(tier) + 'font-size:0.7rem;margin-top:2px;">' + _tierBadge(tier) + '</div>'
-      : '';
+    var pctLabel = (typeof pct === 'number') ? ' (' + pct + '%)' : '';
+    var badgeHtml;
+    if (!locked && tier) {
+      // Conquistado: badge de tier + percentual de usuários que completou
+      badgeHtml = '<div class="trophy-tier-badge" style="' + _tierTextStyle(tier) + 'font-size:0.7rem;margin-top:2px;">' + _tierBadge(tier) + pctLabel + '</div>';
+    } else if (pctLabel) {
+      // Não conquistado: só mostra raridade como dica
+      badgeHtml = '<div class="trophy-tier-badge" style="color:var(--text-muted);font-size:0.68rem;margin-top:2px;opacity:0.8;">' + pct + '% completaram</div>';
+    } else {
+      badgeHtml = '';
+    }
     var awardedHtml = (awarded && awarded.awardedAt)
       ? '<div class="trophy-awarded-date">Conquistado em ' + new Date(awarded.awardedAt).toLocaleDateString('pt-BR') + '</div>'
       : '';
@@ -191,11 +199,13 @@
     // Carrega dados em paralelo
     Promise.all([
       (window._loadUserTrophies ? window._loadUserTrophies(uid) : Promise.resolve({ trophies: {}, milestones: {} })),
-      (window._getUserTrophyStats ? window._getUserTrophyStats(uid) : Promise.resolve({}))
+      (window._getUserTrophyStats ? window._getUserTrophyStats(uid) : Promise.resolve({})),
+      (window._loadTrophyStats ? window._loadTrophyStats() : Promise.resolve({ counts: {}, totalUsers: 1 }))
     ]).then(function(results) {
       var userTrophies = results[0].trophies || {};
       var userMilestones = results[0].milestones || {};
       var stats = results[1] || {};
+      var tStats = results[2] || { counts: {}, totalUsers: 1 };
 
       // XP e nível
       var xp = window._calcUserXP ? window._calcUserXP(uid) : 0;
@@ -269,7 +279,8 @@
           // Troféus hidden e não conquistados: não mostrar
           if (trophy.hidden && !awarded) return;
           var tier = awarded ? awarded.tier : null;
-          trophiesHtml += _trophyCard(trophy, awarded, tier);
+          var pct = Math.round(((tStats.counts || {})[trophy.id] || 0) / Math.max(1, tStats.totalUsers || 1) * 100);
+          trophiesHtml += _trophyCard(trophy, awarded, tier, pct);
         });
         trophiesHtml += '</div></div>';
       });
