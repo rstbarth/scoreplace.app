@@ -379,6 +379,31 @@
   border-radius: 12px !important;
 }
 
+/* ── Tick verde nos trofeus conquistados ─────────────────────────────── */
+.trophy-earned-tick {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  color: #10b981;
+  font-size: 0.85rem;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* ── Hint de navegação nos trofeus nao conquistados ──────────────────── */
+.trophy-nav-hint {
+  font-size: 0.62rem;
+  color: var(--primary-color);
+  margin-top: 5px;
+  opacity: 0.85;
+}
+
+.trophy-card.trophy-locked[onclick]:hover {
+  opacity: 0.85;
+  transform: translateY(-2px);
+}
+
 /* ── Responsive ──────────────────────────────────────────────────────── */
 @media (max-width: 767px) {
   .trophy-grid {

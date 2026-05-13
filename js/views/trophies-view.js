@@ -39,6 +39,21 @@
   }
 
   // ─── Renderiza card de troféu individual ─────────────────────────────────
+  // Route helper — maps a locked trophy to the section where user can earn it
+  function _trophyRoute(trophy) {
+    var cat = trophy.category;
+    var id  = trophy.id;
+    if (cat === 'perfil')   return '#profile';
+    if (cat === 'casual')   return '#dashboard';
+    if (cat === 'presenca') return '#place';
+    if (cat === 'social')   return '#explore';
+    if (cat === 'torneio') {
+      if (id === 'torneio_criou_primeiro' || id === 'torneio_50_inscritos' || id === 'torneio_liga') return '#dashboard';
+      return '#explore';
+    }
+    return null; // especial: sem rota especifica
+  }
+
   function _trophyCard(trophy, awarded, tier) {
     var locked = !awarded;
     var style = locked ? '' : _tierStyle(tier);
@@ -52,14 +67,26 @@
       ? '<div class="trophy-awarded-date">Conquistado em ' + new Date(awarded.awardedAt).toLocaleDateString('pt-BR') + '</div>'
       : '';
 
+    // Tick verde no canto superior direito dos trofeus conquistados
+    var tickHtml = !locked ? '<div class="trophy-earned-tick">&#10003;</div>' : '';
+
+    // Clique nos nao-conquistados navega para o local onde a missao e cumprida
+    var route      = locked ? _trophyRoute(trophy) : null;
+    var clickAttr  = route ? 'onclick="window.location.hash=\'' + route + '\'"' : '';
+    var extraStyle = route ? 'cursor:pointer;' : '';
+    var navHint    = route ? '<div class="trophy-nav-hint">Ir la →</div>' : '';
+
     return '<div class="trophy-card ' + (locked ? 'trophy-locked' : 'trophy-earned') + '" ' +
-           'style="' + style + '" ' +
+           clickAttr + ' ' +
+           'style="' + extraStyle + style + '" ' +
            'title="' + _s(trophy.desc) + '">' +
+      tickHtml +
       '<div class="trophy-card-icon" style="' + iconOpacity + '">' + (trophy.icon || '🏅') + '</div>' +
       '<div class="trophy-card-name" style="' + nameStyle + '">' + lockIcon + _s(trophy.title) + '</div>' +
       badgeHtml +
       '<div class="trophy-card-desc">' + _s(trophy.desc) + '</div>' +
       awardedHtml +
+      navHint +
     '</div>';
   }
 
