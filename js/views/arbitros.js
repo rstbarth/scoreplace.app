@@ -1,5 +1,5 @@
 // scoreplace.app — Árbitros do Torneio
-// v1.6.1-beta
+// v1.6.7-beta
 // Página #arbitros/<tId>: gestão de árbitros do torneio pelo organizador.
 // Três seções: Confirmados (teal) · Convidados (amber) · Disponíveis (indigo)
 //
@@ -92,11 +92,21 @@
         + 'onclick="event.stopPropagation();window._arbitrosRemove(\'' + safeUid + '\',\'' + safeTid + '\')" '
         + 'title="Cancelar convite">✕ Cancelar</button>';
     } else if (status === 'available') {
-      actionBtn = '<button class="btn btn-sm" style="font-size:0.7rem;padding:5px 10px;'
-        + 'background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(79,70,229,0.18));'
-        + 'color:#a5b4fc;border:1px solid rgba(99,102,241,0.4);border-radius:8px;" '
-        + 'onclick="event.stopPropagation();window._arbitrosInvite(\'' + safeUid + '\',\'' + safeTid + '\')" '
-        + 'title="Convidar para arbitrar">+ Convidar</button>';
+      var isSelf = (window.AppStore && window.AppStore.currentUser && window.AppStore.currentUser.uid === uid);
+      if (isSelf) {
+        // Organizador se auto-confirma diretamente — sem fluxo de convite
+        actionBtn = '<button class="btn btn-sm" style="font-size:0.7rem;padding:5px 10px;'
+          + 'background:linear-gradient(135deg,rgba(20,184,166,0.18),rgba(13,148,136,0.18));'
+          + 'color:#2dd4bf;border:1px solid rgba(20,184,166,0.4);border-radius:8px;" '
+          + 'onclick="event.stopPropagation();window._arbitrosSelfConfirm(\'' + safeUid + '\',\'' + safeTid + '\')" '
+          + 'title="Confirmar como árbitro deste torneio">✓ Arbitrarei</button>';
+      } else {
+        actionBtn = '<button class="btn btn-sm" style="font-size:0.7rem;padding:5px 10px;'
+          + 'background:linear-gradient(135deg,rgba(99,102,241,0.18),rgba(79,70,229,0.18));'
+          + 'color:#a5b4fc;border:1px solid rgba(99,102,241,0.4);border-radius:8px;" '
+          + 'onclick="event.stopPropagation();window._arbitrosInvite(\'' + safeUid + '\',\'' + safeTid + '\')" '
+          + 'title="Convidar para arbitrar">+ Convidar</button>';
+      }
     }
 
     return '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;'
@@ -193,8 +203,7 @@
           snap.forEach(function(d) {
             var u = Object.assign({ uid: d.id }, d.data());
             var uid = u.uid || d.id;
-            // Skip self, already confirmed/invited
-            if (uid === cu.uid) return;
+            // Skip already confirmed/invited (but NOT self — organizer can arbitrate own tournament)
             if (confirmedUids[uid] || invitedUids[uid]) return;
             // Distance filter: if tournament has coordinates and user has preferredLocations
             if (tLat !== null && tLon !== null && Array.isArray(u.preferredLocations) && u.preferredLocations.length > 0) {
@@ -283,6 +292,37 @@
           window.showNotification('Erro', String(err.message || err), 'error');
         }
       });
+  };
+
+  // ─── Self-confirm (organizer arbitrates own tournament) ─────────────────────
+  window._arbitrosSelfConfirm = function(uid, tId) {
+    var db = window.FirestoreDB && window.FirestoreDB.db;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    if (!db || !cu || !tId) return;
+    var entry = {
+      uid:         cu.uid || uid,
+      name:        cu.displayName || cu.name || uid,
+      photoURL:    cu.photoURL || '',
+      email:       cu.email || '',
+      status:      'confirmed',
+      confirmedAt: new Date().toISOString(),
+      invitedBy:   cu.uid || cu.email
+    };
+    db.collection('tournaments').doc(tId).update({
+      arbitros: firebase.firestore.FieldValue.arrayUnion(entry)
+    }).then(function() {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('Árbitro confirmado', 'Você está confirmado como árbitro deste torneio.', 'success');
+      }
+      if (typeof window.renderArbitrosPage === 'function') {
+        var vc = document.getElementById('view-container');
+        if (vc) window.renderArbitrosPage(vc, tId);
+      }
+    }).catch(function(err) {
+      if (typeof window.showNotification === 'function') {
+        window.showNotification('Erro', String(err.message || err), 'error');
+      }
+    });
   };
 
   // ─── Remove / cancel invite ──────────────────────────────────────────────────
