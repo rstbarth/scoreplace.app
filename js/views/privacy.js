@@ -12,7 +12,7 @@
   function renderPrivacyPage(container) {
     var _t = window._t || function (k) { return k; };
     var supportEmail = 'scoreplace.app@gmail.com';
-    var lastUpdated = '29 de Abril de 2026';
+    var lastUpdated = '14 de Maio de 2026';
 
     var html = '';
 
@@ -61,7 +61,13 @@
             _t('privacy.section5Body') + '</p>' +
 
           '<h2 style="font-size:1.05rem;font-weight:700;color:var(--text-bright);margin:1.5rem 0 0.6rem;">' +
-            '6. ' + _t('privacy.contactTitle') + '</h2>' +
+            '6. ' + _t('privacy.dpoTitle') + '</h2>' +
+          '<p style="font-size:0.88rem;color:var(--text-main);line-height:1.7;margin:0 0 0.75rem;">' +
+            _t('privacy.dpoBody', { email: supportEmail }) +
+          '</p>' +
+
+          '<h2 style="font-size:1.05rem;font-weight:700;color:var(--text-bright);margin:1.5rem 0 0.6rem;">' +
+            '7. ' + _t('privacy.contactTitle') + '</h2>' +
           '<p style="font-size:0.88rem;color:var(--text-main);line-height:1.7;margin:0;">' +
             _t('privacy.contactBody') +
             ' <a href="mailto:' + supportEmail + '" style="color:var(--primary-color);">' +

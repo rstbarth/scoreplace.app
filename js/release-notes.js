@@ -8,6 +8,17 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">⚖️ v1.6.3-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Revisão jurídica — Política de Privacidade e Termos de Uso.</b><br>' +
+      '• <b>Controladora identificada</b>: Terra Barth Serviços Administrativos Ltda, CNPJ 51.590.996/0001-73, passou a figurar como controladora dos dados pessoais em todos os documentos legais.<br>' +
+      '• <b>WhatsApp adicionado</b>: canal WhatsApp incluído na lista de notificações (seção 2b da Política de Privacidade).<br>' +
+      '• <b>Base legal explícita</b>: cada finalidade de uso de dados agora declara consentimento (LGPD, art. 7, I) como base legal.<br>' +
+      '• <b>Encarregado DPO</b>: nova seção 6 nomeia a Terra Barth como Encarregada de Proteção de Dados.<br>' +
+      '• <b>Transferência internacional</b>: seção 5 agora informa explicitamente que Firebase (Google LLC) e Stripe, Inc. operam fora do Brasil, com consentimento do usuário (LGPD, art. 33).<br>' +
+      '• <b>Banner beta atualizado</b>: texto revisado para refletir fase beta (dados são reais, mudanças comunicadas previamente).<br>' +
+      '• Última atualização dos documentos: 14 de Maio de 2026.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #f59e0b;border-radius:12px;padding:14px 16px;background:rgba(245,158,11,0.07);">' +
       '<div style="font-weight:800; color:#f59e0b; font-size:1rem; margin-bottom:8px;">🔧 v1.6.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Correções de bugs Sentry.</b><br>' +

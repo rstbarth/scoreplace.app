@@ -14,7 +14,7 @@
   function renderTermsPage(container) {
     var _t = window._t || function (k) { return k; };
     var supportEmail = 'scoreplace.app@gmail.com';
-    var lastUpdated = '29 de Abril de 2026';
+    var lastUpdated = '14 de Maio de 2026';
 
     var html = '';
 
