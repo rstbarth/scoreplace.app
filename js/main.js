@@ -1622,12 +1622,23 @@ window._openHelpPage = function () { window.location.hash = '#help'; };
 // → erro fatal no main.js → openModal/_toggleHamburger nunca foram
 // expostos → landing CTA + hamburger silenciosamente não funcionavam.
 function _safeSetup(name) {
-  if (typeof console !== 'undefined' && console.warn) {
-    console.warn('[main.js] ' + name + ' indisponível no boot — UI pode estar parcialmente carregada.');
-  }
-  if (typeof window._captureMessage === 'function') {
-    window._captureMessage('Boot: ' + name + ' undefined', 'warning');
-  }
+  // v1.6.2-beta: iOS Safari sometimes delivers defer scripts slightly out of
+  // order under memory pressure — retry once after 1s before sending to Sentry.
+  // Sentry #7473970773 + #7473970768 (setupProfileModal/setupLoginModal, count=3+3).
+  setTimeout(function() {
+    if (typeof window[name] === 'function') {
+      try { window[name](); } catch (e) {
+        if (typeof console !== 'undefined') console.warn('[main.js] ' + name + ' retry threw:', e);
+      }
+    } else {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn('[main.js] ' + name + ' indisponível no boot — UI pode estar parcialmente carregada.');
+      }
+      if (typeof window._captureMessage === 'function') {
+        window._captureMessage('Boot: ' + name + ' undefined', 'warning');
+      }
+    }
+  }, 1000);
 }
 
 if (typeof setupUI === 'function') { try { setupUI(); } catch (e) { console.warn('[main.js] setupUI threw:', e); } }

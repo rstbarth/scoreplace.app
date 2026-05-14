@@ -1467,6 +1467,12 @@ function renderDashboard(container) {
       var isFinished = t.status === 'finished';
       var isClosed = t.status === 'closed';
       var tournamentStarted = !!(t.tournamentStarted || t.status === 'in_progress');
+      // v1.6.2-beta: hasDraw must be per-item — was referencing outer scope's
+      // hasDraw (defined inside a different forEach) causing ReferenceError on
+      // iOS Safari when compact view was used. Sentry #7474466372 (count=12).
+      var hasDraw = (Array.isArray(t.matches) && t.matches.length > 0) ||
+                    (Array.isArray(t.rounds) && t.rounds.length > 0) ||
+                    (Array.isArray(t.groups) && t.groups.length > 0);
       if (isFinished) { statusText = _t('status.finished'); statusColor = '#94a3b8'; }
       else if (tournamentStarted) { statusText = _t('status.active'); statusColor = '#4ade80'; }
       else if (isClosed) { statusText = _t('status.closed'); statusColor = '#fca5a5'; }

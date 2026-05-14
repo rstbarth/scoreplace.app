@@ -8,6 +8,14 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #f59e0b;border-radius:12px;padding:14px 16px;background:rgba(245,158,11,0.07);">' +
+      '<div style="font-weight:800; color:#f59e0b; font-size:1rem; margin-bottom:8px;">🔧 v1.6.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Correções de bugs Sentry.</b><br>' +
+      '• <b>Visualização compacta de torneios (iOS)</b>: variável <code>hasDraw</code> calculada por item — corrigia <em>ReferenceError: Can\'t find variable hasDraw</em> no Safari iOS ao usar o modo lista compacto do dashboard (12 ocorrências, Sentry #SCOREPLACE-WEB-11).<br>' +
+      '• <b>Boot no iOS Safari</b>: <code>setupLoginModal</code> e <code>setupProfileModal</code> agora tentam novamente após 1 s antes de registrar aviso no Sentry — iOS Safari ocasionalmente entrega scripts com atraso sob pressão de memória (Sentry #SCOREPLACE-WEB-Z e #SCOREPLACE-WEB-Y).<br>' +
+      '• <b>Editar torneio (mobile)</b>: <code>openEditTournamentModal</code> reinicia o modal defensivamente se o elemento <code>#create-modal-title</code> não existir no DOM — evitava crash silencioso ao clicar em Editar quando o script de criação não havia terminado de inicializar (Sentry #SCOREPLACE-WEB-12).<br>' +
+      'Alterações em <code>dashboard.js</code>, <code>main.js</code>, <code>create-tournament.js</code>.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #2dd4bf;border-radius:12px;padding:14px 16px;background:rgba(20,184,166,0.07);">' +
       '<div style="font-weight:800; color:#2dd4bf; font-size:1rem; margin-bottom:8px;">🧑‍⚖️ v1.6.1-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Árbitros nos torneios.</b><br>' +

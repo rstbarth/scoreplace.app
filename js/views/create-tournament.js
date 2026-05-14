@@ -3008,7 +3008,17 @@ function setupCreateTournamentModal() {
     const t = window.AppStore.tournaments.find(tour => tour.id.toString() === tId.toString());
     if (!t) return;
 
-    document.getElementById('create-modal-title').innerText = _t('create.editTournament');
+    // v1.6.2-beta: defensive reinit — modal may not exist if setupCreateTournamentModal
+    // was skipped at boot (script load race on iOS). Sentry #7475975789 (count=2).
+    if (!document.getElementById('modal-create-tournament') && typeof setupCreateTournamentModal === 'function') {
+      setupCreateTournamentModal();
+    }
+    var _titleEl = document.getElementById('create-modal-title');
+    if (!_titleEl) {
+      console.warn('[openEditTournamentModal] create-modal-title not found — modal init failed');
+      return;
+    }
+    _titleEl.innerText = _t('create.editTournament');
     document.getElementById('edit-tournament-id').value = tId;
     document.getElementById('tourn-name').value = t.name || '';
     // Match sport option even if stored value lacks emoji prefix (legacy data)
