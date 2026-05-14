@@ -3129,6 +3129,11 @@ function handleLogout() {
 
   // Show notification and reinitialize router
   showNotification(_t('auth.loggedOut'), _t('auth.loggedOutMsg'), 'info');
+  // v1.6.10-beta: navegar sempre para a landing ao fazer logoff,
+  // independente da rota em que o usuário estava (#profile, #tournaments/xyz etc).
+  // Sem isso, initRouter processa o hash atual e pode renderizar uma view
+  // que não tem guard de autenticação, ou ficar em estado indefinido.
+  window.location.hash = '';
   if (typeof initRouter === 'function') initRouter();
 }
 

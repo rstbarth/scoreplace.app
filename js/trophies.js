@@ -547,6 +547,40 @@
             var cu = (window.AppStore && window.AppStore.currentUser) || {};
             var ctx = { stats: stats, currentUser: cu };
 
+            // ── Revogação (v1.6.10-beta) ──────────────────────────────────────
+            // Troféus marcados com revocable:true são re-verificados a cada
+            // bootstrap. Se a condição não é mais satisfeita (ex: usuário não
+            // tem foto real), o troféu é removido do Firestore e do cache local,
+            // permitindo que seja reconquistado quando a condição voltar a ser
+            // verdadeira. Isso corrige troféus concedidos incorretamente antes
+            // da lógica de check ser mais rigorosa (ex: perfil_foto).
+            var revocableTrophies = (window.TROPHY_CATALOG || []).filter(function(t) { return t.revocable; });
+            var _rdb = _db();
+            revocableTrophies.forEach(function(trophy) {
+              var userTrophies = _cache.trophies[uid] || {};
+              if (!userTrophies[trophy.id]) return; // não tem → nada a revogar
+              var stillValid = false;
+              try { stillValid = trophy.check(ctx); } catch(e) {}
+              if (stillValid) return; // condição ainda atendida → mantém
+              // Condição não atendida → revogar
+              if (!_rdb) return;
+              _rdb.collection('users').doc(uid)
+                .collection('trophies').doc(trophy.id)
+                .delete()
+                .then(function() {
+                  if (_cache.trophies[uid]) delete _cache.trophies[uid][trophy.id];
+                  // Remove do localStorage de checados para ser re-avaliado agora
+                  var cIds = _getCheckedTrophyIds(uid);
+                  var idx = cIds.indexOf(trophy.id);
+                  if (idx !== -1) { cIds.splice(idx, 1); _saveCheckedTrophyIds(uid, cIds); }
+                  // Garante que este ID entre na passagem de awards abaixo
+                  if (toCheckIds.indexOf(trophy.id) === -1) toCheckIds.push(trophy.id);
+                  console.log('[trophies] REVOKED', trophy.id, '— condition no longer met');
+                })
+                .catch(function() {});
+            });
+            // ─────────────────────────────────────────────────────────────────
+
             // Bootstrap silencioso: não mostrar overlay rico para cada troféu histórico.
             _isSilentBootstrap = true;
             var newlyAwarded = 0;

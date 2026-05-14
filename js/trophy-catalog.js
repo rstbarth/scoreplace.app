@@ -93,12 +93,32 @@ window.TROPHY_CATALOG = [
     icon: '📸',
     tier: null,
     trigger: 'login',
+    // v1.6.10-beta: revocable=true — se o usuário perder a foto, o troféu é
+    // revogado no próximo bootstrap, evitando que usuários com avatar de
+    // iniciais (dicebear ou Google default) mantenham o troféu incorretamente.
+    revocable: true,
     check: function(ctx) {
       var u = ctx.currentUser;
-      // Apenas foto real (Google/Apple/upload) — ícone de iniciais (dicebear) não conta
-      return !!(u && u.photoURL && typeof u.photoURL === 'string'
-        && u.photoURL.length > 0
-        && u.photoURL.indexOf('dicebear.com') === -1);
+      if (!u) return false;
+      // Fonte autoritativa: Firebase Auth currentUser (evita valor stale do Firestore
+      // em AppStore.currentUser.photoURL que o startProfileListener pode sobrescrever
+      // com uma URL antiga mesmo quando o usuário não tem mais foto real).
+      var fbUser = window.firebase && window.firebase.auth && window.firebase.auth().currentUser;
+      var photoURL = (fbUser && fbUser.photoURL)
+                     ? fbUser.photoURL
+                     : (u.photoURL || '');
+      // Não conta: string vazia, URL de dicebear (iniciais geradas pelo app),
+      // ou URL terminada em "/photo.jpg" sem host (padrão de placeholder interno).
+      if (!photoURL || typeof photoURL !== 'string' || photoURL.length === 0) return false;
+      if (photoURL.indexOf('dicebear.com') !== -1) return false;
+      // Não conta: avatar padrão do Google (sem foto real cadastrada na conta).
+      // Google retorna URLs do tipo "...googleusercontent.com/a/default" ou com
+      // o parâmetro "=s0" / sem segmento de ID real quando não há foto.
+      if (photoURL.indexOf('googleusercontent.com') !== -1) {
+        // Se Firebase Auth devolveu explicitamente null/vazio, não tem foto real
+        if (fbUser && !fbUser.photoURL) return false;
+      }
+      return true;
     }
   },
   {

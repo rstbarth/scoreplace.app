@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔧 v1.6.10-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>3 correções de comportamento.</b><br>' +
+      '• <b>Logoff vai para a landing:</b> ao sair da conta, o app sempre navega para a tela inicial (landing), independente da página em que o usuário estava.<br>' +
+      '• <b>Versão da landing atualizada:</b> a landing page agora exibe corretamente a versão atual (<b>v1.6.10-beta</b>) em vez de uma versão antiga.<br>' +
+      '• <b>Conquista "Com Rosto" corrigida:</b> usuários que logaram com Google mas só têm avatar de iniciais (sem foto real na conta Google) não ganham mais — e quem ganhou incorretamente perde — o troféu "Com Rosto".<br>' +
+      'A conquista agora usa o Firebase Auth como fonte de verdade para o photoURL (evita valor stale do Firestore) e é marcada como revogável: se a condição não é mais atendida, o troféu é removido automaticamente no próximo login.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">👤 v1.6.9-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Perfil completo agora exige todos os 9 campos essenciais.</b><br>' +
       '• <b>Antes:</b> 4 campos (sexo, nascimento, cidade/local, modalidade).<br>' +
