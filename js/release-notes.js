@@ -8,6 +8,16 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #2dd4bf;border-radius:12px;padding:14px 16px;background:rgba(20,184,166,0.07);">' +
+      '<div style="font-weight:800; color:#2dd4bf; font-size:1rem; margin-bottom:8px;">🧑‍⚖️ v1.6.1-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Árbitros nos torneios.</b><br>' +
+      '• Perfil: toggle 🧑‍⚖️ ao lado da habilidade de cada modalidade. Quando ativo, você aparece como árbitro disponível para torneios daquela modalidade próximos à sua localização preferida.<br>' +
+      '• Ferramentas do organizador: novo botão <b>🧑‍⚖️ Árbitros</b> — aparece somente em torneios com opção de lançamento por árbitro ativada no formulário de criação.<br>' +
+      '• Página <code>#arbitros/&lt;tId&gt;</code> com 3 seções coloridas: <span style="color:#2dd4bf;">✅ Confirmados</span> (teal), <span style="color:#fbbf24;">⏳ Convidados</span> (amber) e <span style="color:#a5b4fc;">🔍 Disponíveis</span> (indigo) — filtra por modalidade do torneio e proximidade de local.<br>' +
+      '• Árbitros disponíveis: usuários com toggle de árbitro ativo na modalidade do torneio, filtrados por ≤ 100 km dos seus locais preferidos em relação ao local do torneio.<br>' +
+      '• Novo campo <code>refereeSports[]</code> no perfil para query Firestore eficiente.<br>' +
+      'Alterações em <code>auth.js</code>, <code>tournaments.js</code>, <code>router.js</code>. Novo arquivo: <code>arbitros.js</code>.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #a78bfa;border-radius:12px;padding:14px 16px;background:rgba(167,139,250,0.08);">' +
       '<div style="font-weight:800; color:#a78bfa; font-size:1rem; margin-bottom:8px;">🏆 v1.6.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Popup de conquista para todos os tiers de troféu.</b><br>' +

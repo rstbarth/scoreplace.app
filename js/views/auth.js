@@ -2329,6 +2329,15 @@ async function simulateLoginSuccess(user) {
       }
       window._profileSkillBySport = skillMap;
 
+      // v1.6.1-beta: canRefereeBySport — posso arbitrar por modalidade.
+      var refMap = {};
+      if (cu.canRefereeBySport && typeof cu.canRefereeBySport === 'object') {
+        Object.keys(cu.canRefereeBySport).forEach(function(s) {
+          refMap[s] = !!cu.canRefereeBySport[s];
+        });
+      }
+      window._profileCanRefereeBySport = refMap;
+
       if (typeof window._applyProfileSportsUI === 'function') window._applyProfileSportsUI(arr);
       if (typeof window._renderProfileSkillBySport === 'function') window._renderProfileSkillBySport();
     })();
@@ -3470,6 +3479,17 @@ window._setProfileSkillForSport = function(sport, skill) {
   }
 };
 
+// v1.6.1-beta: toggle "posso arbitrar" por modalidade.
+window._toggleProfileRefereeForSport = function(sport) {
+  if (!window._profileCanRefereeBySport || typeof window._profileCanRefereeBySport !== 'object') {
+    window._profileCanRefereeBySport = {};
+  }
+  window._profileCanRefereeBySport[sport] = !window._profileCanRefereeBySport[sport];
+  if (typeof window._renderProfileSkillBySport === 'function') {
+    window._renderProfileSkillBySport();
+  }
+};
+
 window._renderProfileSkillBySport = function() {
   var container = document.getElementById('profile-skill-by-sport');
   var hidden = document.getElementById('profile-edit-skill-by-sport');
@@ -3487,10 +3507,18 @@ window._renderProfileSkillBySport = function() {
   // linha minimalista sem card de fundo. Muito menos espaço vertical.
   // Estrutura: "Beach Tennis · [A][B][C][D][FUN]" inline, com nome do sport
   // em texto leve âmbar e 5 mini-pills de skill em indigo.
+  var refMap = (window._profileCanRefereeBySport && typeof window._profileCanRefereeBySport === 'object')
+    ? window._profileCanRefereeBySport : {};
+
   var html = '';
   sports.forEach(function(sport) {
     var current = map[sport] || null;
     var safeS = String(sport).replace(/'/g, "\\'");
+    var canRef = !!refMap[sport];
+    // v1.6.1-beta: toggle árbitro à direita das skill pills
+    var refStyle = canRef
+      ? 'padding:3px 9px;border-radius:5px;font-size:0.68rem;cursor:pointer;border:1.5px solid rgba(20,184,166,0.7);background:rgba(20,184,166,0.15);color:#2dd4bf;font-weight:700;line-height:1;white-space:nowrap;flex-shrink:0;'
+      : 'padding:3px 9px;border-radius:5px;font-size:0.68rem;cursor:pointer;border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--text-muted);font-weight:500;line-height:1;white-space:nowrap;flex-shrink:0;opacity:0.6;';
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 0;">';
     html += '<span style="font-size:0.74rem;font-weight:600;color:#fbbf24;min-width:90px;flex:0 0 auto;opacity:0.9;">' + window._safeHtml(sport) + '</span>';
     html += '<div style="display:flex;gap:3px;flex-wrap:nowrap;">';
@@ -3502,6 +3530,8 @@ window._renderProfileSkillBySport = function() {
       html += '<button type="button" onclick="window._setProfileSkillForSport(\'' + safeS + '\',\'' + skill + '\')" style="' + style + '">' + skill + '</button>';
     });
     html += '</div>';
+    // Referee toggle — à direita, separado por um pequeno divisor visual
+    html += '<button type="button" title="Posso arbitrar ' + window._safeHtml(sport) + '" onclick="window._toggleProfileRefereeForSport(\'' + safeS + '\')" style="' + refStyle + '">🧑‍⚖️</button>';
     html += '</div>';
   });
 
@@ -4949,6 +4979,20 @@ function setupProfileModal() {
       // deseleciona todas as modalidades — Firestore merge preserva
       // null/undefined, então usar {} explicitamente quando vazio.
       payload.skillBySport = skillBySport;
+
+      // v1.6.1-beta: canRefereeBySport + refereeSports (array para query Firestore).
+      var canRefereeBySport = {};
+      var refereeSports = [];
+      if (window._profileCanRefereeBySport && typeof window._profileCanRefereeBySport === 'object') {
+        sportsArr.forEach(function(s) {
+          if (window._profileCanRefereeBySport[s]) {
+            canRefereeBySport[s] = true;
+            refereeSports.push(s);
+          }
+        });
+      }
+      payload.canRefereeBySport = canRefereeBySport;
+      payload.refereeSports = refereeSports;
 
       // Booleans / defaults: sempre envia (UI tem valor definido)
       payload.phoneCountry = phoneCountry;

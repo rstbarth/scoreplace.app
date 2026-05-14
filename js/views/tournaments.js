@@ -1349,7 +1349,16 @@ function renderTournaments(container, tournamentId = null) {
 
             ${actionsHtml}
 
-            ${(tournamentId && isOrg) ? `
+            ${(tournamentId && isOrg) ? (function() {
+              // v1.6.1-beta: Árbitros button — só aparece quando resultEntry inclui 'referee'
+              var _refEntry = t.resultEntry;
+              var _hasRefereeEntry = Array.isArray(_refEntry)
+                ? (_refEntry.indexOf('referee') !== -1)
+                : (_refEntry === 'referee');
+              var _arbitrosBtn = (_hasRefereeEntry && t.id)
+                ? '<button class="btn hover-lift" style="background:linear-gradient(135deg,rgba(20,184,166,0.18),rgba(6,182,212,0.18));color:#2dd4bf;border:1px solid rgba(20,184,166,0.45);font-size:0.82rem;padding:8px 16px;border-radius:10px;font-weight:600;cursor:pointer;" onclick="event.stopPropagation();window.location.hash=\'#arbitros/' + t.id + '\'">🧑‍⚖️ Árbitros</button>'
+                : '';
+              return `
             <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.12);">
               <div style="font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); margin-bottom: 10px;">${_t('org.tools')}</div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -1361,12 +1370,14 @@ function renderTournaments(container, tournamentId = null) {
                 ${isOrg ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window._saveAsTemplate('${t.id}')">💾 ${window._t ? window._t('btn.saveTemplate') : 'Salvar como Template'}</button>` : ''}
                 ${categoriasBtn}
                 ${enrollmentReportBtn}
+                ${_arbitrosBtn}
                 ${toggleRegBtn}
                 ${sortearBtn}
                 ${sortearAberto}
                 ${(!isFinished && hasDraw && !window._isLigaFormat(t)) ? `<button class="btn btn-tool-amber hover-lift" onclick="event.stopPropagation(); window.finishTournament('${t.id}')">🏁 ${_t('org.finishTournament')}</button>` : ''}
               </div>
-            </div>` : ''}
+            </div>`;
+            })() : ''}
 
           </div>
           ${isOrg ? `<div style="position:absolute;bottom:6px;right:8px;opacity:0.9;pointer-events:none;" title="Organizador">

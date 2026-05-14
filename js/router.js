@@ -374,6 +374,15 @@ function initRouter() {
           return;
         }
         break;
+      case 'arbitros':
+        // v1.6.1-beta: página de árbitros do torneio. Param é o tId.
+        if (typeof window.renderArbitrosPage === 'function' && cleanParam) {
+          window.renderArbitrosPage(viewContainer, cleanParam);
+        } else {
+          window.location.replace('#dashboard');
+          return;
+        }
+        break;
       default:
         // Rota desconhecida — redireciona para dashboard
         window.location.replace('#dashboard');
