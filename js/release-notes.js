@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #a78bfa;border-radius:12px;padding:14px 16px;background:rgba(167,139,250,0.08);">' +
+      '<div style="font-weight:800; color:#a78bfa; font-size:1rem; margin-bottom:8px;">🏆 v1.6.0-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Popup de conquista para todos os tiers de troféu.</b><br>' +
+      '• Todos os troféus e conquistas agora mostram o popup animado ao serem desbloqueados — bronze 🥉, prata 🥈, ouro 🥇 e platina ✨ recebem a mesma celebração visual.<br>' +
+      '• Antes: bronze e prata exibiam apenas toast discreto. Agora o overlay rico aparece para qualquer conquista em tempo real.<br>' +
+      '• Bootstrap silencioso mantido: troféus retroativos ao login não disparam popup — apenas um toast resumido ao final.<br>' +
+      '• Estilos de glow bronze (cobre) e prata adicionados ao overlay.<br>' +
+      'Alterações em <code>trophies.js</code>, <code>trophies.css</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #a78bfa;border-radius:12px;padding:14px 16px;background:rgba(167,139,250,0.08);">' +
       '<div style="font-weight:800; color:#a78bfa; font-size:1rem; margin-bottom:8px;">🏆 v1.5.9-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Check diário automático de troféus + comparação de troféus com amigos.</b><br>' +
       '• Troféus agora são concedidos automaticamente todo dia às 02:00 BRT sem precisar abrir o app — o servidor verifica as conquistas e envia push notification (FCM) para quem desbloqueou algo novo.<br>' +

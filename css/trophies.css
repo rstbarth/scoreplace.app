@@ -310,7 +310,9 @@
 }
 
 /* Tier-specific glow borders */
-.trophy-tier-ouro   .trophy-unlock-card { border: 2px solid rgba(251,191,36,0.6); box-shadow: 0 0 40px rgba(251,191,36,0.3); }
+.trophy-tier-bronze  .trophy-unlock-card { border: 2px solid rgba(205,127,50,0.5);  box-shadow: 0 0 24px rgba(205,127,50,0.2); }
+.trophy-tier-prata   .trophy-unlock-card { border: 2px solid rgba(168,169,173,0.5); box-shadow: 0 0 30px rgba(168,169,173,0.2); }
+.trophy-tier-ouro    .trophy-unlock-card { border: 2px solid rgba(251,191,36,0.6);  box-shadow: 0 0 40px rgba(251,191,36,0.3); }
 .trophy-tier-platina .trophy-unlock-card { border: 2px solid rgba(103,232,249,0.6); box-shadow: 0 0 50px rgba(103,232,249,0.4); }
 
 .trophy-unlock-shimmer {
@@ -347,7 +349,9 @@
   margin-bottom: 10px;
 }
 
-.trophy-tier-ouro    .trophy-unlock-badge { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); }
+.trophy-tier-bronze  .trophy-unlock-badge { background: rgba(205,127,50,0.12);  color: #cd7f32; border: 1px solid rgba(205,127,50,0.35); }
+.trophy-tier-prata   .trophy-unlock-badge { background: rgba(168,169,173,0.12); color: #a8a9ad; border: 1px solid rgba(168,169,173,0.35); }
+.trophy-tier-ouro    .trophy-unlock-badge { background: rgba(251,191,36,0.15);  color: #fbbf24; border: 1px solid rgba(251,191,36,0.4); }
 .trophy-tier-platina .trophy-unlock-badge { background: rgba(103,232,249,0.15); color: #67e8f9; border: 1px solid rgba(103,232,249,0.4); }
 
 .trophy-unlock-title {

@@ -654,27 +654,16 @@
   function _showTrophyUnlockOverlay(trophy, tier) {
     if (!trophy) return;
 
-    // Só mostra overlay rico para ouro e platina; bronze/prata viram toast
-    var tierConfig = (window.TROPHY_TIER_COLORS || {})[tier] || {};
-    var isRich = tier === 'ouro' || tier === 'platina';
+    // Bootstrap silencioso → sem overlay nem toast individual (resumido ao final)
+    if (_isSilentBootstrap) return;
 
-    if (!isRich) {
-      // Toast simples
-      var label = trophy.isMilestone
-        ? (trophy.icon + ' ' + trophy.title)
-        : (trophy.icon + ' Troféu: ' + trophy.title);
-      var tierLabel = { bronze: 'Bronze', prata: 'Prata', ouro: 'Ouro', platina: 'Platina' }[tier] || tier;
-      if (typeof window.showNotification === 'function') {
-        window.showNotification(label, tierLabel + ' desbloqueado!', 'success');
-      }
-      return;
-    }
+    // Overlay rico para TODOS os tiers
+    var tierLabels = { bronze: '🥉 Bronze', prata: '🥈 Prata', ouro: '🥇 Ouro', platina: '✨ Platina' };
+    var tierLabel2 = tierLabels[tier] || tier;
 
-    // Overlay rico (ouro + platina)
     try {
       if (document.getElementById('trophy-unlock-overlay')) return; // uma de cada vez
 
-      var tierLabel2 = tier === 'platina' ? '✨ Platina' : '🥇 Ouro';
       var overlay = document.createElement('div');
       overlay.id = 'trophy-unlock-overlay';
       overlay.className = 'trophy-unlock-overlay trophy-tier-' + tier;
