@@ -3696,7 +3696,7 @@ function setupCreateTournamentModal() {
               }, t.organizerEmail);
             }
           }
-          showNotification(window._t('draw.changesSaved'), window._t('create.tournamentUpdated'), 'success');
+          showNotification(window._t('create.tournamentUpdated'), '', 'success');
         } else {
           // Feature gate: limite de torneios no plano Free
           if (!window._canCreateTournament()) {
@@ -3766,10 +3766,8 @@ function setupCreateTournamentModal() {
           const newId = window.AppStore.tournaments[window.AppStore.tournaments.length - 1].id;
           window.location.hash = `#tournaments/${newId}`;
         } else {
-          // Chama o handler do router diretamente para re-renderizar sem poluir o histórico
-          if (typeof window._routerHandler === 'function') {
-            window._routerHandler();
-          }
+          // v1.6.5-beta: navega de volta ao card do torneio após edição
+          window.location.hash = '#tournaments/' + editId;
         }
       } catch (err) {
         console.error('Erro ao salvar torneio:', err);
@@ -4428,18 +4426,31 @@ window._prefillFromTemplate = function(tpl) {
 };
 
 // ─── Discard create/edit tournament ───────────────────────────────────────
-// v1.3.13-beta: agora detecta rota — se estiver em #novo-torneio, navega
-// pro dashboard (history.back se possível). Se for modal-overlay legacy,
-// remove .active. Compat com ambos os caminhos.
+// v1.3.13-beta: detecta rota — page-route vs modal-overlay.
+// v1.6.5-beta: se estiver editando, volta ao card do torneio com toast
+// "Alterações descartadas". Se for criação nova, vai pro dashboard.
 window._discardCreateTournament = function() {
+  var _t = window._t || function(k) { return k; };
+  var editId = (document.getElementById('edit-tournament-id') || {}).value || '';
   if (window.location.hash === '#novo-torneio') {
-    window.location.hash = '#dashboard';
+    if (editId) {
+      showNotification(_t('create.discarded'), '', 'info');
+      window.location.hash = '#tournaments/' + editId;
+    } else {
+      window.location.hash = '#dashboard';
+    }
     return;
   }
-  if (typeof closeModal === 'function') closeModal('modal-create-tournament');
-  else {
-    var modal = document.getElementById('modal-create-tournament');
-    if (modal) modal.classList.remove('active');
+  // Legacy modal-overlay path
+  if (editId) {
+    showNotification(_t('create.discarded'), '', 'info');
+    window.location.hash = '#tournaments/' + editId;
+  } else {
+    if (typeof closeModal === 'function') closeModal('modal-create-tournament');
+    else {
+      var modal = document.getElementById('modal-create-tournament');
+      if (modal) modal.classList.remove('active');
+    }
   }
 };
 

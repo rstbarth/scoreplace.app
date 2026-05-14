@@ -401,6 +401,7 @@ window._translations['pt'] = {
   'create.locatingMsg': 'Obtendo sua posição...',
   'create.geoFailed': 'Não foi possível obter sua localização.',
   'create.tournamentUpdated': 'Torneio atualizado!',
+  'create.discarded': 'Alterações descartadas',
   'create.tournamentCreated': 'Torneio Criado',
   'create.tournamentCreatedMsg': 'O torneio "{name}" foi salvo com sucesso.',
   'create.autoAssigned': 'Categorias Auto-atribuídas',

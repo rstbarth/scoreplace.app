@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔙 v1.6.5-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Editar torneio agora volta ao card do torneio após salvar ou descartar.</b><br>' +
+      '• Salvar edição: exibe toast "Torneio atualizado!" e navega direto para o card do torneio editado.<br>' +
+      '• Descartar edição: exibe toast "Alterações descartadas" e também volta ao card do torneio.<br>' +
+      '• Criar novo torneio (sem alteração): continua navegando para o dashboard após descartar.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">⚖️ v1.6.4-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Revisão jurídica completa — Política de Privacidade (9 seções) e Termos de Uso (9 seções).</b><br>' +
       '<b>Política de Privacidade — adicionados:</b><br>' +
