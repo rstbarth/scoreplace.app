@@ -3515,10 +3515,11 @@ window._renderProfileSkillBySport = function() {
     var current = map[sport] || null;
     var safeS = String(sport).replace(/'/g, "\\'");
     var canRef = !!refMap[sport];
-    // v1.6.1-beta: toggle árbitro à direita das skill pills
-    var refStyle = canRef
-      ? 'padding:3px 9px;border-radius:5px;font-size:0.68rem;cursor:pointer;border:1.5px solid rgba(20,184,166,0.7);background:rgba(20,184,166,0.15);color:#2dd4bf;font-weight:700;line-height:1;white-space:nowrap;flex-shrink:0;'
-      : 'padding:3px 9px;border-radius:5px;font-size:0.68rem;cursor:pointer;border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--text-muted);font-weight:500;line-height:1;white-space:nowrap;flex-shrink:0;opacity:0.6;';
+    // v1.6.6-beta: toggle árbitro como switch explícito com label "Arbitrar"
+    var trackBg  = canRef ? 'rgba(20,184,166,0.45)' : 'rgba(255,255,255,0.12)';
+    var knobLeft = canRef ? '14px' : '2px';
+    var knobBg   = canRef ? '#2dd4bf' : 'rgba(255,255,255,0.4)';
+    var lblColor = canRef ? '#2dd4bf' : 'var(--text-muted)';
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:2px 0;">';
     html += '<span style="font-size:0.74rem;font-weight:600;color:#fbbf24;min-width:90px;flex:0 0 auto;opacity:0.9;">' + window._safeHtml(sport) + '</span>';
     html += '<div style="display:flex;gap:3px;flex-wrap:nowrap;">';
@@ -3530,8 +3531,14 @@ window._renderProfileSkillBySport = function() {
       html += '<button type="button" onclick="window._setProfileSkillForSport(\'' + safeS + '\',\'' + skill + '\')" style="' + style + '">' + skill + '</button>';
     });
     html += '</div>';
-    // Referee toggle — à direita, separado por um pequeno divisor visual
-    html += '<button type="button" title="Posso arbitrar ' + window._safeHtml(sport) + '" onclick="window._toggleProfileRefereeForSport(\'' + safeS + '\')" style="' + refStyle + '">🧑‍⚖️</button>';
+    // Toggle switch "Arbitrar" — label + switch visual
+    html += '<span onclick="window._toggleProfileRefereeForSport(\'' + safeS + '\')" title="Posso arbitrar ' + window._safeHtml(sport) + '" style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;flex-shrink:0;user-select:none;">';
+    html +=   '<span style="font-size:0.68rem;font-weight:600;color:' + lblColor + ';transition:color 0.2s;">Arbitrar</span>';
+    html +=   '<span style="position:relative;display:inline-block;width:28px;height:16px;flex-shrink:0;">';
+    html +=     '<span style="position:absolute;inset:0;background:' + trackBg + ';border-radius:8px;transition:background 0.2s;"></span>';
+    html +=     '<span style="position:absolute;top:2px;left:' + knobLeft + ';width:12px;height:12px;background:' + knobBg + ';border-radius:50%;transition:left 0.2s,background 0.2s;"></span>';
+    html +=   '</span>';
+    html += '</span>';
     html += '</div>';
   });
 

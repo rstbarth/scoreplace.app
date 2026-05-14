@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🧑‍⚖️ v1.6.6-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Toggle de árbitro no perfil mais explícito.</b><br>' +
+      '• O botão 🧑‍⚖️ foi substituído por um toggle switch visual com o label <b>"Arbitrar"</b> ao lado de cada modalidade.<br>' +
+      '• Quando ativo: label em verde-água + trilho colorido + bolinha deslocada para a direita.<br>' +
+      '• Quando inativo: label em cinza + trilho escuro + bolinha à esquerda.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔙 v1.6.5-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Editar torneio agora volta ao card do torneio após salvar ou descartar.</b><br>' +
       '• Salvar edição: exibe toast "Torneio atualizado!" e navega direto para o card do torneio editado.<br>' +
