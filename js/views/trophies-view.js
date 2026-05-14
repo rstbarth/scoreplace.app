@@ -79,7 +79,11 @@
     var clickAttr  = '';
     var extraStyle = '';
     var navHint    = '';
-    if (route === '__casual__') {
+    if (!locked) {
+      // Troféu já conquistado: replay do overlay ao clicar
+      clickAttr  = 'onclick="if(typeof window._trophyReplayOverlay===\'function\')window._trophyReplayOverlay(\'' + trophy.id + '\')"';
+      extraStyle = 'cursor:pointer;';
+    } else if (route === '__casual__') {
       clickAttr  = 'onclick="if(typeof window._trophyOpenCasual===\'function\')window._trophyOpenCasual()"';
       extraStyle = 'cursor:pointer;';
       navHint    = '<div class="trophy-nav-hint">Iniciar partida →</div>';
@@ -444,6 +448,33 @@
           );
         }
       }, 500);
+    }
+  };
+
+  // ─── Replay: reabre overlay de conquista ao clicar no card conquistado ────
+  window._trophyReplayOverlay = function(trophyId) {
+    var trophy = window.TROPHY_CATALOG_BY_ID && window.TROPHY_CATALOG_BY_ID[trophyId];
+    if (!trophy) return;
+    var cu = window.AppStore && window.AppStore.currentUser;
+    var uid = cu && cu.uid;
+    var db = window.FirestoreDB && window.FirestoreDB.db;
+    if (uid && db) {
+      db.collection('users').doc(uid).collection('trophies').doc(trophyId).get()
+        .then(function(doc) {
+          var tier = doc.exists ? (doc.data().tier || 'bronze') : 'bronze';
+          if (typeof window._showTrophyUnlockOverlay === 'function') {
+            window._showTrophyUnlockOverlay(trophy, tier);
+          }
+        })
+        .catch(function() {
+          if (typeof window._showTrophyUnlockOverlay === 'function') {
+            window._showTrophyUnlockOverlay(trophy, 'bronze');
+          }
+        });
+    } else {
+      if (typeof window._showTrophyUnlockOverlay === 'function') {
+        window._showTrophyUnlockOverlay(trophy, 'bronze');
+      }
     }
   };
 

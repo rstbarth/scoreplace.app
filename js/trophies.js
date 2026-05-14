@@ -480,19 +480,38 @@
   };
 
   // ─── Bootstrap: verifica todos os troféus ao logar ───────────────────────
-  // Chave de localStorage para rastrear se este usuário já foi bootstrapped
-  // com o sistema de troféus v1.5.0+. Impede re-varredura desnecessária
-  // em cada reload de página.
-  // v2: invalidates v1 flags so everyone gets re-bootstrapped once,
-  // which now also writes _rankStats to their user doc for ranking.
-  // v3: invalidates v2 flags so everyone gets re-bootstrapped once
-  // to pick up category completion trophies (cat_*) added in v1.5.6.
-  function _bootstrapKey(uid) { return 'scoreplace_trophy_boot_v3_' + uid; }
-  function _markBootstrapped(uid) {
-    try { localStorage.setItem(_bootstrapKey(uid), '1'); } catch(e) {}
+  // Rastreia individualmente quais IDs de troféu já foram verificados.
+  // Isso garante que novos troféus adicionados ao catálogo após o bootstrap
+  // inicial sejam verificados retroativamente na próxima carga do app.
+  // Os troféus já conquistados são protegidos pelo check idempotente
+  // em _checkAndAwardTrophy (não re-concede se já está no cache/Firestore).
+
+  var _CHECKED_KEY = 'scoreplace_trophy_checked_';
+
+  function _getCheckedTrophyIds(uid) {
+    try {
+      var raw = localStorage.getItem(_CHECKED_KEY + uid);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) { return []; }
   }
+
+  function _saveCheckedTrophyIds(uid, ids) {
+    try { localStorage.setItem(_CHECKED_KEY + uid, JSON.stringify(ids)); } catch(e) {}
+  }
+
+  // Mantido para compat com versões anteriores (v3 boot key)
+  function _bootstrapKey(uid) { return 'scoreplace_trophy_boot_v3_' + uid; }
+  function _markBootstrapped(uid, allCheckedIds) {
+    try { localStorage.setItem(_bootstrapKey(uid), '1'); } catch(e) {}
+    _saveCheckedTrophyIds(uid, allCheckedIds || []);
+  }
+  // Retorna true somente se todos os IDs do catálogo já foram verificados
   function _wasBootstrapped(uid) {
-    try { return localStorage.getItem(_bootstrapKey(uid)) === '1'; } catch(e) { return false; }
+    var checkedIds = _getCheckedTrophyIds(uid);
+    if (!checkedIds || !checkedIds.length) return false;
+    var catalogIds = (window.TROPHY_CATALOG || []).map(function(t) { return t.id; });
+    if (!catalogIds.length) return false;
+    return catalogIds.every(function(id) { return checkedIds.indexOf(id) !== -1; });
   }
 
   // Flag para suprimir overlays durante varredura retroativa (bootstrap silencioso).
@@ -503,8 +522,16 @@
     if (!uid) return;
     opts = opts || {};
 
-    // Se já bootstrappou e não é força (ex: botão manual), pula.
-    if (!opts.force && _wasBootstrapped(uid)) return;
+    // Calcula quais IDs de troféu ainda não foram verificados para este usuário.
+    // Trofeus já conquistados são protegidos pelo check idempotente em _checkAndAwardTrophy.
+    var checkedIds = _getCheckedTrophyIds(uid);
+    var catalogIds = (window.TROPHY_CATALOG || []).map(function(t) { return t.id; });
+    var toCheckIds = opts.force
+      ? catalogIds.slice()
+      : catalogIds.filter(function(id) { return checkedIds.indexOf(id) === -1; });
+
+    // Nada novo a verificar — todos os IDs do catálogo já foram checados
+    if (toCheckIds.length === 0) return;
 
     // Carrega troféus existentes do Firestore primeiro (evita re-award)
     window._loadUserTrophies(uid).then(function() {
@@ -520,15 +547,15 @@
             var cu = (window.AppStore && window.AppStore.currentUser) || {};
             var ctx = { stats: stats, currentUser: cu };
 
-            // Bootstrap silencioso: não mostrar overlay rico para cada troféu histórico
-            // (poderia acumular 10+ pop-ups). Apenas toasts discretos para novos.
+            // Bootstrap silencioso: não mostrar overlay rico para cada troféu histórico.
             _isSilentBootstrap = true;
             var newlyAwarded = 0;
 
-            // Primeira passagem: troféus normais (sem cat_* de categoria completa)
+            // Primeira passagem: troféus normais (sem cat_*) ainda não verificados
             var awardsPromises = [];
             (window.TROPHY_CATALOG || []).forEach(function(trophy) {
               if (trophy.id.indexOf('cat_') === 0) return; // segunda passagem
+              if (toCheckIds.indexOf(trophy.id) === -1) return; // já checado antes
               var userTrophies = _cache.trophies[uid] || {};
               if (!userTrophies[trophy.id]) {
                 awardsPromises.push(
@@ -539,20 +566,20 @@
               }
             });
 
-            // Varre todos os milestones
+            // Varre todos os milestones (sem per-ID tracking — são sempre incrementais)
             (window.MILESTONE_CATALOG || []).forEach(function(milestone) {
-              awardsPromises.push(
-                window._checkMilestoneAward(milestone.id, uid, ctx).then(function(awarded) {
-                  if (awarded) newlyAwarded++;
-                }).catch(function() {})
-              );
+              try {
+                var r = window._checkMilestoneAward(milestone.id, uid, ctx);
+                if (r && typeof r.then === 'function') awardsPromises.push(r.catch(function() {}));
+              } catch(e) {}
             });
 
             Promise.all(awardsPromises).then(function() {
-              // Segunda passagem: troféus de categoria completa (cat_*)
+              // Segunda passagem: troféus de categoria completa (cat_*) ainda não verificados
               var _compPromises = [];
               (window.TROPHY_CATALOG || []).forEach(function(trophy) {
                 if (trophy.id.indexOf('cat_') !== 0) return;
+                if (toCheckIds.indexOf(trophy.id) === -1) return; // já checado antes
                 var _uTr = _cache.trophies[uid] || {};
                 if (!_uTr[trophy.id]) {
                   _compPromises.push(
@@ -567,11 +594,14 @@
               return Promise.all(_compPromises);
             }).then(function() {
               _isSilentBootstrap = false;
-              _markBootstrapped(uid);
 
-              // Persiste snapshot de ranking no doc do usuário para que
-              // _loadFriendRanking possa comparar métricas entre amigos sem
-              // precisar de subcoleções — campos diretos no doc de usuário.
+              // Marca todos os IDs desta rodada como checados no localStorage
+              var newChecked = opts.force
+                ? catalogIds.slice()
+                : checkedIds.concat(toCheckIds.filter(function(id) { return checkedIds.indexOf(id) === -1; }));
+              _markBootstrapped(uid, newChecked);
+
+              // Persiste snapshot de ranking no doc do usuário
               var _rdb = _db();
               if (_rdb) {
                 var _rankSnap = {
@@ -585,7 +615,7 @@
                   .catch(function() {});
               }
 
-              // Se ganhou troféus retroativos, mostra resumo único em vez de N pop-ups
+              // Se ganhou troféus retroativos, mostra resumo único
               if (newlyAwarded > 0) {
                 if (typeof window.showNotification === 'function') {
                   window.showNotification(
@@ -597,7 +627,7 @@
               }
             }).catch(function() {
               _isSilentBootstrap = false;
-              _markBootstrapped(uid);
+              _markBootstrapped(uid, checkedIds.concat(toCheckIds));
             });
 
           }).catch(function() { _isSilentBootstrap = false; });
@@ -670,6 +700,11 @@
       }, 6000);
     } catch(e) {}
   }
+
+  // Exposta globalmente para permitir replay do overlay ao clicar no card conquistado
+  window._showTrophyUnlockOverlay = function(trophy, tier) {
+    _showTrophyUnlockOverlay(trophy, tier);
+  };
 
   function _escTrophy(str) {
     if (typeof window._safeHtml === 'function') return window._safeHtml(str);

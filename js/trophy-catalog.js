@@ -340,6 +340,16 @@ window.TROPHY_CATALOG = [
     check: function(ctx) { return (ctx.stats.friendsCount || 0) >= 5; }
   },
   {
+    id: 'social_10_amigos',
+    category: 'social',
+    title: 'Turma Grande',
+    desc: 'Tenha 10 amigos no scoreplace.',
+    icon: '🫂',
+    tier: null,
+    trigger: 'friend_added',
+    check: function(ctx) { return (ctx.stats.friendsCount || 0) >= 10; }
+  },
+  {
     id: 'social_notificou_amigos',
     category: 'social',
     title: 'Galera Avisada',
