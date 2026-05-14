@@ -9,6 +9,25 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">⚖️ v1.6.4-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Revisão jurídica completa — Política de Privacidade (9 seções) e Termos de Uso (9 seções).</b><br>' +
+      '<b>Política de Privacidade — adicionados:</b><br>' +
+      '• Seção 1: diagnóstico técnico via Sentry e dados de uso via Google Analytics 4 como dados coletados;<br>' +
+      '• Seção 2: GA4 e Sentry listados como sub-processadores;<br>' +
+      '• Seção 6 (nova): Cookies e armazenamento local — localStorage sem cookies de rastreamento;<br>' +
+      '• Seção 7 (nova): Alterações desta Política — sem aviso prévio em beta, com aviso após versão estável;<br>' +
+      '• DPO renumerado para seção 8; Contato para seção 9.<br>' +
+      '<b>Termos de Uso — adicionados:</b><br>' +
+      '• Intro: Terra Barth Serviços Administrativos Ltda identificada como operadora;<br>' +
+      '• Seção 1: vedação explícita para menores de 12 anos (LGPD art. 14);<br>' +
+      '• Seção 5: força maior adicionada à limitação de responsabilidade;<br>' +
+      '• Seção 6 (nova): Propriedade Intelectual — marca e código pertencem à Terra Barth;<br>' +
+      '• Seção 7 (nova): Alterações nestes Termos — sem aviso prévio em beta;<br>' +
+      '• Seção 8 (nova): Foro e Lei Aplicável — Comarca de São Paulo/SP, lei brasileira;<br>' +
+      '• Contato renumerado para seção 9.<br>' +
+      'Banner beta restaurado: mudanças e dados podem ocorrer sem aviso durante fase beta.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">⚖️ v1.6.3-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Revisão jurídica — Política de Privacidade e Termos de Uso.</b><br>' +
       '• <b>Controladora identificada</b>: Terra Barth Serviços Administrativos Ltda, CNPJ 51.590.996/0001-73, passou a figurar como controladora dos dados pessoais em todos os documentos legais.<br>' +

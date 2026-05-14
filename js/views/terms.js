@@ -1,12 +1,9 @@
 // scoreplace.app — Termos de Uso
 //
 // Página pública (rota #terms). Acessível sem login.
-//
-// ⚠️ TODO LEGAL REVIEW: scaffolding genérico pra app esportivo amador
-// em fase alpha. Antes de beta público, advogado deve revisar — pontos
-// críticos: limitação de responsabilidade, cláusula arbitral, foro,
-// uso de imagens em torneios públicos, propriedade intelectual de logos
-// gerados pelo app.
+// Revisão jurídica concluída em v1.6.4-beta (14 Mai 2026):
+// operadora Terra Barth identificada, IP, foro SP/SP, força maior,
+// seção de alterações com ressalva de beta sem aviso prévio.
 
 (function () {
   'use strict';
@@ -70,7 +67,25 @@
             _t('terms.section5Body') + '</p>' +
 
           '<h2 style="font-size:1.05rem;font-weight:700;color:var(--text-bright);margin:1.5rem 0 0.6rem;">' +
-            '6. ' + _t('terms.contactTitle') + '</h2>' +
+            '6. ' + _t('terms.ipTitle') + '</h2>' +
+          '<p style="font-size:0.88rem;color:var(--text-main);line-height:1.7;margin:0 0 0.75rem;">' +
+            _t('terms.ipBody') +
+          '</p>' +
+
+          '<h2 style="font-size:1.05rem;font-weight:700;color:var(--text-bright);margin:1.5rem 0 0.6rem;">' +
+            '7. ' + _t('terms.changesTitle') + '</h2>' +
+          '<p style="font-size:0.88rem;color:var(--text-main);line-height:1.7;margin:0 0 0.75rem;">' +
+            _t('terms.changesBody') +
+          '</p>' +
+
+          '<h2 style="font-size:1.05rem;font-weight:700;color:var(--text-bright);margin:1.5rem 0 0.6rem;">' +
+            '8. ' + _t('terms.jurisdictionTitle') + '</h2>' +
+          '<p style="font-size:0.88rem;color:var(--text-main);line-height:1.7;margin:0 0 0.75rem;">' +
+            _t('terms.jurisdictionBody') +
+          '</p>' +
+
+          '<h2 style="font-size:1.05rem;font-weight:700;color:var(--text-bright);margin:1.5rem 0 0.6rem;">' +
+            '9. ' + _t('terms.contactTitle') + '</h2>' +
           '<p style="font-size:0.88rem;color:var(--text-main);line-height:1.7;margin:0;">' +
             _t('terms.contactBody') +
             ' <a href="mailto:' + supportEmail + '" style="color:var(--primary-color);">' +
