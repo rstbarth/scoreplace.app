@@ -1088,6 +1088,7 @@ const BACKFILL_TROPHY_DEFS = [
   // SOCIAL
   { id: "social_primeiro_amigo",      check: (u, s) => (s.friendsCount || 0) >= 1 },
   { id: "social_encontrou_amigos",    check: (u, s) => (s.friendsCount || 0) >= 5 },
+  { id: "social_10_amigos",           check: (u, s) => (s.friendsCount || 0) >= 10 },
   { id: "social_convidou",            check: (u, s) => (s.invitesSent || 0) >= 1 },
   { id: "social_notificou_amigos",    check: (u, s) => (s.friendNotifications || 0) >= 5 },
   // ESPECIAL FUNDADOR (criou conta antes de 2026-06-01)
@@ -1108,6 +1109,19 @@ const BACKFILL_MILESTONES = [
   { id: "milestone_checkins",                    metric: "checkinsTotal",        step: 10, startAt: 10 },
   { id: "milestone_locais_visitados",            metric: "uniqueVenuesVisited",  step: 5,  startAt: 5  },
   { id: "milestone_amigos",                      metric: "friendsCount",         step: 5,  startAt: 5  },
+];
+
+// Category-complete trophies: awarded when ALL required trophies in a category are earned.
+// cat_casual/torneio exclude trophies that require real-time event data (virada, madrugador, noturno)
+// because those can only be awarded when the event happens. Once the user has earned those
+// via real-time flow, the category becomes completable by the next scheduled check.
+const BACKFILL_CAT_TROPHIES = [
+  { id: "cat_perfil",   required: ["perfil_completo","perfil_foto","perfil_local","perfil_skills"] },
+  { id: "cat_casual",   required: ["casual_primeira","casual_primeira_vitoria","casual_virada","casual_sequencia_5","casual_maratonista","casual_multimodalidade"] },
+  { id: "cat_torneio",  required: ["torneio_primeiro_inscrito","torneio_primeira_vitoria","torneio_campeao","torneio_podio","torneio_criou_primeiro","torneio_50_inscritos","torneio_liga"] },
+  { id: "cat_presenca", required: ["presenca_primeira","presenca_planejou","presenca_3_locais","presenca_madrugador","presenca_noturna","presenca_toda_semana"] },
+  { id: "cat_social",   required: ["social_primeiro_amigo","social_convidou","social_encontrou_amigos","social_10_amigos","social_notificou_amigos"] },
+  { id: "cat_especial", required: ["especial_streak_30","especial_all_modalities","especial_organizador_serie"] },
 ];
 
 function _milestoneTierFromLevel(level) {
@@ -1376,6 +1390,18 @@ exports.backfillAllUserTrophies = onCall(
           } catch (_) {}
         }
 
+        // ── 3.5. Check category-completion trophies ────────────────────────
+        // Build the set of all earned trophies (existing + newly awarded)
+        const allEarnedSet = Object.assign({}, existTrophies);
+        newTrophies.forEach((t) => { allEarnedSet[t] = true; });
+        for (const catDef of BACKFILL_CAT_TROPHIES) {
+          if (allEarnedSet[catDef.id]) continue;
+          if (catDef.required.every((r) => allEarnedSet[r])) {
+            newTrophies.push(catDef.id);
+            allEarnedSet[catDef.id] = true;
+          }
+        }
+
         if (newTrophies.length > 0) {
           const now = new Date().toISOString();
           // Use batched writes (max 500 per batch)
@@ -1446,7 +1472,10 @@ exports.backfillAllUserTrophies = onCall(
           tournamentsEnrolled: stats.tournamentsEnrolled  || 0,
           tournamentWins:      stats.tournamentWins       || 0
         };
-        await db.collection("users").doc(uid).update({ _rankStats: rankStats }).catch(() => {});
+        // Build complete _trophyIds list from existTrophies + newly awarded
+        const allTrophyIdsForDoc = Object.keys(Object.assign({}, existTrophies));
+        newTrophies.forEach((t) => { if (!allTrophyIdsForDoc.includes(t)) allTrophyIdsForDoc.push(t); });
+        await db.collection("users").doc(uid).update({ _rankStats: rankStats, _trophyIds: allTrophyIdsForDoc }).catch(() => {});
 
       } catch (e) {
         console.warn(`[backfill] uid=${uid} email=${userData.email} error:`, e.message || e);
@@ -1470,5 +1499,178 @@ exports.backfillAllUserTrophies = onCall(
 
     console.log(`[backfill] DONE: processed=${processed} trophiesAwarded=${trophiesAwarded} milestonesAwarded=${milestonesAwarded} errors=${errors}`);
     return { ok: true, processed, trophiesAwarded, milestonesAwarded, errors, trophyCounts };
+  }
+);
+
+
+// ─── Scheduled daily trophy check ────────────────────────────────────────────────
+// Roda diariamente às 02:00 BRT. Verifica todos os usuários e concede troféus
+// e marcos que qualificam — sem precisar que o usuário abra o app.
+// Isso resolve "o sistema não deve depender do login do usuário para dar o troféu".
+//
+// Lógica idêntica ao backfillAllUserTrophies mas:
+//   1. Roda automaticamente (cron, sem auth check)
+//   2. Envia push notification (FCM) para novos troféus
+//   3. Processa só usuários com fcmToken (candidatos a notificação)
+//      + todos os outros sem push (só award silencioso)
+exports.scheduledTrophyCheck = onSchedule(
+  {
+    schedule: "every day 02:00",
+    timeZone: "America/Sao_Paulo",
+    region: "us-central1",
+    timeoutSeconds: 540,
+    memory: "512MiB",
+  },
+  async () => {
+    const db = admin.firestore();
+    const usersSnap = await db.collection("users").get();
+    const totalUsers = usersSnap.docs.filter((d) => d.data() && d.data().email).length;
+    console.log(`[scheduledTrophyCheck] starting: ${totalUsers} users`);
+
+    // Update totalUsers for rarity calculations
+    await db.collection("_meta").doc("trophyStats").set(
+      { totalUsers: Math.max(totalUsers, 1) },
+      { merge: true }
+    ).catch(() => {});
+
+    let processed = 0, trophiesAwarded = 0, milestonesAwarded = 0, pushSent = 0, errors = 0;
+    const trophyCounts = {};
+
+    for (const userDoc of usersSnap.docs) {
+      const uid = userDoc.id;
+      const userData = userDoc.data() || {};
+      if (!userData.email) continue;
+
+      try {
+        const stats = await _computeBackfillStats(db, uid, userData);
+
+        const existTrophySnap = await db.collection("users").doc(uid)
+          .collection("trophies").get().catch(() => null);
+        const existTrophies = {};
+        if (existTrophySnap) existTrophySnap.forEach((d) => { existTrophies[d.id] = true; });
+
+        const newTrophies = [];
+        for (const def of BACKFILL_TROPHY_DEFS) {
+          if (existTrophies[def.id]) continue;
+          try { if (def.check(userData, stats)) newTrophies.push(def.id); } catch (_) {}
+        }
+
+        // Category-completion trophies (second pass)
+        const allEarnedSet = Object.assign({}, existTrophies);
+        newTrophies.forEach((t) => { allEarnedSet[t] = true; });
+        for (const catDef of BACKFILL_CAT_TROPHIES) {
+          if (allEarnedSet[catDef.id]) continue;
+          if (catDef.required.every((r) => allEarnedSet[r])) {
+            newTrophies.push(catDef.id);
+            allEarnedSet[catDef.id] = true;
+          }
+        }
+
+        if (newTrophies.length > 0) {
+          const now = new Date().toISOString();
+          for (let i = 0; i < newTrophies.length; i += 400) {
+            const batch = db.batch();
+            const chunk = newTrophies.slice(i, i + 400);
+            for (const tid of chunk) {
+              const ref = db.collection("users").doc(uid).collection("trophies").doc(tid);
+              batch.set(ref, { awardedAt: now, tier: "bronze", scheduled: true });
+              trophyCounts[tid] = (trophyCounts[tid] || 0) + 1;
+            }
+            await batch.commit();
+            trophiesAwarded += chunk.length;
+          }
+
+          // Send FCM push notification for new trophies
+          const fcmToken = userData.fcmToken;
+          if (fcmToken && newTrophies.length > 0) {
+            try {
+              const firstTrophyId = newTrophies[0];
+              const title = newTrophies.length === 1
+                ? "🏆 Novo troféu desbloqueado!"
+                : `🏆 ${newTrophies.length} troféus desbloqueados!`;
+              const body = newTrophies.length === 1
+                ? `Você ganhou "${firstTrophyId.replace(/_/g, " ")}" — abra o app para ver!`
+                : "Você ganhou novos troféus — abra o app para ver!";
+              await admin.messaging().send({
+                token: fcmToken,
+                notification: { title, body },
+                data: { link: "/", type: "trophy_awarded", trophyId: firstTrophyId },
+                android: { priority: "normal" },
+                apns: { payload: { aps: { badge: 1 } } },
+              });
+              pushSent++;
+            } catch (pushErr) {
+              // Invalid token is common (user revoked) — don't fail the whole run
+              console.warn(`[scheduledTrophyCheck] push failed uid=${uid}:`, pushErr.code || pushErr.message);
+            }
+          }
+        }
+
+        // Milestones
+        const existMilestoneSnap = await db.collection("users").doc(uid)
+          .collection("milestones").get().catch(() => null);
+        const existMilestones = {};
+        if (existMilestoneSnap) existMilestoneSnap.forEach((d) => {
+          existMilestones[d.id] = d.data() || {};
+        });
+
+        const milestoneBatch = db.batch();
+        let hasMilestoneBatch = false;
+        for (const ms of BACKFILL_MILESTONES) {
+          const currentValue = stats[ms.metric] || 0;
+          if (currentValue < ms.startAt) continue;
+          const newLevel = Math.floor((currentValue - ms.startAt) / ms.step) + 1;
+          if (newLevel <= 0) continue;
+          const prevLevel = (existMilestones[ms.id] && existMilestones[ms.id].level) || 0;
+          if (newLevel <= prevLevel) continue;
+          const now = new Date().toISOString();
+          for (let lvl = prevLevel + 1; lvl <= newLevel; lvl++) {
+            const levelId = ms.id + "_" + lvl;
+            if (existMilestones[levelId]) continue;
+            const threshold = ms.startAt + ms.step * (lvl - 1);
+            const tier = _milestoneTierFromLevel(lvl);
+            const ref = db.collection("users").doc(uid).collection("milestones").doc(levelId);
+            milestoneBatch.set(ref, { level: lvl, threshold, tier, awardedAt: now, metric: ms.metric, value: currentValue, scheduled: true });
+            hasMilestoneBatch = true;
+            milestonesAwarded++;
+          }
+          const rootRef = db.collection("users").doc(uid).collection("milestones").doc(ms.id);
+          milestoneBatch.set(rootRef, { level: newLevel, awardedAt: new Date().toISOString(), scheduled: true }, { merge: true });
+          hasMilestoneBatch = true;
+        }
+        if (hasMilestoneBatch) await milestoneBatch.commit();
+
+        // Write _rankStats + _trophyIds snapshot
+        const rankStats = {
+          casualMatchesPlayed: stats.casualMatchesPlayed || 0,
+          checkinsTotal:       stats.checkinsTotal       || 0,
+          tournamentsEnrolled: stats.tournamentsEnrolled  || 0,
+          tournamentWins:      stats.tournamentWins       || 0
+        };
+        const allTrophyIds = Object.keys(Object.assign({}, existTrophies));
+        newTrophies.forEach((t) => { if (!allTrophyIds.includes(t)) allTrophyIds.push(t); });
+        await db.collection("users").doc(uid).update({ _rankStats: rankStats, _trophyIds: allTrophyIds }).catch(() => {});
+
+      } catch (e) {
+        console.warn(`[scheduledTrophyCheck] uid=${uid} error:`, e.message || e);
+        errors++;
+      }
+
+      processed++;
+      if (processed % 10 === 0) {
+        console.log(`[scheduledTrophyCheck] progress: ${processed}/${totalUsers}`);
+      }
+    }
+
+    // Update global trophy counts
+    if (Object.keys(trophyCounts).length > 0) {
+      const countsUpdate = {};
+      Object.entries(trophyCounts).forEach(([id, count]) => {
+        countsUpdate["counts." + id] = admin.firestore.FieldValue.increment(count);
+      });
+      await db.collection("_meta").doc("trophyStats").update(countsUpdate).catch(() => {});
+    }
+
+    console.log(`[scheduledTrophyCheck] DONE: processed=${processed} trophiesAwarded=${trophiesAwarded} milestonesAwarded=${milestonesAwarded} pushSent=${pushSent} errors=${errors}`);
   }
 );

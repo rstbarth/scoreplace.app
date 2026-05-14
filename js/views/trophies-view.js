@@ -183,6 +183,164 @@
     el.innerHTML = html;
   }
 
+
+  // ─── Friend trophy comparison ──────────────────────────────────────────────────
+  // Loads friends' _trophyIds (flat array written by backfill/scheduler) and
+  // renders a side-by-side comparison: you have / both have / friend has.
+  async function _loadFriendsComparisonData(cu, myEarnedIds) {
+    if (!cu || !cu.friends || !cu.friends.length) return [];
+    var db = window.FirestoreDB && window.FirestoreDB.db;
+    if (!db) return [];
+
+    // Resolve friend UIDs (some entries may be emails from old schema)
+    var friendUids = (cu.friends || []).filter(function(f) {
+      return f && f.indexOf('@') === -1; // only UIDs
+    }).slice(0, 20); // cap at 20 friends for performance
+
+    if (!friendUids.length) return [];
+
+    var mySet = {};
+    (myEarnedIds || []).forEach(function(id) { mySet[id] = true; });
+
+    var results = [];
+    // Fetch in batches of 10
+    for (var i = 0; i < friendUids.length; i += 10) {
+      var batch = friendUids.slice(i, i + 10);
+      var refs = batch.map(function(uid) { return db.collection('users').doc(uid); });
+      try {
+        var snaps = db.getAll
+          ? await db.getAll.apply(db, refs)
+          : await Promise.all(refs.map(function(r) { return r.get(); }));
+        snaps.forEach(function(snap) {
+          if (!snap.exists) return;
+          var data = snap.data() || {};
+          var name = data.displayName || data.email || snap.id;
+          var trophyIds = Array.isArray(data._trophyIds) ? data._trophyIds : [];
+          var friendSet = {};
+          trophyIds.forEach(function(id) { friendSet[id] = true; });
+
+          var onlyMe = myEarnedIds.filter(function(id) {
+            var t = window.TROPHY_CATALOG_BY_ID && window.TROPHY_CATALOG_BY_ID[id];
+            return t && !friendSet[id];
+          });
+          var both = myEarnedIds.filter(function(id) {
+            var t = window.TROPHY_CATALOG_BY_ID && window.TROPHY_CATALOG_BY_ID[id];
+            return t && friendSet[id];
+          });
+          var onlyFriend = trophyIds.filter(function(id) {
+            var t = window.TROPHY_CATALOG_BY_ID && window.TROPHY_CATALOG_BY_ID[id];
+            return t && !mySet[id];
+          });
+
+          results.push({
+            uid: snap.id,
+            name: name,
+            photoURL: data.photoURL || '',
+            trophyIds: trophyIds,
+            onlyMe: onlyMe,
+            both: both,
+            onlyFriend: onlyFriend,
+            totalFriend: trophyIds.length,
+            totalMe: myEarnedIds.length
+          });
+        });
+      } catch (e) {
+        console.warn('[trophies] friend comparison load error:', e);
+      }
+    }
+
+    // Sort: most similar first (most trophies in common)
+    results.sort(function(a, b) { return b.both.length - a.both.length; });
+    return results;
+  }
+
+  function _renderFriendComparison(container, friendsData, selectedFriendUid) {
+    if (!friendsData || !friendsData.length) return;
+
+    var selected = friendsData.find(function(f) { return f.uid === selectedFriendUid; }) || friendsData[0];
+    var selUid = selected.uid;
+
+    // Friend pills
+    var pillsHtml = friendsData.map(function(f) {
+      var isActive = f.uid === selUid;
+      var initial = (f.name || '?')[0].toUpperCase();
+      var avatarHtml = f.photoURL
+        ? '<img src="' + _s(f.photoURL) + '" style="width:22px;height:22px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\'">'
+        : '<span style="width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#4f46e5);display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;color:#fff;flex-shrink:0;">' + initial + '</span>';
+      var btnStyle = isActive
+        ? 'display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;'
+        : 'display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:rgba(255,255,255,0.06);color:var(--text-muted);border:1px solid var(--border-color);font-size:0.78rem;font-weight:600;cursor:pointer;';
+      var safeName = _s(f.name.split(/[\s.@]/)[0]);
+      var safeUid = _s(f.uid);
+      return '<button onclick="window._trophyCompareSelectFriend(\'' + safeUid + '\')" style="' + btnStyle + '">'
+        + avatarHtml
+        + '<span>' + safeName + '</span>'
+        + '</button>';
+    }).join('');
+
+    // Stats row
+    var friendFirstName = _s(selected.name.split(/[\s.@]/)[0]);
+    var statsHtml =
+      '<div style="display:grid;grid-template-columns:1fr auto 1fr;gap:8px;margin-bottom:16px;text-align:center;">' +
+        '<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:12px;padding:12px 8px;">' +
+          '<div style="font-size:1.5rem;font-weight:800;color:#10b981;">' + selected.onlyMe.length + '</div>' +
+          '<div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Só você</div>' +
+        '</div>' +
+        '<div style="background:rgba(99,102,241,0.08);border:1px solid rgba(99,102,241,0.2);border-radius:12px;padding:12px 8px;">' +
+          '<div style="font-size:1.5rem;font-weight:800;color:#6366f1;">' + selected.both.length + '</div>' +
+          '<div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Em comum</div>' +
+        '</div>' +
+        '<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:12px;padding:12px 8px;">' +
+          '<div style="font-size:1.5rem;font-weight:800;color:#fbbf24;">' + selected.onlyFriend.length + '</div>' +
+          '<div style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Só ' + friendFirstName + '</div>' +
+        '</div>' +
+      '</div>';
+
+    // Trophy chips helper
+    function _trophyChips(ids, accentColor, emptyMsg) {
+      if (!ids || !ids.length) return '<p style="font-size:0.78rem;color:var(--text-muted);margin:4px 0 0;">' + emptyMsg + '</p>';
+      return '<div style="display:flex;flex-wrap:wrap;gap:6px;">'
+        + ids.slice(0, 12).map(function(id) {
+          var t = window.TROPHY_CATALOG_BY_ID && window.TROPHY_CATALOG_BY_ID[id];
+          if (!t) return '';
+          return '<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:20px;background:' + accentColor + ';font-size:0.72rem;font-weight:600;color:var(--text-bright);">'
+            + t.icon + ' <span>' + _s(t.title) + '</span>'
+            + '</span>';
+        }).join('')
+        + (ids.length > 12 ? '<span style="font-size:0.72rem;color:var(--text-muted);align-self:center;">+' + (ids.length - 12) + ' mais</span>' : '')
+        + '</div>';
+    }
+
+    // Sections
+    var sectionsHtml =
+      (selected.onlyFriend.length > 0
+        ? '<div style="margin-bottom:16px;">' +
+            '<p style="font-size:0.8rem;font-weight:700;color:#fbbf24;margin:0 0 8px;">⭐ ' + friendFirstName + ' tem, você ainda não</p>' +
+            _trophyChips(selected.onlyFriend, 'rgba(251,191,36,0.1)', '') +
+          '</div>'
+        : '') +
+      (selected.onlyMe.length > 0
+        ? '<div style="margin-bottom:16px;">' +
+            '<p style="font-size:0.8rem;font-weight:700;color:#10b981;margin:0 0 8px;">✅ Você tem, ' + friendFirstName + ' ainda não</p>' +
+            _trophyChips(selected.onlyMe, 'rgba(16,185,129,0.1)', '') +
+          '</div>'
+        : '') +
+      (selected.both.length > 0
+        ? '<div style="margin-bottom:0;">' +
+            '<p style="font-size:0.8rem;font-weight:700;color:#6366f1;margin:0 0 8px;">🤝 Vocês dois conquistaram</p>' +
+            _trophyChips(selected.both, 'rgba(99,102,241,0.1)', '') +
+          '</div>'
+        : '');
+
+    container.innerHTML =
+      '<div class="trophy-section">' +
+        '<h2 class="trophy-section-title">🤝 Comparar com Amigos</h2>' +
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">' + pillsHtml + '</div>' +
+        statsHtml +
+        sectionsHtml +
+      '</div>';
+  }
+
   // ─── Página principal ─────────────────────────────────────────────────────
   window.renderTrophiesPage = function(container) {
     if (!container) return;
@@ -316,6 +474,24 @@
       var body = document.getElementById('trophies-page-body');
       if (!body) return;
       body.innerHTML = xpHtml + rankingHtml + trophiesHtml + milestonesHtml;
+
+      // Friend comparison section (async, non-blocking)
+      var comparisonEl = document.createElement('div');
+      comparisonEl.id = 'trophy-friend-comparison';
+      body.appendChild(comparisonEl);
+
+      // Build earnedTrophies id list for comparison
+      var myEarnedIds = Object.keys(userTrophies);
+      _loadFriendsComparisonData(cu, myEarnedIds).then(function(friendsData) {
+        if (friendsData && friendsData.length) {
+          window._trophyFriendsData = friendsData;
+          window._trophyCompareSelectFriend = function(uid) {
+            var el = document.getElementById('trophy-friend-comparison');
+            if (el) _renderFriendComparison(el, friendsData, uid);
+          };
+          _renderFriendComparison(comparisonEl, friendsData, null);
+        }
+      });
 
       // Carrega ranking inicial (partidas casuais)
       window._currentRankingMetric = 'casualMatchesPlayed';

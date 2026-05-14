@@ -8,6 +8,15 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #a78bfa;border-radius:12px;padding:14px 16px;background:rgba(167,139,250,0.08);">' +
+      '<div style="font-weight:800; color:#a78bfa; font-size:1rem; margin-bottom:8px;">🏆 v1.5.9-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Check diário automático de troféus + comparação de troféus com amigos.</b><br>' +
+      '• Troféus agora são concedidos automaticamente todo dia às 02:00 BRT sem precisar abrir o app — o servidor verifica as conquistas e envia push notification (FCM) para quem desbloqueou algo novo.<br>' +
+      '• Novo troféu <b>social_10_amigos</b>: ganho ao ter 10 amigos no app.<br>' +
+      '• Troféus de categoria completa (cat_perfil, cat_casual, cat_torneio, cat_presença, cat_social, cat_especial) agora são verificados automaticamente também.<br>' +
+      '• Campo <b>_trophyIds</b> gravado no doc do usuário a cada backfill — permite leitura eficiente para comparações entre amigos.<br>' +
+      '• Nova seção <b>"Comparar com Amigos"</b> na página de Troféus: mostra lado a lado os troféus que só você tem, que ambos têm em comum, e que só o amigo tem — como um radar de missões a cumprir.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #f87171;border-radius:12px;padding:14px 16px;background:rgba(248,113,113,0.08);">' +
       '<div style="font-weight:800; color:#f87171; font-size:1rem; margin-bottom:8px;">🛡️ v1.5.2-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(13 de Maio, 2026)</span></div>' +
       '<p><b>Antifraude nas conquistas + botão Conquistas no dashboard.</b><br>' +
