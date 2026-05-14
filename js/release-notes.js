@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">👤 v1.6.9-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Perfil completo agora exige todos os 9 campos essenciais.</b><br>' +
+      '• <b>Antes:</b> 4 campos (sexo, nascimento, cidade/local, modalidade).<br>' +
+      '• <b>Agora:</b> nome real, foto de verdade (não ícone de iniciais), sexo, data de nascimento, cidade, modalidade preferida, nível de habilidade, telefone e pelo menos 1 local favorito.<br>' +
+      '• O banner "Complete seu perfil" na dashboard mostra exatamente quais dos 8 campos (além do nome) ainda faltam.<br>' +
+      '• A conquista <b>"Identidade Completa"</b> e seus critérios foram atualizados da mesma forma.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📸 v1.6.8-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Conquista "Com Rosto" exige foto real.</b><br>' +
       '• O ícone de iniciais (avatar gerado automaticamente) não confere mais o troféu/conquista "Com Rosto".<br>' +

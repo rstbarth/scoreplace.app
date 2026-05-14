@@ -932,18 +932,27 @@ function renderDashboard(container) {
     }
 
     // ── Nudge padrão: campos de perfil incompletos ───────────────────────
-    var hasGender = cu.gender && String(cu.gender).trim().length > 0 && cu.gender !== 'nao_informar';
-    var hasBirth = cu.birthDate && String(cu.birthDate).trim().length > 0;
-    var hasCity = cu.city && String(cu.city).trim().length > 0;
-    var hasSports = Array.isArray(cu.preferredSports) && cu.preferredSports.length > 0;
+    var hasPhoto = !!(cu.photoURL && typeof cu.photoURL === 'string'
+                     && cu.photoURL.length > 0
+                     && cu.photoURL.indexOf('dicebear.com') === -1);
+    var hasGender = !!(cu.gender && String(cu.gender).trim().length > 0 && cu.gender !== 'nao_informar');
+    var hasBirth = !!(cu.birthDate && String(cu.birthDate).trim().length > 0);
+    var hasCity = !!(cu.city && String(cu.city).trim().length > 0);
+    var hasSports = !!(Array.isArray(cu.preferredSports) && cu.preferredSports.length > 0);
+    var hasSkill = !!(cu.skill || (cu.skillBySport && Object.keys(cu.skillBySport).length > 0));
+    var hasPhone = !!(cu.phone && String(cu.phone).trim().length > 0);
     var prefLocs = Array.isArray(cu.preferredLocations) ? cu.preferredLocations : [];
-    var hasLocation = hasCity || prefLocs.length > 0;
+    var hasPrefLocation = prefLocs.length > 0;
 
     var checks = [
-      { key: 'gender',   label: 'sexo',               ok: hasGender },
-      { key: 'birth',    label: 'data de nascimento',  ok: hasBirth },
-      { key: 'location', label: 'cidade',              ok: hasLocation },
-      { key: 'sports',   label: 'modalidades',         ok: hasSports }
+      { key: 'photo',    label: 'foto real',            ok: hasPhoto },
+      { key: 'gender',   label: 'sexo',                 ok: hasGender },
+      { key: 'birth',    label: 'data de nascimento',   ok: hasBirth },
+      { key: 'city',     label: 'cidade',               ok: hasCity },
+      { key: 'sports',   label: 'modalidade preferida', ok: hasSports },
+      { key: 'skill',    label: 'nível de habilidade',  ok: hasSkill },
+      { key: 'phone',    label: 'telefone',             ok: hasPhone },
+      { key: 'location', label: 'local favorito',       ok: hasPrefLocation }
     ];
     var filled = checks.filter(function(c){ return c.ok; }).length;
     var total = checks.length;

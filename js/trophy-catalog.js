@@ -51,15 +51,38 @@ window.TROPHY_CATALOG = [
     id: 'perfil_completo',
     category: 'perfil',
     title: 'Identidade Completa',
-    desc: 'Preencha nome, esporte preferido, gênero, cidade e habilidade no perfil.',
+    desc: 'Preencha nome, foto real, sexo, nascimento, cidade, modalidade, habilidade, telefone e local favorito.',
     icon: '👤',
     tier: null,
     trigger: 'profile_saved',
     check: function(ctx) {
       var u = ctx.currentUser;
       if (!u) return false;
-      return !!(u.displayName && u.preferredSports && u.preferredSports.length > 0
-                && u.gender && u.city && (u.skill || (u.skillBySport && Object.keys(u.skillBySport).length > 0)));
+      // 1. Nome real (não genérico)
+      var hasName = !!(u.displayName && typeof window._isUnfriendlyName === 'function'
+                       ? !window._isUnfriendlyName(u.displayName)
+                       : u.displayName);
+      // 2. Foto real (não dicebear/iniciais)
+      var hasPhoto = !!(u.photoURL && typeof u.photoURL === 'string'
+                       && u.photoURL.length > 0
+                       && u.photoURL.indexOf('dicebear.com') === -1);
+      // 3. Sexo
+      var hasGender = !!(u.gender && String(u.gender).trim().length > 0
+                        && u.gender !== 'nao_informar');
+      // 4. Data de nascimento
+      var hasBirth = !!(u.birthDate && String(u.birthDate).trim().length > 0);
+      // 5. Cidade
+      var hasCity = !!(u.city && String(u.city).trim().length > 0);
+      // 6. Modalidade preferida (≥1)
+      var hasSports = !!(Array.isArray(u.preferredSports) && u.preferredSports.length > 0);
+      // 7. Habilidade
+      var hasSkill = !!(u.skill || (u.skillBySport && Object.keys(u.skillBySport).length > 0));
+      // 8. Telefone
+      var hasPhone = !!(u.phone && String(u.phone).trim().length > 0);
+      // 9. Local favorito (≥1)
+      var hasLocation = !!(Array.isArray(u.preferredLocations) && u.preferredLocations.length > 0);
+      return hasName && hasPhoto && hasGender && hasBirth && hasCity
+             && hasSports && hasSkill && hasPhone && hasLocation;
     }
   },
   {
