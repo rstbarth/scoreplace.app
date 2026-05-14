@@ -72,7 +72,10 @@ window.TROPHY_CATALOG = [
     trigger: 'login',
     check: function(ctx) {
       var u = ctx.currentUser;
-      return !!(u && u.photoURL && u.photoURL.length > 0);
+      // Apenas foto real (Google/Apple/upload) — ícone de iniciais (dicebear) não conta
+      return !!(u && u.photoURL && typeof u.photoURL === 'string'
+        && u.photoURL.length > 0
+        && u.photoURL.indexOf('dicebear.com') === -1);
     }
   },
   {

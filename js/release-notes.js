@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📸 v1.6.8-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Conquista "Com Rosto" exige foto real.</b><br>' +
+      '• O ícone de iniciais (avatar gerado automaticamente) não confere mais o troféu/conquista "Com Rosto".<br>' +
+      '• Apenas foto vinda do login Google/Apple ou futuramente de upload direto qualifica.<br>' +
+      '• Critério consistente com o resto do app (mesmo filtro já usado para exibição de avatar).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🧑‍⚖️ v1.6.7-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Organizador agora aparece na lista de árbitros disponíveis.</b><br>' +
       '• Removido o filtro que excluía o organizador da lista "Disponíveis" na página de árbitros.<br>' +
