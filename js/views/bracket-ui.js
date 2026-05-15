@@ -6378,7 +6378,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
               var ov = document.getElementById('live-scoring-overlay');
               if (ov) ov.remove();
               if (typeof window._casualReopenSetup === 'function') {
-                window._casualReopenSetup();
+                // v1.6.60-beta: keepSession preserva _sessionDocId para que
+                // gêneros e formação de duplas sejam propagados via Firestore.
+                window._casualReopenSetup({ keepSession: true });
               } else {
                 _goToSetupLocally();
               }
@@ -6739,7 +6741,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
   // mesma sala (via _casualReopenSetup). Chamado por _liveScoreUnpairFromStats
   // e _liveScoreGoToSetup. Fallback pra _goToSetupLocally quando
   // _casualReopenSetup não está disponível (ex: partida aberta do histórico).
-  function _closeLiveScoringAndReopenSetup() {
+  function _closeLiveScoringAndReopenSetup(opts) {
     if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
     try { window.removeEventListener('resize', _onResize); } catch(e) {}
     try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
@@ -6748,7 +6750,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     var ov = document.getElementById('live-scoring-overlay');
     if (ov) ov.remove();
     if (typeof window._casualReopenSetup === 'function') {
-      window._casualReopenSetup();
+      window._casualReopenSetup(opts);
     } else {
       _goToSetupLocally();
     }
@@ -6771,7 +6773,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
           .catch(function(e) { console.warn('[LiveScore] unpair setup write failed:', e); });
       } catch(e) {}
     }
-    _closeLiveScoringAndReopenSetup();
+    // v1.6.60-beta: keepSession=true preserva _sessionDocId para que gêneros
+    // e formação de duplas sejam propagados via Firestore após voltar ao setup.
+    _closeLiveScoringAndReopenSetup({ keepSession: true });
   };
 
   // v1.6.41-beta: "Jogar Novamente" nas stats — propaga status:'setup' no
@@ -6790,7 +6794,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
           .catch(function(e) { console.warn('[LiveScore] setup status write failed:', e); });
       } catch(e) {}
     }
-    _closeLiveScoringAndReopenSetup();
+    // v1.6.60-beta: keepSession=true preserva _sessionDocId para que gêneros
+    // e formação de duplas sejam propagados via Firestore após voltar ao setup.
+    _closeLiveScoringAndReopenSetup({ keepSession: true });
   };
 
   // Compartilhar resultado da partida casual — tournament match já tem o
@@ -8743,16 +8749,19 @@ window._openCasualMatch = function(restoreOpts) {
   // _casualStart() é chamado (para dar lugar ao live-scoring-overlay), então
   // precisamos re-appendá-la ao body. A referência `overlay` ainda existe no
   // closure — só foi desanexada do DOM.
-  window._casualReopenSetup = function() {
+  window._casualReopenSetup = function(opts) {
+    var keepSession = !!(opts && opts.keepSession);
     // Zera times para formar novos pares livremente
     _teamAssignments = {};
     autoShuffle = true;
-    // Reseta sessão: próximo Iniciar cria novo doc no Firestore
-    _sessionDocId = null;
-    // v1.6.50-beta: para o polling de refresh — sem isso, o interval continua
-    // lendo o Firestore com _sessionRoomCode antigo e sobrescreve os nomes
-    // digitados nos slots com "Jogador X, Y, Z" após alguns segundos.
-    if (_setupRefreshInterval) { clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; }
+    if (!keepSession) {
+      // Reseta sessão: próximo Iniciar cria novo doc no Firestore
+      _sessionDocId = null;
+      // v1.6.50-beta: para o polling de refresh — sem isso, o interval continua
+      // lendo o Firestore com _sessionRoomCode antigo e sobrescreve os nomes
+      // digitados nos slots com "Jogador X, Y, Z" após alguns segundos.
+      if (_setupRefreshInterval) { clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; }
+    }
     // Re-appenda overlay (ainda em memória no closure)
     if (!document.getElementById('casual-match-overlay')) {
       document.body.appendChild(overlay);
@@ -8765,7 +8774,14 @@ window._openCasualMatch = function(restoreOpts) {
     }
     // Renderiza setup com os jogadores já presentes
     _renderSetup();
+    // v1.6.60-beta: com keepSession, mantém _sessionDocId para que sync
+    // continue funcionando — gêneros e times são propagados via Firestore.
     _syncCasualSetupDebounced();
+    if (keepSession) {
+      // Reinicia polling para receber mudanças dos outros participantes
+      // (o interval foi parado quando a partida iniciou via _startSetupRefresh)
+      _startSetupRefresh();
+    }
     // Hidrata "Últimas partidas" (pode ter nova partida agora)
     setTimeout(function() {
       if (typeof window._casualLoadLastMatches === 'function') window._casualLoadLastMatches();
