@@ -8779,7 +8779,8 @@ window._openCasualMatch = function(restoreOpts) {
           name: resolved[pi].name,
           team: hasTeamDnD ? _teamAssignments[pi] : (pi < 2 ? 1 : 2),
           uid: resolved[pi].uid,
-          photoURL: resolved[pi].photoURL
+          photoURL: resolved[pi].photoURL,
+          gender: _resolveSlotGender(pi) || null
         });
       }
     } else {
@@ -8804,8 +8805,8 @@ window._openCasualMatch = function(restoreOpts) {
         n2 = (inp2 && inp2.value ? inp2.value.trim() : '') || 'Jogador 2';
         u2 = null; ph2 = null;
       }
-      players.push({ slot: 0, name: n1, displayName: n1, team: 1, uid: u1, photoURL: ph1 });
-      players.push({ slot: 1, name: n2, displayName: n2, team: 2, uid: u2, photoURL: ph2 });
+      players.push({ slot: 0, name: n1, displayName: n1, team: 1, uid: u1, photoURL: ph1, gender: _resolveSlotGender(0) || null });
+      players.push({ slot: 1, name: n2, displayName: n2, team: 2, uid: u2, photoURL: ph2, gender: _resolveSlotGender(1) || null });
     }
     // Diagnostic — permite debug remoto sem DevTools no celular
     try {
