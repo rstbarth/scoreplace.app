@@ -4305,12 +4305,34 @@ window._openLiveScoring = function(tId, matchId, opts) {
         // _casualPlayers which is populated from opts when _openLiveScoring starts.
         var _plForUids = (opts && opts.players && opts.players.length) ? opts.players : _casualPlayers;
         var playerUids = _plForUids.filter(function(p) { return !!p.uid; }).map(function(p) { return p.uid; });
-        window.FirestoreDB.updateCasualMatch(_casualDocId, {
+        // v1.6.14-beta: gravar liveState junto com status:'finished'.
+        // Antes, o autosave gravava só status/result/playerUids, e o
+        // liveState ficava pra _syncLiveState (debounce 300ms). Race: outro
+        // cliente recebia status:'finished' via onSnapshot ANTES do liveState
+        // atualizado chegar, então _applyRemoteState aplicava estado antigo
+        // (sem isFinished=true) → tela travada sem stats. Cancela timer de
+        // sync pendente pra evitar last-write-wins favorecer estado antigo.
+        try { clearTimeout(_syncTimer); } catch(_e) {}
+        var _finalLiveState = null;
+        try { _finalLiveState = _serializeState(); } catch(_e) {}
+        var _updatePayload = {
           status: 'finished',
           finishedAt: new Date().toISOString(),
           result: resultData,
           playerUids: playerUids
-        });
+        };
+        if (_finalLiveState) _updatePayload.liveState = _finalLiveState;
+        // Diagnóstico expostos em window pra debug via DevTools
+        try {
+          window._lastCasualSaveResult = {
+            docId: _casualDocId,
+            playerUids: playerUids,
+            winner: state.winner,
+            hasLiveState: !!_finalLiveState,
+            at: new Date().toISOString()
+          };
+        } catch(_e) {}
+        window.FirestoreDB.updateCasualMatch(_casualDocId, _updatePayload);
       }
       // Persist detailed stats in each registered player's account so they
       // survive even after the casual match doc is deleted/expired.
@@ -6887,11 +6909,21 @@ window._openLiveScoring = function(tId, matchId, opts) {
             } catch(e) {}
           }
         } else if (isCasual && cu && cu.uid && _casualDocId && window.FirestoreDB && typeof window.FirestoreDB.leaveCasualMatch === 'function') {
-          // Guest: just free their own slot
-          try {
-            var leavePromise = window.FirestoreDB.leaveCasualMatch(_casualDocId, cu.uid);
-            if (leavePromise && typeof leavePromise.catch === 'function') leavePromise.catch(function(){});
-          } catch(e) {}
+          // v1.6.14-beta: Guest fecha o overlay — leaveCasualMatch APENAS
+          // se o match não terminou. Antes desta versão, qualquer "Voltar"
+          // do guest disparava leaveCasualMatch, que removia o uid dele de
+          // playerUids/participants no doc. Como a query de "últimas partidas"
+          // filtra por `where('playerUids', 'array-contains', uid)`, isso
+          // fazia a partida finalizada SUMIR do histórico do guest (e do
+          // criador também, se o criador deixar o doc preservado mas o guest
+          // remove a si mesmo de playerUids). Match finalizado deve manter
+          // os participantes intactos pra que o histórico funcione pra todos.
+          if (!_matchIsComplete) {
+            try {
+              var leavePromise = window.FirestoreDB.leaveCasualMatch(_casualDocId, cu.uid);
+              if (leavePromise && typeof leavePromise.catch === 'function') leavePromise.catch(function(){});
+            } catch(e) {}
+          }
         }
         // Clear activeCasualRoom from the profile + suppress resume for
         // 6s so a stale snapshot doesn't yank the user back into the
