@@ -8105,6 +8105,15 @@ window._openCasualMatch = function(restoreOpts) {
         // mostra avatar mesmo em modo técnico (⠿ só aparece em slots SEM vínculo).
         var _isLinkedCard = !_isRegCard && !!_slotLinkedUid[ci];
         var _linkedFriendProfile = _isLinkedCard && window._friendProfilesCache ? window._friendProfilesCache[_slotLinkedUid[ci]] : null;
+        // Fallback: se uid vinculado mas perfil ainda não está no cache (ex: Device B antes do
+        // fetch async completar), usa nome do input para mostrar iniciais imediatamente.
+        if (_isLinkedCard && !_linkedFriendProfile) {
+          _linkedFriendProfile = {
+            displayName: inputValues[ci] || '',
+            photoURL: '',
+            gender: _slotGenders[ci] || ''
+          };
+        }
         if (_isLinkedCard) { bg = 'rgba(99,102,241,0.10)'; bdr = 'rgba(99,102,241,0.40)'; textClr = 'var(--text-bright)'; }
         var _readonlyAttr = (_isRegCard || _isLinkedCard) ? 'readonly ' : '';
         var _regExtraStyle = (_isRegCard || _isLinkedCard) ? 'pointer-events:none;cursor:inherit;' : '';
@@ -8777,7 +8786,7 @@ window._openCasualMatch = function(restoreOpts) {
     if (activating) {
       // Limpa nome e gênero de todos os slots — todos ficam livres para edição
       var _coachInputIds = isDoubles
-        ? ['casual-p1a-name', 'casual-p2a-name', 'casual-p1b-name', 'casual-p2b-name']
+        ? ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name']
         : ['casual-p1-name', 'casual-p2-name'];
       for (var _cii = 0; _cii < _coachInputIds.length; _cii++) {
         var _cel = document.getElementById(_coachInputIds[_cii]);
@@ -8837,7 +8846,7 @@ window._openCasualMatch = function(restoreOpts) {
           item.onmousedown = function(e) { e.preventDefault(); }; // evita blur antes de onclick
           (function(friend) {
             item.onclick = function() {
-              window._casualSelectSlotFriend(ci, friend.uid, friend.displayName, friend.photoURL || null);
+              window._casualSelectSlotFriend(ci, friend.uid, friend.displayName, friend.photoURL || null, friend.gender || null);
             };
           })(s);
           dd.appendChild(item);
@@ -8857,10 +8866,10 @@ window._openCasualMatch = function(restoreOpts) {
   };
 
   // Seleciona um amigo para o slot ci: preenche o nome, guarda uid, re-renderiza.
-  window._casualSelectSlotFriend = function(ci, friendUid, friendName, friendPhotoURL) {
+  window._casualSelectSlotFriend = function(ci, friendUid, friendName, friendPhotoURL, friendGender) {
     _slotLinkedUid[ci] = friendUid || null;
     var ids = isDoubles
-      ? ['casual-p1a-name','casual-p2a-name','casual-p1b-name','casual-p2b-name']
+      ? ['casual-p1a-name','casual-p1b-name','casual-p2a-name','casual-p2b-name']
       : ['casual-p1-name','casual-p2-name'];
     var inputId = ids[ci];
     var inp = inputId ? document.getElementById(inputId) : null;
@@ -8869,11 +8878,23 @@ window._openCasualMatch = function(restoreOpts) {
       inp.value = (friendName || '').split(' ')[0] || friendName || '';
       if (window._autosizeCasualInput) window._autosizeCasualInput(inp);
     }
-    // Auto-preenche gênero do amigo se disponível no cache
-    if (friendUid && window._friendProfilesCache && window._friendProfilesCache[friendUid]) {
-      var _fg = window._friendProfilesCache[friendUid].gender;
-      if (_fg) _slotGenders[ci] = _fg;
+    // Garante que o perfil está no cache (usa os dados do dropdown como fallback imediato)
+    if (friendUid) {
+      if (!window._friendProfilesCache[friendUid]) {
+        window._friendProfilesCache[friendUid] = {
+          uid: friendUid,
+          displayName: friendName || '',
+          photoURL: friendPhotoURL || '',
+          gender: friendGender || ''
+        };
+      }
     }
+    // Auto-preenche gênero: prioriza parâmetro > cache
+    var _fg = friendGender;
+    if (!_fg && friendUid && window._friendProfilesCache && window._friendProfilesCache[friendUid]) {
+      _fg = window._friendProfilesCache[friendUid].gender;
+    }
+    if (_fg) _slotGenders[ci] = _fg;
     // Remove dropdown imediatamente
     var wrapper = document.querySelector('[data-casual-ac-wrapper="' + ci + '"]');
     if (wrapper) {
@@ -9849,6 +9870,7 @@ window._openCasualMatch = function(restoreOpts) {
               _lobbyParticipants[_spi] &&
               (_lobbyParticipants[_spi].uid || _lobbyParticipants[_spi].photoURL);
             if (_isRegSlotSync) continue; // displayName dos logados não vem de input editável
+            if (_slotLinkedUid[_spi]) continue; // slot vinculado via autocomplete — controlado por slotLinkedUid + cache
             var _remoteName = (_freshPl[_spi] && _freshPl[_spi].name) ? String(_freshPl[_spi].name) : '';
             // Pula nomes default — se o outro cliente nunca digitou nada
             // pra esse slot, players[idx].name vem "Jogador N" e isso não
