@@ -7621,11 +7621,21 @@ window._openCasualMatch = function(restoreOpts) {
     needed.forEach(function(uid) {
       window.FirestoreDB.loadUserProfile(uid).then(function(prof) {
         _participantGenders[uid] = (prof && prof.gender) ? prof.gender : '';
+        // v1.6.33-beta: propaga gender do perfil para _slotGenders se ainda não
+        // há override manual, para que outros clientes vejam via Firestore sync.
+        if (_participantGenders[uid]) {
+          for (var _si = 0; _si < _lobbyParticipants.length; _si++) {
+            if (_lobbyParticipants[_si] && _lobbyParticipants[_si].uid === uid && !_slotGenders[_si]) {
+              _slotGenders[_si] = _participantGenders[uid];
+            }
+          }
+        }
       }).catch(function() {
         _participantGenders[uid] = '';
       }).then(function() {
         pending--;
         if (pending === 0) {
+          _syncCasualSetupDebounced();
           if (document.getElementById('casual-match-overlay')) _renderSetup();
         }
       });
@@ -9558,7 +9568,9 @@ window._openCasualMatch = function(restoreOpts) {
 
     var _cu2 = window.AppStore && window.AppStore.currentUser;
     var _uid2 = _cu2 && (_cu2.uid || _cu2.email);
-    var _participantsCount = (Array.isArray(_lobbyParticipants) ? _lobbyParticipants.length : 0);
+    // v1.6.33-beta: filter nulls — após leave, _lobbyParticipants tem null nos slots
+    // liberados. Contar length bruto causava _isSolo=false mesmo com 1 real participante.
+    var _participantsCount = Array.isArray(_lobbyParticipants) ? _lobbyParticipants.filter(Boolean).length : 0;
     // Sou o único? Conta a si mesmo se estou logado E em _lobbyParticipants.
     var _meInLobby = !!(_cu2 && _cu2.uid && _lobbyParticipants && _lobbyParticipants.some(function(p) { return p && p.uid === _cu2.uid; }));
     var _isSolo = (_participantsCount <= 1) || (_meInLobby && _participantsCount === 1);
