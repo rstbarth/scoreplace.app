@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.6.29-beta';
+window.SCOREPLACE_VERSION = '1.6.30-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -2409,6 +2409,13 @@ window.AppStore = {
     if (window.FirestoreDB && window.FirestoreDB.db) {
       window.FirestoreDB.saveTournament(tourData).catch(function(err) {
         console.error('Erro ao salvar novo torneio:', err);
+        // permission-denied = token expirado ou regra de auth — não é bug de código
+        if (err && err.code === 'permission-denied') {
+          if (typeof showNotification === 'function') {
+            showNotification('Sessão expirada', 'Faça login novamente para salvar o torneio.', 'warning');
+          }
+          return;
+        }
         if (typeof window._captureException === 'function') {
           window._captureException(err, { area: 'addTournament', tournamentId: id, code: err && err.code });
         }
