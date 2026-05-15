@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔁 v1.6.25-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>2 bugs de sincronização da sala única.</b><br><br>' +
+      '<b>(1) Drag-drop de duplas não propagava entre clientes.</b> Quando A formava times via drag-drop, gravava <code>players[].team</code> no Firestore corretamente — mas o polling de B SÓ sincronizava nomes (inputs), nunca aplicava o <code>.team</code> no <code>_teamAssignments</code> local. Resultado: time formado por A não aparecia visualmente pra B. Agora o polling deriva <code>_teamAssignments</code> de <code>fresh.players[].team</code> quando <code>teamsFormed=true</code>, faz re-render. Espelho do break (clicar 🔗 pra desfazer) também propaga.<br><br>' +
+      '<b>(2) Rodrigo deixou a partida mas continuou aparecendo no slot.</b> <code>leaveCasualMatch</code> apagava só <code>uid/displayName/photoURL</code> do player, MAS mantinha <code>name</code>. Outros clientes faziam polling, viam o name persistido e mantinham "Rodrigo" no input do slot. Agora o slot fica TOTALMENTE livre (preserva só o índice <code>slot</code>) — outros clientes veem o slot vazio imediatamente.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🎨 v1.6.24-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Conquista "Com Rosto" — detecção de monograma via pixel sampling.</b> Reportado que usuários com avatar de iniciais (login Google sem foto real) continuam ganhando o troféu mesmo após v1.6.13 (7 patterns) e v1.6.16 (diagnóstico).<br><br>' +
       'A check síncrona depende de patterns conhecidos (<code>/a-/</code>, <code>default-user</code>, etc.) que Google pode mudar a qualquer momento. <b>Segunda camada de defesa</b> adicionada: verificação <b>assíncrona via pixel sampling</b>:<br><br>' +

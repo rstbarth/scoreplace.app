@@ -1057,13 +1057,15 @@ window.FirestoreDB = {
         participants = participants.filter(function(p) { return p.uid !== uid; });
         playerUids = playerUids.filter(function(u) { return u !== uid; });
         // Release any slot this user had claimed so another player can take it
+        // v1.6.25-beta: também apaga `name` e `team` — antes só removia
+        // uid/displayName/photoURL, então `name` ficava como "Rodrigo" no
+        // slot mesmo após o user sair. Outros clientes faziam polling, viam
+        // o name persistido e mantinham "Rodrigo" no input do slot.
+        // Agora o slot fica TOTALMENTE livre quando o user sai.
         players = players.map(function(p) {
           if (p && p.uid === uid) {
-            var copy = Object.assign({}, p);
-            delete copy.uid;
-            delete copy.displayName;
-            delete copy.photoURL;
-            return copy;
+            // Preserva apenas `slot` — todo o resto vira default (slot livre)
+            return { slot: p.slot };
           }
           return p;
         });

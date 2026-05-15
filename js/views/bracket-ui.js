@@ -9345,6 +9345,42 @@ window._openCasualMatch = function(restoreOpts) {
             try { if (typeof window._autosizeCasualInput === 'function') window._autosizeCasualInput(_inpSync); } catch(e) {}
           }
         }
+
+        // v1.6.25-beta: sincroniza _teamAssignments (formação de duplas via
+        // drag-drop) a partir de fresh.players[].team. Antes desta versão,
+        // quando A formava duplas via drag-drop, _formTeam gravava players
+        // com .team correto no Firestore — mas o polling de B SÓ sincronizava
+        // nomes (inputs), NUNCA aplicava o .team no _teamAssignments local.
+        // Resultado: time formado por A não aparecia visualmente pra B.
+        // Agora derivamos _teamAssignments do fresh.players[].team quando
+        // todos os 4 slots têm team definido + teamsFormed=true no Firestore.
+        if (_freshPl.length === 4 && fresh.teamsFormed === true) {
+          var _allTeamsValid = _freshPl.every(function(p) {
+            return p && (p.team === 1 || p.team === 2);
+          });
+          if (_allTeamsValid) {
+            var _newAssignments = {};
+            for (var _tai = 0; _tai < 4; _tai++) {
+              var _pSlot = (typeof _freshPl[_tai].slot === 'number') ? _freshPl[_tai].slot : _tai;
+              _newAssignments[_pSlot] = _freshPl[_tai].team;
+            }
+            // Aplica só se mudou (evita re-render desnecessário)
+            var _changed = false;
+            for (var _tak = 0; _tak < 4; _tak++) {
+              if (_teamAssignments[_tak] !== _newAssignments[_tak]) { _changed = true; break; }
+            }
+            if (_changed) {
+              _teamAssignments = _newAssignments;
+              autoShuffle = false;
+              try { _renderSetup(); } catch(e) {}
+            }
+          }
+        } else if (fresh.teamsFormed === false && _teamAssignments[0] !== undefined) {
+          // Outro cliente desfez os times (clicou no ícone 🔗 de break)
+          _teamAssignments = {};
+          autoShuffle = true;
+          try { _renderSetup(); } catch(e) {}
+        }
       }).catch(function() {});
     }, 3000);
   }
