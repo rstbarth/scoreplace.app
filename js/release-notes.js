@@ -9,6 +9,17 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🎨 v1.6.24-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Conquista "Com Rosto" — detecção de monograma via pixel sampling.</b> Reportado que usuários com avatar de iniciais (login Google sem foto real) continuam ganhando o troféu mesmo após v1.6.13 (7 patterns) e v1.6.16 (diagnóstico).<br><br>' +
+      'A check síncrona depende de patterns conhecidos (<code>/a-/</code>, <code>default-user</code>, etc.) que Google pode mudar a qualquer momento. <b>Segunda camada de defesa</b> adicionada: verificação <b>assíncrona via pixel sampling</b>:<br><br>' +
+      '1. No bootstrap, se user tem o troféu, carrega a foto via <code>&lt;img crossOrigin="anonymous"&gt;</code> em canvas 64×64.<br>' +
+      '2. Sample de ~256 pixels com quantização agressiva (buckets de 16 RGB).<br>' +
+      '3. Conta cores únicas. Monograma típico: <b>3-8 cores</b> (fundo sólido + texto + anti-alias). Foto real: <b>50+ cores</b>.<br>' +
+      '4. Se < 12 cores únicas → <b>revoga o troféu automaticamente</b>.<br><br>' +
+      'Funciona pra QUALQUER monograma (Google, Apple, qualquer provedor) — não depende de pattern conhecido. CORS: se canvas ficar tainted, retorna inconclusivo (false negative seguro, deixa a sync check decidir).<br><br>' +
+      'Diagnóstico exposto em <code>window._lastMonogramCheck</code> (photoURL, uniqueColors count, status, revoked).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🎥 v1.6.23-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Câmera do scanner libera definitivamente após entrar na sala (iOS PWA).</b> Screenshot do dono mostrou que após o scanner ler o QR e entrar na partida, o badge "gravando" continuou no Dynamic Island do iPhone. v1.6.21 não foi suficiente em iOS PWA standalone.<br><br>' +
       '<b>3 defesas adicionais:</b><br>' +

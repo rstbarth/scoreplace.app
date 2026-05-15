@@ -36,6 +36,86 @@
   var _pendingAwards = {};  // key: uid+'_'+trophyId → true
 
   // ─── Obter instância do Firestore ─────────────────────────────────────────
+  // v1.6.24-beta: pixel sampling pra detectar avatares monogram default
+  // (Google "inicial colorida", Apple default, qualquer provedor). Carrega
+  // imagem em canvas e conta cores únicas. Default = ~3-5 cores (fundo
+  // sólido + texto + anti-alias). Foto real = centenas.
+  function _asyncCheckPerfilFotoIsMonogram(uid, ctx) {
+    var u = (ctx && ctx.currentUser) || (window.AppStore && window.AppStore.currentUser) || {};
+    var fbUser = window.firebase && window.firebase.auth && window.firebase.auth().currentUser;
+    var photoURL = (fbUser && fbUser.photoURL) ? fbUser.photoURL : (u.photoURL || '');
+    if (!photoURL) return;
+
+    // Diagnóstico exposto em window pra inspeção via DevTools
+    window._lastMonogramCheck = { photoURL: photoURL, at: new Date().toISOString(), status: 'started' };
+
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onerror = function() {
+      window._lastMonogramCheck.status = 'error-load';
+      // Não revoga em caso de erro — false negative seguro
+    };
+    img.onload = function() {
+      try {
+        var canvas = document.createElement('canvas');
+        // Downsample agressivo: 64x64 é suficiente pra contar cores
+        var DIM = 64;
+        canvas.width = DIM; canvas.height = DIM;
+        var ctx2d = canvas.getContext('2d');
+        ctx2d.drawImage(img, 0, 0, DIM, DIM);
+        var imageData;
+        try {
+          imageData = ctx2d.getImageData(0, 0, DIM, DIM);
+        } catch (corsErr) {
+          // Canvas tainted por CORS — não dá pra ler pixels.
+          // False negative seguro: deixa a sync check decidir.
+          window._lastMonogramCheck.status = 'cors-tainted';
+          return;
+        }
+        // Conta cores únicas com tolerância (quantização em buckets de 16)
+        // pra ignorar variações de anti-alias. Sample de ~256 pixels.
+        var data = imageData.data;
+        var uniqueColors = {};
+        var step = Math.max(4, Math.floor(data.length / (256 * 4)));
+        for (var i = 0; i < data.length; i += step * 4) {
+          var r = (data[i] >> 4) << 4;
+          var g = (data[i + 1] >> 4) << 4;
+          var b = (data[i + 2] >> 4) << 4;
+          uniqueColors[r + ',' + g + ',' + b] = true;
+        }
+        var count = Object.keys(uniqueColors).length;
+        window._lastMonogramCheck.uniqueColors = count;
+        window._lastMonogramCheck.status = 'measured';
+
+        // Threshold: < 12 cores únicas = monogram. Foto real típica
+        // tem 50+ cores únicas mesmo após quantização agressiva.
+        if (count < 12) {
+          window._lastMonogramCheck.status = 'monogram-detected';
+          // Revoga o troféu — usuário não tem foto real
+          var _rdb = _db();
+          if (_rdb && _cache.trophies[uid] && _cache.trophies[uid]['perfil_foto']) {
+            _rdb.collection('users').doc(uid)
+              .collection('trophies').doc('perfil_foto')
+              .delete()
+              .then(function() {
+                if (_cache.trophies[uid]) delete _cache.trophies[uid]['perfil_foto'];
+                var cIds = _getCheckedTrophyIds(uid);
+                var idx = cIds.indexOf('perfil_foto');
+                if (idx !== -1) { cIds.splice(idx, 1); _saveCheckedTrophyIds(uid, cIds); }
+                console.warn('[trophies] REVOKED perfil_foto via pixel-sampling — only', count, 'unique colors (monogram detected)');
+                window._lastMonogramCheck.revoked = true;
+              })
+              .catch(function() {});
+          }
+        }
+      } catch (e) {
+        window._lastMonogramCheck.status = 'exception:' + (e && e.message);
+      }
+    };
+    img.src = photoURL;
+  }
+  window._asyncCheckPerfilFotoIsMonogram = _asyncCheckPerfilFotoIsMonogram;
+
   function _db() {
     if (window.FirestoreDB && window.FirestoreDB.db) return window.FirestoreDB.db;
     return null;
@@ -599,6 +679,24 @@
                 .catch(function() {});
             });
             // ─────────────────────────────────────────────────────────────────
+
+            // v1.6.24-beta: SEGUNDA CAMADA DE DEFESA pra perfil_foto.
+            // A check síncrona usa patterns conhecidos pra rejeitar avatares
+            // default — mas Google pode adicionar novos formatos a qualquer
+            // momento. Verificação ASSÍNCRONA via pixel sampling pega
+            // QUALQUER monograma (Google, Apple, qualquer provedor):
+            // carrega a imagem em canvas, conta cores únicas em sample de
+            // 100 pixels. Default avatars são monogramas (1-3 cores
+            // dominantes: fundo + texto + anti-alias). Fotos reais têm
+            // centenas de cores únicas. Se < 12 cores → revoga.
+            // CORS: usa crossOrigin="anonymous". Se canvas ficar tainted,
+            // retorna inconclusivo (não revoga — false negative seguro).
+            try {
+              var currentUserTrophies = _cache.trophies[uid] || {};
+              if (currentUserTrophies['perfil_foto']) {
+                _asyncCheckPerfilFotoIsMonogram(uid, ctx);
+              }
+            } catch (_eAsync) {}
 
             // Bootstrap silencioso: não mostrar overlay rico para cada troféu histórico.
             _isSilentBootstrap = true;
