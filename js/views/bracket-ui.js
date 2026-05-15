@@ -8057,10 +8057,16 @@ window._openCasualMatch = function(restoreOpts) {
         '<div style="margin-bottom:1.2rem;">' +
           '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">' + _t('casual.players') + '</label>' +
           '<div style="display:flex;gap:10px;">' +
-            '<div style="flex:1;position:relative;">' + _cuAvatarSingles +
-              '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="width:100%;padding:10px 14px;' + (_hasSinglesAvatar ? 'padding-left:44px;' : '') + 'border-radius:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+            '<div style="flex:1;display:flex;align-items:center;gap:6px;">' +
+              '<div style="flex:1;position:relative;">' + _cuAvatarSingles +
+                '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="width:100%;padding:10px 14px;' + (_hasSinglesAvatar ? 'padding-left:44px;' : '') + 'border-radius:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+              '</div>' +
+              _genderIconHtml(0) +
             '</div>' +
-            '<input type="text" id="casual-p2-name" value="' + window._safeHtml(_savedPlayerNames[5] || '') + '" placeholder="Jogador 2" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;">' +
+            '<div style="flex:1;display:flex;align-items:center;gap:6px;">' +
+              '<input type="text" id="casual-p2-name" value="' + window._safeHtml(_savedPlayerNames[5] || '') + '" placeholder="Jogador 2" style="flex:1;padding:10px 14px;border-radius:10px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+              _genderIconHtml(1) +
+            '</div>' +
           '</div>' +
         '</div>';
     }
