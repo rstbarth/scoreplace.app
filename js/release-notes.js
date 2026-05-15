@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📸 v1.6.13-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Conquista "Com Rosto" — detecção agressiva de avatares default do Google.</b> Reportado: usuários sem foto real continuam ganhando o troféu mesmo após v1.6.10-beta. ' +
+      'Causa: Google retorna URL <code>googleusercontent.com</code> mesmo pra contas sem foto cadastrada (tipicamente um monograma com inicial colorida sobre fundo sólido), e a checagem anterior só rejeitava quando <code>firebase.auth().currentUser.photoURL</code> estava explicitamente null — o que raramente acontece.<br><br>' +
+      'Patterns de default agora rejeitados: <code>/a-/</code> (variante com hífen, padrão Google 2024+), <code>default-user</code>, <code>default-avatar</code>, <code>no_picture</code>, <code>no_photo</code>, e o placeholder antigo <code>/AAAAAAAAAAI/AAAAAAAAAAA/</code>. Também: rejeita <code>ui-avatars.com</code> além do <code>dicebear.com</code> que já era rejeitado.<br><br>' +
+      'Adicionado diagnóstico: <code>window._lastPhotoCheckURL</code> e <code>window._lastPhotoCheckFbHas</code> expõem a URL avaliada e se o Firebase Auth confirmou foto — útil pra inspeção via DevTools quando o troféu se comportar inesperado.<br><br>' +
+      '<b>Como funciona o revoke:</b> a flag <code>revocable: true</code> faz com que cada login revalide o check. Se a condição falha agora, o troféu é deletado do Firestore + cache local — perde-se automaticamente sem ação manual.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔄 v1.6.12-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Sincronização de nomes entre clientes na sala única.</b> Fix follow-up da v1.6.11-beta — após o refactor de sala única, dois clientes na mesma partida casual ainda não viam os nomes que o outro digitava. ' +
       'Quando A digitava "Maria" no slot 2, o <code>_syncCasualSetupDebounced</code> persistia no Firestore após 500ms, mas o polling de 3s do cliente B só checava <code>participants.length</code> (entrada/saída de logados) — ignorava mudanças em <code>players[]</code> (nomes digitados). ' +

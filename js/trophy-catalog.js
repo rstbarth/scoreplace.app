@@ -107,15 +107,43 @@ window.TROPHY_CATALOG = [
       var photoURL = (fbUser && fbUser.photoURL)
                      ? fbUser.photoURL
                      : (u.photoURL || '');
+
+      // v1.6.13-beta: diagnóstico exposto em window pra auditoria via console
+      // (DevTools: window._lastPhotoCheckURL retorna a URL avaliada).
+      // Permite ao dono inspecionar URLs estranhas reportadas por usuários
+      // quando o troféu aparece/some incorretamente, sem precisar logar
+      // no Sentry ou fazer redeploy só pra coletar a URL real.
+      try { window._lastPhotoCheckURL = photoURL; window._lastPhotoCheckFbHas = !!(fbUser && fbUser.photoURL); } catch(_e) {}
+
       // Não conta: string vazia, URL de dicebear (iniciais geradas pelo app),
       // ou URL terminada em "/photo.jpg" sem host (padrão de placeholder interno).
       if (!photoURL || typeof photoURL !== 'string' || photoURL.length === 0) return false;
       if (photoURL.indexOf('dicebear.com') !== -1) return false;
-      // Não conta: avatar padrão do Google (sem foto real cadastrada na conta).
-      // Google retorna URLs do tipo "...googleusercontent.com/a/default" ou com
-      // o parâmetro "=s0" / sem segmento de ID real quando não há foto.
+      // ui-avatars.com — outro serviço de geração de iniciais que algumas
+      // bibliotecas usam como fallback.
+      if (photoURL.indexOf('ui-avatars.com') !== -1) return false;
+
+      // v1.6.13-beta: detecção agressiva de avatares default do Google.
+      // Google retorna PHOTO URL mesmo pra contas sem foto real cadastrada —
+      // tipicamente um "monograma" (inicial colorida sobre fundo sólido).
+      // Patterns observados em 2024-2026:
+      //   - /a-/ (hífen depois de /a) — variante default mais comum
+      //   - /default-user, /default-avatar — defaults explícitos
+      //   - /AAAAAAAAAAI/AAAAAAAAAAA/ — placeholder hash antigo
+      //   - URL contém "no_picture", "no-picture", "no_photo" — placeholder explícito
       if (photoURL.indexOf('googleusercontent.com') !== -1) {
-        // Se Firebase Auth devolveu explicitamente null/vazio, não tem foto real
+        var lcURL = photoURL.toLowerCase();
+        // Padrão 2024+: /a-/ ANTES de qualquer hash significa default
+        if (photoURL.indexOf('/a-/') !== -1) return false;
+        if (lcURL.indexOf('default-user') !== -1) return false;
+        if (lcURL.indexOf('default-avatar') !== -1) return false;
+        if (lcURL.indexOf('no_picture') !== -1) return false;
+        if (lcURL.indexOf('no-picture') !== -1) return false;
+        if (lcURL.indexOf('no_photo') !== -1) return false;
+        // Padrão antigo: placeholder com /AAAAAAAAAAI/AAAAAAAAAAA/ no path
+        if (photoURL.indexOf('/AAAAAAAAAAI/AAAAAAAAAAA/') !== -1) return false;
+        // Firebase Auth confirma ausência: se fbUser.photoURL veio null/vazio
+        // mas u.photoURL ainda tinha valor (stale), não tem foto real agora.
         if (fbUser && !fbUser.photoURL) return false;
       }
       return true;
