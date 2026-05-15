@@ -106,18 +106,34 @@ window._sendUserNotification = async function(uid, notifData, _skipDispatch) {
         var cu = window.AppStore.currentUser || {};
         // Platform notification
         if (profile.notifyPlatform !== false) {
-            var _notifPayload = {
-                type: notifData.type || 'info',
-                fromUid: cu.uid || cu.email || '',
-                fromName: cu.displayName || '',
-                fromPhoto: cu.photoURL || '',
-                tournamentId: notifData.tournamentId || '',
-                tournamentName: notifData.tournamentName || '',
-                message: notifData.message || '',
-                createdAt: new Date().toISOString(),
-                read: false
-            };
-            if (notifData.inviteType) _notifPayload.inviteType = notifData.inviteType;
+            // v1.6.11-beta: passthrough seguro dos campos custom do notifData.
+            // Antes whitelist rígido descartava campos críticos pra render de
+            // botões de ação (ex: casual_link_request precisa de
+            // casualMatchDocId/casualRoomCode/casualSlotIndex/casualGuestName,
+            // casual_invite precisa de roomCode/sport). Resultado: notif chegava
+            // sem campos, renderer caía em fallback sem botões — usuário recebia
+            // ping sem ação possível. Agora copiamos TODOS os campos do payload
+            // exceto `level` (só usado pra filtro local de notifyLevel) e
+            // valores undefined (Firestore rejeita). Campos canônicos (type,
+            // fromUid, fromName, fromPhoto, createdAt, read) sobrescrevem
+            // qualquer override do caller pra evitar spoofing.
+            var _notifPayload = {};
+            Object.keys(notifData).forEach(function(k) {
+                if (k === 'level') return; // local-only filter
+                var v = notifData[k];
+                if (v === undefined) return; // Firestore reject
+                _notifPayload[k] = v;
+            });
+            // Canonical fields — set last so they win over any caller override
+            _notifPayload.type = notifData.type || 'info';
+            _notifPayload.fromUid = cu.uid || cu.email || '';
+            _notifPayload.fromName = cu.displayName || '';
+            _notifPayload.fromPhoto = cu.photoURL || '';
+            _notifPayload.tournamentId = notifData.tournamentId || '';
+            _notifPayload.tournamentName = notifData.tournamentName || '';
+            _notifPayload.message = notifData.message || '';
+            _notifPayload.createdAt = new Date().toISOString();
+            _notifPayload.read = false;
             await window.FirestoreDB.addNotification(uid, _notifPayload);
         }
         // Email dispatch — writes to 'mail' Firestore collection, processed by

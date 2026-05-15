@@ -4031,6 +4031,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
             });
           }
         } catch (_e2) {}
+        // v1.6.11-beta: AUTOSAVE crítico — sem isso, o doc Firestore fica eternamente
+        // com status:'active' se o usuário fechar o app na tela de stats sem clicar
+        // Fechar/Recomeçar/Desparear. Partida não aparece em "últimas partidas"
+        // porque o filtro é status==='finished'. Antes só salvava por ação manual.
+        // Fix bate em ambos os clientes (host + guest) — idempotente via _resultSaved.
+        if (!_resultSaved) {
+          try { _saveResult({ keepOpen: true, silent: true }); } catch (_e3) {}
+        }
       }
     } else {
       // Start new set
@@ -6247,6 +6255,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
             if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
             try { window.removeEventListener('resize', _onResize); } catch(e) {}
             try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+      try { window.removeEventListener('pagehide', _onPagehide); } catch(e) {}
             try { _releaseWakeLock(); } catch(e) {}
             var ov = document.getElementById('live-scoring-overlay');
             if (ov) ov.remove();
@@ -6330,6 +6339,13 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (state.currentGameP1 > state.currentGameP2) state.winner = 1;
     else if (state.currentGameP2 > state.currentGameP1) state.winner = 2;
     else state.winner = 0; // draw
+    _matchEndTime = Date.now();
+    // v1.6.11-beta: autosave imediato em modo casual — mesma razão do bloco
+    // em _finishSet. Sem isso a partida não persiste status:'finished' e some
+    // do histórico. winner===0 (empate) também precisa salvar pra histórico.
+    if (isCasual && !_resultSaved) {
+      try { _saveResult({ keepOpen: true, silent: true }); } catch (_e) {}
+    }
     _render();
   };
 
@@ -6553,6 +6569,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
         try { window.removeEventListener('resize', _onResize); } catch(e) {}
         try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+      try { window.removeEventListener('pagehide', _onPagehide); } catch(e) {}
         try { _releaseWakeLock(); } catch(e) {}
         var ov = document.getElementById('live-scoring-overlay');
         if (ov) ov.remove();
@@ -6584,6 +6601,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
     try { window.removeEventListener('resize', _onResize); } catch(e) {}
     try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+      try { window.removeEventListener('pagehide', _onPagehide); } catch(e) {}
     try { _releaseWakeLock(); } catch(e) {}
     var ov = document.getElementById('live-scoring-overlay');
     if (ov) ov.remove();
@@ -6674,6 +6692,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
     if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
     try { window.removeEventListener('resize', _onResize); } catch(e) {}
     try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+      try { window.removeEventListener('pagehide', _onPagehide); } catch(e) {}
     try { _releaseWakeLock(); } catch(e) {}
     var ov = document.getElementById('live-scoring-overlay');
     if (ov) ov.remove();
@@ -6791,12 +6810,27 @@ window._openLiveScoring = function(tId, matchId, opts) {
     _stopNoSleepVideo();
   };
   // Re-acquire on visibility change (browsers auto-release when tab hidden)
+  // v1.6.11-beta: também faz autosave de SEGURANÇA em modo casual — se a aba
+  // ficar oculta (lock screen, troca de app, fechar PWA) e o jogo já terminou,
+  // garante que o status:'finished' chega no Firestore mesmo que o usuário
+  // nunca clique Fechar/Recomeçar. Idempotente via _resultSaved.
   var _onVisibility = function() {
     if (document.visibilityState === 'visible' && document.getElementById('live-scoring-overlay')) {
       _requestWakeLock();
     }
+    if (document.visibilityState === 'hidden' && isCasual && state.isFinished && !_resultSaved) {
+      try { _saveResult({ keepOpen: true, silent: true }); } catch (_e) {}
+    }
   };
   document.addEventListener('visibilitychange', _onVisibility);
+  // pagehide: último gatilho disparado quando aba é descarregada (PWA fechado,
+  // navegação pra fora). Mesmo guard, defesa-em-profundidade contra perda de save.
+  var _onPagehide = function() {
+    if (isCasual && state.isFinished && !_resultSaved) {
+      try { _saveResult({ keepOpen: true, silent: true }); } catch (_e) {}
+    }
+  };
+  window.addEventListener('pagehide', _onPagehide);
   _requestWakeLock();
 
   // Close handler — always confirms before leaving
@@ -6805,6 +6839,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
       window.removeEventListener('resize', _onResize);
       document.removeEventListener('visibilitychange', _onVisibility);
+      try { window.removeEventListener('pagehide', _onPagehide); } catch(e) {}
       _releaseWakeLock();
       var ov = document.getElementById('live-scoring-overlay');
       if (ov) ov.remove();
@@ -7153,11 +7188,19 @@ window._openCasualMatch = function(restoreOpts) {
   // Gender cache keyed by uid: 'masculino' | 'feminino' | '' (checked, missing) | undefined (not loaded yet)
   var _participantGenders = {};
   if (cu && cu.uid) _participantGenders[cu.uid] = cu.gender || '';
-  var p1Name = (cu && cu.displayName) ? cu.displayName : '';
   // Restore participants from the existing Firestore doc when re-entering after reload
   var _lobbyParticipants = (restoreOpts && Array.isArray(restoreOpts.participants) && restoreOpts.participants.length > 0)
     ? restoreOpts.participants
     : (cu ? [{ uid: cu.uid, displayName: cu.displayName || '', photoURL: cu.photoURL || '', joinedAt: new Date().toISOString() }] : []);
+  // v1.6.11-beta: slot 0 = primeiro participante da sala (criador), não
+  // o current user. Antes, cada cliente via o próprio nome no slot 0, o que
+  // criava inconsistência entre A e B (cada um se via como "Jogador 1"). Agora
+  // todos veem a MESMA ordem — sala única, sem hierarquia host/guest. O
+  // current user vê seu próprio nome no slot em que ele está em
+  // _lobbyParticipants (ordenado por joinedAt).
+  var p1Name = (_lobbyParticipants[0] && _lobbyParticipants[0].displayName)
+    ? _lobbyParticipants[0].displayName
+    : (cu && cu.displayName ? cu.displayName : '');
   var _setupRefreshInterval = null;
 
   // Async-load gender for any lobby participant we haven't seen yet, then
@@ -7389,11 +7432,13 @@ window._openCasualMatch = function(restoreOpts) {
     var playersHtml = '';
     if (isDoubles) {
       // Build avatar helper for input cards
+      // v1.6.11-beta: idx 0 vem sempre de _lobbyParticipants[0] (criador) pra
+      // consistência entre clientes — não mais hardcoded em `cu`.
       function _inputAvatar(idx) {
-        // idx 0 = current user, others = lobby participants if available
         var pp = null;
-        if (idx === 0 && cu) pp = { displayName: cu.displayName, photoURL: cu.photoURL };
-        else if (idx < _lobbyParticipants.length) pp = _lobbyParticipants[idx];
+        if (idx < _lobbyParticipants.length) pp = _lobbyParticipants[idx];
+        // Fallback (sala vazia, edge case): usa current user se for slot 0
+        if (!pp && idx === 0 && cu) pp = { displayName: cu.displayName, photoURL: cu.photoURL };
         if (!pp || (!pp.photoURL && !pp.displayName)) return '';
         if (pp.photoURL) {
           return '<img src="' + window._safeHtml(pp.photoURL) + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.15);" onerror="this.style.display=\'none\'">';
@@ -8757,6 +8802,38 @@ window._openCasualMatch = function(restoreOpts) {
           try { window.location.hash = '#dashboard'; } catch(e) {}
           return;
         }
+        // v1.6.11-beta: sala única — se OUTRO participante clicou Iniciar
+        // (status virou 'active' no Firestore), transiciona TODOS pra live
+        // scoring. Antes só o criador podia iniciar; entrantes ficavam
+        // presos no lobby readonly. Agora qualquer um pode iniciar e os
+        // demais clientes detectam aqui via polling.
+        if (fresh.status === 'active') {
+          clearInterval(_setupRefreshInterval); _setupRefreshInterval = null;
+          var _ovA = document.getElementById('casual-match-overlay');
+          if (_ovA) _ovA.remove();
+          var _qrA = document.getElementById('casual-qr-overlay');
+          if (_qrA) _qrA.remove();
+          var _freshPlayers = Array.isArray(fresh.players) ? fresh.players : [];
+          var _p1n = _freshPlayers.filter(function(p) { return p.team === 1; }).map(function(p) { return p.name; }).join(' / ');
+          var _p2n = _freshPlayers.filter(function(p) { return p.team === 2; }).map(function(p) { return p.name; }).join(' / ');
+          if (typeof window._openLiveScoring === 'function') {
+            window._openLiveScoring(null, null, {
+              casual: true,
+              scoring: fresh.scoring || {},
+              p1Name: _p1n,
+              p2Name: _p2n,
+              title: fresh.sport || _t('casual.title'),
+              sportName: fresh.sport || '',
+              isDoubles: !!fresh.isDoubles,
+              casualDocId: _sessionDocId,
+              createdBy: fresh.createdBy || null,
+              roomCode: _sessionRoomCode,
+              players: _freshPlayers
+            });
+          }
+          if (typeof showNotification === 'function') showNotification(_t('casual.matchStarted'), '', 'success');
+          return;
+        }
         var newParts = Array.isArray(fresh.participants) ? fresh.participants : [];
         if (newParts.length !== _lobbyParticipants.length) {
           var countDecreased = newParts.length < _lobbyParticipants.length;
@@ -8819,35 +8896,49 @@ window._openCasualMatch = function(restoreOpts) {
     if (_setupRefreshInterval) { clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; }
   };
 
-  // Fully close the setup overlay: cancel the match in Firestore so guests
-  // aren't stuck in a ghost lobby, clear the active-room marker on the user's
-  // profile, stop the poller, remove the overlay, and navigate to dashboard.
+  // v1.6.11-beta: SALA ÚNICA — "Voltar" não cancela mais a partida pra
+  // todos automaticamente. Comportamento agora:
+  //   - sou o ÚNICO na sala → deleta o doc (cancel) — não tem ninguém prejudicado
+  //   - há outros → só libera minha vaga (leave) — sala continua pros outros
+  // Antes esta versão, sempre cancelava — modelo antigo onde quem criou era
+  // "dono" da sala. Agora todos são iguais, então sair = liberar slot.
   window._casualSetupClose = function() {
     // 1. Stop polling interval
     try { if (window._casualSetupCleanup) window._casualSetupCleanup(); } catch(e) {}
 
-    // 2. Cancel match in Firestore — use docId when available; fall back to
-    //    roomCode lookup when the async save is still in-flight (race window).
-    //    Guests' _startLobbyRefresh detects the deleted doc within 3s and evacuates.
-    try {
-      if (window.FirestoreDB && typeof window.FirestoreDB.cancelCasualMatch === 'function') {
-        if (_sessionDocId) {
-          window.FirestoreDB.cancelCasualMatch(_sessionDocId).catch(function(){});
-        } else if (_sessionRoomCode && typeof window.FirestoreDB.loadCasualMatch === 'function') {
-          // DocId race: Firestore save still in-flight — look up by roomCode, then delete
-          window.FirestoreDB.loadCasualMatch(_sessionRoomCode).then(function(m) {
-            if (m && m._docId) window.FirestoreDB.cancelCasualMatch(m._docId).catch(function(){});
-          }).catch(function(){});
+    var _cu2 = window.AppStore && window.AppStore.currentUser;
+    var _uid2 = _cu2 && (_cu2.uid || _cu2.email);
+    var _participantsCount = (Array.isArray(_lobbyParticipants) ? _lobbyParticipants.length : 0);
+    // Sou o único? Conta a si mesmo se estou logado E em _lobbyParticipants.
+    var _meInLobby = !!(_cu2 && _cu2.uid && _lobbyParticipants && _lobbyParticipants.some(function(p) { return p && p.uid === _cu2.uid; }));
+    var _isSolo = (_participantsCount <= 1) || (_meInLobby && _participantsCount === 1);
+
+    // 2a. Solo: cancel match (deleta doc). Outros polls detectam doc deletado e evacuam.
+    if (_isSolo) {
+      try {
+        if (window.FirestoreDB && typeof window.FirestoreDB.cancelCasualMatch === 'function') {
+          if (_sessionDocId) {
+            window.FirestoreDB.cancelCasualMatch(_sessionDocId).catch(function(){});
+          } else if (_sessionRoomCode && typeof window.FirestoreDB.loadCasualMatch === 'function') {
+            window.FirestoreDB.loadCasualMatch(_sessionRoomCode).then(function(m) {
+              if (m && m._docId) window.FirestoreDB.cancelCasualMatch(m._docId).catch(function(){});
+            }).catch(function(){});
+          }
         }
-      }
-    } catch(e) {}
+      } catch(e) {}
+    } else {
+      // 2b. Outros estão na sala — só leave (libera minha vaga). Sala continua viva pros demais.
+      try {
+        if (_uid2 && _sessionDocId && window.FirestoreDB && typeof window.FirestoreDB.leaveCasualMatch === 'function') {
+          var _leaveP = window.FirestoreDB.leaveCasualMatch(_sessionDocId, _uid2);
+          if (_leaveP && typeof _leaveP.catch === 'function') _leaveP.catch(function(){});
+        }
+      } catch(e) {}
+    }
 
     // 3. Clear active-room marker on profile so no device auto-resumes this room
     try {
-      var _cu2 = window.AppStore && window.AppStore.currentUser;
-      var _uid2 = _cu2 && (_cu2.uid || _cu2.email);
       if (_uid2 && window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
-        // Suppress profile-listener resume for 6s — user deliberately closed.
         window._suppressCasualResumeUntil = Date.now() + 6000;
         window.FirestoreDB.saveUserProfile(_uid2, { activeCasualRoom: null }).catch(function() {});
       }
@@ -8860,19 +8951,17 @@ window._openCasualMatch = function(restoreOpts) {
     var qrOv = document.getElementById('casual-qr-overlay');
     if (qrOv) qrOv.remove();
 
-    // 5. Feedback + navigate to dashboard.
-    //    Guests will be evacuated by their own polling within 3s when the doc disappears.
+    // 5. Feedback contextual + navigate to dashboard
     try {
       if (typeof showNotification === 'function') {
-        showNotification(
-          _t('casual.matchCancelled') || 'Partida encerrada',
-          _t('casual.matchCancelledByYouMsg') || 'Todos os participantes voltaram ao dashboard.',
-          'info'
-        );
+        if (_isSolo) {
+          showNotification(_t('casual.matchCancelled') || 'Partida encerrada', _t('casual.matchCancelledByYouMsg') || 'Partida desmobilizada — sala fechada.', 'info');
+        } else {
+          showNotification(_t('casual.leftMatch') || 'Você saiu da partida', '', 'info');
+        }
       }
     } catch(e) {}
     try {
-      // If already at #dashboard the router won't fire — force re-render directly.
       if (window.location.hash === '#dashboard' || window.location.hash === '') {
         var _vc = document.getElementById('view-container');
         if (_vc && typeof window.renderDashboard === 'function') window.renderDashboard(_vc);
@@ -9153,20 +9242,43 @@ window._renderCasualJoin = function(container, roomCode) {
     var participants = Array.isArray(match.participants) ? match.participants : [];
     var _lobbyInterval = null;
 
-    // v1.3.58-beta: Se o usuário que abriu a tela é o criador da partida, volta
-    // pra tela de setup (casual-match-overlay) em vez de mostrar o lobby.
-    // Cenário principal: SW auto-update recarregou a página enquanto o criador
-    // estava configurando a partida. Sem isso ele ficava preso no lobby
-    // sem conseguir iniciar — tinha que fechar e criar uma nova partida.
-    // _openCasualMatch com restoreOpts reutiliza o roomCode + docId existente,
-    // não cria doc duplicado no Firestore.
-    if (cu && cu.uid && match.createdBy === cu.uid) {
+    // v1.6.11-beta: SALA ÚNICA — todos os logados caem na MESMA tela de setup,
+    // independente de quem criou. Não há mais host vs guest, todos têm os
+    // mesmos poderes (editar nomes, formar times via drag-drop, mudar scoring,
+    // iniciar a partida). Quando 2+ pessoas editam ao mesmo tempo, last-write
+    // wins via debounce de 500ms no _syncCasualSetupDebounced + polling 3s
+    // que ressincroniza _lobbyParticipants. Antes desta versão só o criador
+    // caía em _openCasualMatch (v1.3.58-beta SW update edge case); entrantes
+    // ficavam presos numa lobby readonly "Aguardando organizador iniciar".
+    // joinCasualMatch é idempotente (arrayUnion) — se já estou em participants
+    // não duplica; senão adiciona com displayName/photoURL atuais.
+    if (cu && cu.uid) {
+      var _meAlreadyIn = participants.some(function(p) { return p.uid === cu.uid; });
+      if (!_meAlreadyIn) {
+        // Insere localmente pra _openCasualMatch ter o estado correto desde
+        // o primeiro render; persistência via joinCasualMatch em paralelo.
+        participants.push({
+          uid: cu.uid,
+          displayName: cu.displayName || '',
+          photoURL: cu.photoURL || '',
+          joinedAt: new Date().toISOString()
+        });
+        try {
+          if (docId && window.FirestoreDB && typeof window.FirestoreDB.joinCasualMatch === 'function') {
+            var _joinPromise = window.FirestoreDB.joinCasualMatch(docId, cu.uid, cu.displayName || '', cu.photoURL || '');
+            if (_joinPromise && typeof _joinPromise.catch === 'function') _joinPromise.catch(function(){});
+          }
+        } catch(e) {}
+      }
       window._openCasualMatch({
         roomCode: roomCode,
         docId: docId,
         sport: match.sport || 'Beach Tennis',
         isDoubles: typeof match.isDoubles === 'boolean' ? match.isDoubles : true,
-        participants: participants
+        participants: participants,
+        players: players,
+        scoring: match.scoring || null,
+        createdBy: match.createdBy || null
       });
       return;
     }
@@ -9244,9 +9356,29 @@ window._renderCasualJoin = function(container, roomCode) {
           '<div style="font-size:0.88rem;color:var(--text-muted);margin-bottom:0.2rem;">' + _safe(sportName) + (match.isDoubles ? ' · ' + _t('casual.doubles') : ' · ' + _t('casual.single')) + '</div>' +
           '<div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:0.8rem;">' + _t('casual.createdBy', {name: _safe(creatorName)}) + '</div>';
 
+      // v1.6.11-beta: pré-calcula guests nomeados pelo host pra que o contador
+      // "N de M jogadores" reflita a realidade (logados + guests digitados).
+      var _matchPlayersPre = Array.isArray(match.players) ? match.players : [];
+      var _defaultNamesPre = ['Jogador 1','Jogador 2','Jogador 3','Jogador 4','Parceiro','Adversário 1','Adversário 2'];
+      var _loggedUidsPre = {};
+      for (var _lpiPre = 0; _lpiPre < participants.length; _lpiPre++) {
+        if (participants[_lpiPre] && participants[_lpiPre].uid) _loggedUidsPre[participants[_lpiPre].uid] = true;
+      }
+      var _guestCount = 0;
+      for (var _mpiPre = 0; _mpiPre < _matchPlayersPre.length; _mpiPre++) {
+        var _mpPre = _matchPlayersPre[_mpiPre];
+        if (!_mpPre || !_mpPre.name) continue;
+        var _nmPre = String(_mpPre.name).trim();
+        if (!_nmPre || _defaultNamesPre.indexOf(_nmPre) !== -1) continue;
+        if (_mpPre.uid && _loggedUidsPre[_mpPre.uid]) continue;
+        _guestCount++;
+      }
+      _guestCount = Math.min(_guestCount, totalNeeded - participants.length);
+      var _effectiveCount = participants.length + _guestCount;
+
       // Participants list
       html += '<div style="margin-bottom:0.8rem;">' +
-        '<div style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">' + _t('casual.playersInRoom', {count: participants.length, total: totalNeeded}) + '</div>';
+        '<div style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">' + _t('casual.playersInRoom', {count: _effectiveCount, total: totalNeeded}) + '</div>';
 
       for (var i = 0; i < participants.length; i++) {
         var pp = participants[i];
@@ -9270,8 +9402,50 @@ window._renderCasualJoin = function(container, roomCode) {
         '</div>';
       }
 
-      // Empty slots
-      for (var j = participants.length; j < totalNeeded; j++) {
+      // v1.6.11-beta: guests nomeados pelo host (slots com nome non-default mas
+      // sem uid logado) agora aparecem no lobby da amiga. Antes o loop "Empty
+      // slots" mostrava só "Aguardando jogador..." pra todo slot não-logado,
+      // mesmo quando o host já tinha digitado "Maria" / "João". Agora o lobby
+      // reflete os players[] que o setup persiste no Firestore via
+      // _syncCasualSetupDebounced (debounce 500ms a cada keystroke).
+      var _matchPlayersAll = Array.isArray(match.players) ? match.players : [];
+      var _defaultNames = ['Jogador 1','Jogador 2','Jogador 3','Jogador 4','Parceiro','Adversário 1','Adversário 2'];
+      var _loggedUids = {};
+      for (var _lpi = 0; _lpi < participants.length; _lpi++) {
+        if (participants[_lpi] && participants[_lpi].uid) _loggedUids[participants[_lpi].uid] = true;
+      }
+      // Coletar guests nomeados: nome non-default + (sem uid OU uid não está em loggedUids)
+      var _namedGuests = [];
+      for (var _mpi = 0; _mpi < _matchPlayersAll.length; _mpi++) {
+        var _mp = _matchPlayersAll[_mpi];
+        if (!_mp || !_mp.name) continue;
+        var _nm = String(_mp.name).trim();
+        if (!_nm || _defaultNames.indexOf(_nm) !== -1) continue;
+        if (_mp.uid && _loggedUids[_mp.uid]) continue; // already in participants list above
+        _namedGuests.push(_mp);
+      }
+      // Renderiza guests até preencher os slots restantes
+      var _slotsLeft = totalNeeded - participants.length;
+      var _guestsToShow = Math.min(_namedGuests.length, _slotsLeft);
+      for (var _gi = 0; _gi < _guestsToShow; _gi++) {
+        var _g = _namedGuests[_gi];
+        var _gAvH = _g.photoURL ?
+          '<img src="' + _safe(_g.photoURL) + '" style="width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;border:2px solid rgba(255,255,255,0.15);" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+          '<div style="display:none;width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#64748b,#475569);align-items:center;justify-content:center;font-size:0.85rem;color:white;font-weight:700;flex-shrink:0;">' + _safe((_g.name || 'J')[0].toUpperCase()) + '</div>' :
+          '<div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#64748b,#475569);display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:white;font-weight:700;flex-shrink:0;">' + _safe((_g.name || 'J')[0].toUpperCase()) + '</div>';
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;margin-bottom:6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">' +
+          _gAvH +
+          '<div style="flex:1;text-align:left;">' +
+            '<div style="font-size:0.88rem;font-weight:700;color:var(--text-bright);">' + _safe(_g.name) +
+              ' <span style="color:var(--text-muted);font-size:0.65rem;font-weight:500;">(convidado)</span>' +
+            '</div>' +
+          '</div>' +
+          '<div style="font-size:1rem;">✅</div>' +
+        '</div>';
+      }
+      // Slots realmente vazios (totalNeeded - logados - guests nomeados)
+      var _emptySlots = _slotsLeft - _guestsToShow;
+      for (var j = 0; j < _emptySlots; j++) {
         html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;margin-bottom:6px;background:rgba(255,255,255,0.02);border:1px dashed rgba(255,255,255,0.1);">' +
           '<div style="width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:0.85rem;color:var(--text-muted);flex-shrink:0;">?</div>' +
           '<div style="flex:1;text-align:left;">' +
@@ -9327,7 +9501,7 @@ window._renderCasualJoin = function(container, roomCode) {
           '<div style="font-size:1.2rem;flex-shrink:0;">✅</div>' +
           '<div>' +
             '<div style="font-size:0.82rem;color:#22c55e;font-weight:700;">' + _t('casual.youreIn') + '</div>' +
-            '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px;">' + _t('casual.waitOrganizerStart') + (participants.length < totalNeeded ? ' (' + _t(totalNeeded - participants.length > 1 ? 'casual.slotsLeft' : 'casual.slotLeft', {n: totalNeeded - participants.length}) + ')' : '') + '</div>' +
+            '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:1px;">' + _t('casual.waitOrganizerStart') + (_effectiveCount < totalNeeded ? ' (' + _t(totalNeeded - _effectiveCount > 1 ? 'casual.slotsLeft' : 'casual.slotLeft', {n: totalNeeded - _effectiveCount}) + ')' : '') + '</div>' +
           '</div>' +
         '</div>';
       }
