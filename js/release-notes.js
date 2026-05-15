@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔗 v1.6.52-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Visual e integridade de dados no vínculo de amigos na partida casual.</b><br><br>' +
+      'Quando um amigo é selecionado via autocomplete num slot editável, o slot agora exibe o <b>avatar/foto e nome completo do perfil</b> — ' +
+      'igual ao tratamento visual de um participante registrado no lobby. O ícone ✕ sobreposto ao avatar permite desvincular com um toque.<br><br>' +
+      'A notificação de confirmação (<code>casual_link_request</code>) é disparada <b>automaticamente</b> após a partida encerrar para todos os slots com vínculo de autocomplete — ' +
+      'não requer ação manual do criador. Se o amigo <b>rejeitar</b>, o uid é removido do documento da partida e o registro do <code>matchHistory</code> desse usuário é apagado do banco de dados. ' +
+      'Se <b>aceitar</b>, os registros ficam intactos.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔗 v1.6.51-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Autocomplete de amigos nos slots da partida casual.</b><br><br>' +
       'Ao digitar o nome de um jogador num slot editável (modo técnico ou slot de convidado), ' +

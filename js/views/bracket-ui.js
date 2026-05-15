@@ -153,8 +153,25 @@ window._confirmCasualLinkRequest = async function(notif, accept) {
           updates.participants = participants;
         }
       }
+    } else {
+      // Rejeição: remove uid/photoURL do slot e tira o uid da lista denormalizada
+      var rPlayers = Array.isArray(data.players) ? data.players.slice() : [];
+      if (rPlayers[notif.casualSlotIndex]) {
+        rPlayers[notif.casualSlotIndex] = Object.assign({}, rPlayers[notif.casualSlotIndex], { uid: null, photoURL: null });
+        updates.players = rPlayers;
+      }
+      var rUids = Array.isArray(data.playerUids) ? data.playerUids.slice() : [];
+      var rUidIdx = rUids.indexOf(cu.uid);
+      if (rUidIdx !== -1) { rUids.splice(rUidIdx, 1); updates.playerUids = rUids; }
     }
     await docRef.update(updates);
+    // Rejeição: apaga o registro do matchHistory do usuário que recusou
+    if (!accept) {
+      try {
+        await window.FirestoreDB.db.collection('users').doc(cu.uid)
+          .collection('matchHistory').doc('casual_' + notif.casualMatchDocId).delete();
+      } catch (_mhE) { console.warn('[casual link] delete matchHistory err:', _mhE); }
+    }
     // Marca notif como lida + envia confirmação de volta pro solicitante
     if (window.FirestoreDB.markNotificationRead && notif._id) {
       try { await window.FirestoreDB.markNotificationRead(cu.uid, notif._id); } catch(e) {}
@@ -4343,6 +4360,19 @@ window._openLiveScoring = function(tId, matchId, opts) {
         matchType: 'casual',
         sport: opts && opts.sportName
       });
+      // v1.6.52-beta: auto-dispara sugestão de vínculo para slots vinculados
+      // via autocomplete. O matchHistory já foi gravado com o uid do amigo —
+      // se ele rejeitar a notificação, o registro é apagado.
+      var _preLinked = _slotLinkedUid ? _slotLinkedUid.slice() : [];
+      if (_preLinked.some(function(u) { return !!u; })) {
+        setTimeout(function() {
+          for (var _sli = 0; _sli < _preLinked.length; _sli++) {
+            if (_preLinked[_sli] && window._suggestCasualLink) {
+              window._suggestCasualLink(_sli, _preLinked[_sli]);
+            }
+          }
+        }, 1000);
+      }
       return;
     }
 
@@ -8045,34 +8075,41 @@ window._openCasualMatch = function(restoreOpts) {
         // Coach mode: todos os slots ficam editáveis (nomes e gêneros livres).
         var _isRegCard = !_coachMode && !!(ci < _lobbyParticipants.length && _lobbyParticipants[ci] &&
           (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL));
-        var _readonlyAttr = _isRegCard ? 'readonly ' : '';
-        var _regExtraStyle = _isRegCard ? 'pointer-events:none;cursor:inherit;' : '';
+        // v1.6.52-beta: slot vinculado via autocomplete — visual igual ao registrado
+        var _isLinkedCard = !_isRegCard && !_coachMode && !!_slotLinkedUid[ci];
+        var _linkedFriendProfile = _isLinkedCard && window._friendProfilesCache ? window._friendProfilesCache[_slotLinkedUid[ci]] : null;
+        if (_isLinkedCard) { bg = 'rgba(99,102,241,0.10)'; bdr = 'rgba(99,102,241,0.40)'; textClr = 'var(--text-bright)'; }
+        var _readonlyAttr = (_isRegCard || _isLinkedCard) ? 'readonly ' : '';
+        var _regExtraStyle = (_isRegCard || _isLinkedCard) ? 'pointer-events:none;cursor:inherit;' : '';
         // Em modo técnico, o avatar fica oculto; no lugar dele aparece um handle ⠿
         // que é o único ponto de toque que inicia drag (touchstart verifica data-drag-handle).
         // Isso libera a textarea para receber foco normalmente ao tocar no celular.
-        var _leftEl = _coachMode
-          ? '<div data-drag-handle="1" style="width:22px;min-width:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:grab;color:var(--text-muted);font-size:1.1rem;line-height:1;-webkit-user-select:none;user-select:none;touch-action:none;" title="Arrastar para formar dupla">⠿</div>'
-          : avatar;
-        // v1.6.51-beta: badge de amigo vinculado via autocomplete
-        var _linkedBadge = '';
-        if (!_isRegCard && _slotLinkedUid[ci]) {
-          var _lf = window._friendProfilesCache && window._friendProfilesCache[_slotLinkedUid[ci]];
-          var _lfName = _lf ? (_lf.displayName || '').split(' ')[0] : '';
-          _linkedBadge = '<div style="font-size:0.68rem;color:#a5b4fc;padding:2px 2px 0 2px;display:flex;align-items:center;gap:4px;">' +
-            '🔗 ' + (_lfName ? window._safeHtml(_lfName) + ' vinculado' : 'amigo vinculado') +
-            ' <button type="button" onmousedown="event.preventDefault()" onclick="window._casualUnlinkSlot(' + ci + ')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.72rem;padding:0 2px;line-height:1;" title="Desvincular">✕</button>' +
+        var _leftEl;
+        if (_coachMode) {
+          _leftEl = '<div data-drag-handle="1" style="width:22px;min-width:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:grab;color:var(--text-muted);font-size:1.1rem;line-height:1;-webkit-user-select:none;user-select:none;touch-action:none;" title="Arrastar para formar dupla">⠿</div>';
+        } else if (_isLinkedCard && _linkedFriendProfile) {
+          var _lfi = ((_linkedFriendProfile.displayName || '?')[0] || '?').toUpperCase();
+          var _lfAvHtml = _linkedFriendProfile.photoURL
+            ? '<img src="' + window._safeHtml(_linkedFriendProfile.photoURL) + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid rgba(99,102,241,0.5);" onerror="this.style.display=\'none\'">'
+            : '<div style="width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:11px;color:white;font-weight:700;flex-shrink:0;">' + window._safeHtml(_lfi) + '</div>';
+          _leftEl = '<div style="position:relative;flex-shrink:0;" title="' + window._safeHtml(_linkedFriendProfile.displayName || '') + '">' +
+            _lfAvHtml +
+            '<button type="button" onmousedown="event.preventDefault()" onclick="window._casualUnlinkSlot(' + ci + ')" style="position:absolute;bottom:-3px;right:-4px;background:none;border:none;color:#ef4444;font-size:0.85rem;font-weight:900;cursor:pointer;padding:0;line-height:1;text-shadow:0 0 3px rgba(0,0,0,0.9),0 0 2px rgba(0,0,0,0.9);" title="Desvincular">✕</button>' +
             '</div>';
+        } else {
+          _leftEl = avatar;
         }
-        // Autocomplete só em slots editáveis (não registrados / coach mode)
-        var _acInput = _isRegCard ? '' : 'window._casualSlotAutocomplete(this,' + ci + ');';
+        // Valor do textarea: usa displayName completo quando vinculado via autocomplete
+        var _textareaVal = (_isLinkedCard && _linkedFriendProfile) ? (_linkedFriendProfile.displayName || '') : inputValues[ci];
+        // Autocomplete só em slots editáveis (não registrados, não vinculados, não coach)
+        var _acInput = (_isRegCard || _isLinkedCard) ? '' : 'window._casualSlotAutocomplete(this,' + ci + ');';
         return '<div style="position:relative;" data-casual-ac-wrapper="' + ci + '">' +
           '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
           _leftEl +
-          '<textarea id="' + inputIds[ci] + '" ' + _readonlyAttr + 'rows="1" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput();window._autosizeCasualInput && window._autosizeCasualInput(this);window._equalizeCasualCards && window._equalizeCasualCards();' + _acInput + '" style="' + _inputStyle + _regExtraStyle + 'color:' + textClr + ';">' + window._safeHtml(inputValues[ci]) + '</textarea>' +
+          '<textarea id="' + inputIds[ci] + '" ' + _readonlyAttr + 'rows="1" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput();window._autosizeCasualInput && window._autosizeCasualInput(this);window._equalizeCasualCards && window._equalizeCasualCards();' + _acInput + '" style="' + _inputStyle + _regExtraStyle + 'color:' + textClr + ';">' + window._safeHtml(_textareaVal) + '</textarea>' +
           _genderIconHtml(ci) +
           '</div>' +
-          _linkedBadge +
-          '</div>';
+        '</div>';
       }
 
       var cardsHtml;
