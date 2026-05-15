@@ -7226,7 +7226,19 @@ window._openScanQR = function() {
     setTimeout(function() {
       var o = document.getElementById('scan-qr-overlay');
       if (o) o.remove();
-      window.location.hash = '#casual/' + code.toUpperCase();
+      var _targetHash = '#casual/' + code.toUpperCase();
+      if (window.location.hash === _targetHash) {
+        // v1.6.63-beta: hash já é o destino — hashchange não dispara e o
+        // router não re-executa. Chama _renderCasualJoin diretamente para
+        // que o join funcione mesmo quando o usuário escaneia QR code
+        // estando já na rota #casual/CODE (ex: após Desparear sem navegar).
+        var _vc = document.getElementById('view-container');
+        if (_vc && typeof window._renderCasualJoin === 'function') {
+          window._renderCasualJoin(_vc, code.toUpperCase());
+        }
+      } else {
+        window.location.hash = _targetHash;
+      }
     }, 150);
   }
 
@@ -9655,14 +9667,14 @@ window._openCasualMatch = function(restoreOpts) {
     var cfg = _getConfig();
     var sportLabel = selectedSport;
 
-    // v1.6.62-beta: se voltamos ao setup via Desparear/Jogar Novamente (keepSession),
-    // _sessionDocId ainda aponta pro doc da partida anterior (que tem result preenchido).
-    // Forçamos criação de novo doc para _openLiveScoring não abrir com dados stale
-    // e pular direto à tela de estatísticas com loop infinito de animação.
-    if (_sessionReopened) {
-      _sessionDocId = null;
-      _sessionReopened = false;
-    }
+    // v1.6.63-beta: se voltamos ao setup via Desparear (keepSession=true),
+    // _sessionReopened está true. Em vez de criar NOVO doc (o que geraria dois
+    // docs com mesmo roomCode — tornando o loadCasualMatch não-determinístico
+    // e quebrando o polling do outro dispositivo), reutilizamos o MESMO doc e
+    // limpamos result:null + status:'active'. Assim há sempre UM único doc por
+    // roomCode → polling do outro dispositivo sempre retorna o doc correto.
+    var _isReopen = _sessionReopened;
+    _sessionReopened = false;
 
     // If not yet saved to Firestore, save now
     if (!_sessionDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db && cu && cu.uid) {
@@ -9683,9 +9695,16 @@ window._openCasualMatch = function(restoreOpts) {
         });
       } catch (e) { console.warn('Casual start save failed:', e); }
     } else if (_sessionDocId) {
-      // Update existing match to active with current players
+      // Update existing match to active with current players.
+      // When _isReopen: limpa result:null para que _openLiveScoring não veja
+      // dados da partida anterior e pule direto às estatísticas.
       try {
-        window.FirestoreDB.updateCasualMatch(_sessionDocId, { status: 'active', players: players, scoring: cfg, isDoubles: isDoubles, teamsFormed: _isTeamsFormed() });
+        var _startUpdates = { status: 'active', players: players, scoring: cfg, isDoubles: isDoubles, teamsFormed: _isTeamsFormed() };
+        if (_isReopen) {
+          _startUpdates.result = null;
+          _startUpdates.startedAt = new Date().toISOString();
+        }
+        window.FirestoreDB.updateCasualMatch(_sessionDocId, _startUpdates);
       } catch(e) {}
     }
 
@@ -9852,6 +9871,12 @@ window._openCasualMatch = function(restoreOpts) {
           var _p1n = _freshPlayers.filter(function(p) { return p.team === 1; }).map(function(p) { return p.name; }).join(' / ');
           var _p2n = _freshPlayers.filter(function(p) { return p.team === 2; }).map(function(p) { return p.name; }).join(' / ');
           if (typeof window._openLiveScoring === 'function') {
+            // v1.6.63-beta: usa fresh._docId (ID real do doc atual retornado pelo
+            // loadCasualMatch) em vez de _sessionDocId do closure, que pode estar
+            // stale se o host reutilizou o mesmo doc com result:null (reopen).
+            // Sincroniza _sessionDocId para que referências futuras também batam.
+            var _liveDocId = fresh._docId || _sessionDocId;
+            if (fresh._docId) _sessionDocId = fresh._docId;
             window._openLiveScoring(null, null, {
               casual: true,
               scoring: fresh.scoring || {},
@@ -9860,7 +9885,7 @@ window._openCasualMatch = function(restoreOpts) {
               title: fresh.sport || _t('casual.title'),
               sportName: fresh.sport || '',
               isDoubles: !!fresh.isDoubles,
-              casualDocId: _sessionDocId,
+              casualDocId: _liveDocId,
               createdBy: fresh.createdBy || null,
               roomCode: _sessionRoomCode,
               players: _freshPlayers
