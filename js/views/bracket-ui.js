@@ -8905,7 +8905,9 @@ window._openCasualMatch = function(restoreOpts) {
       var resolved = [null, null, null, null];
       for (var slotIdx = 0; slotIdx < 4; slotIdx++) {
         var lp = _lobbyParticipants[slotIdx];
-        if (lp && lp.uid && lp.displayName) {
+        // Coach mode: técnico não joga — ignorar lobby e sempre ler do input.
+        // Sem _coachMode: participante logado (uid+displayName) é source of truth.
+        if (!_coachMode && lp && lp.uid && lp.displayName) {
           // Slot com participante logado — _lobbyParticipants é source of
           // truth. Usa first name pro display (consistente com lobby).
           resolved[slotIdx] = {
@@ -8915,7 +8917,7 @@ window._openCasualMatch = function(restoreOpts) {
             source: 'lobby'
           };
         } else {
-          // Slot vazio — lê o input (guest digitado pelo organizador)
+          // Slot vazio ou coach mode — lê o input (nome digitado pelo técnico/org)
           var inp = document.getElementById(inputIds[slotIdx]);
           var v = inp ? (inp.value || '').trim() : '';
           if (!v) v = 'Jogador ' + (slotIdx + 1);
@@ -8944,15 +8946,17 @@ window._openCasualMatch = function(restoreOpts) {
       var lp1 = _lobbyParticipants[1];
       var n1, u1, ph1;
       var n2, u2, ph2;
-      if (lp0 && lp0.uid && lp0.displayName) {
+      if (!_coachMode && lp0 && lp0.uid && lp0.displayName) {
         n1 = lp0.displayName.split(' ')[0] || lp0.displayName;
         u1 = lp0.uid; ph1 = lp0.photoURL || null;
       } else {
         var inp1 = document.getElementById('casual-p1-name');
         n1 = (inp1 && inp1.value ? inp1.value.trim() : '') || 'Jogador 1';
-        u1 = (cu && cu.uid) || null; ph1 = (cu && cu.photoURL) || null;
+        // Coach mode: não associar uid/foto do técnico ao jogador 1
+        u1 = (!_coachMode && cu && cu.uid) || null;
+        ph1 = (!_coachMode && cu && cu.photoURL) || null;
       }
-      if (lp1 && lp1.uid && lp1.displayName) {
+      if (!_coachMode && lp1 && lp1.uid && lp1.displayName) {
         n2 = lp1.displayName.split(' ')[0] || lp1.displayName;
         u2 = lp1.uid; ph2 = lp1.photoURL || null;
       } else {
