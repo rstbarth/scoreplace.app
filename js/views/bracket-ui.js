@@ -7632,6 +7632,9 @@ window._openCasualMatch = function(restoreOpts) {
   var autoShuffle = true;
   // Mixed-doubles toggle — appears only when we detect 2M+2F in lobby. Defaults ON.
   var _mixedDoublesEnabled = true;
+  // Coach mode: user stays on screen to manage score for 4 other players (not playing).
+  // Frees their own slot (editable), all name inputs become editable.
+  var _coachMode = false;
   // Gender cache keyed by uid: 'masculino' | 'feminino' | '' (checked, missing) | undefined (not loaded yet)
   var _participantGenders = {};
   if (cu && cu.uid) _participantGenders[cu.uid] = cu.gender || '';
@@ -7902,6 +7905,16 @@ window._openCasualMatch = function(restoreOpts) {
       togglesHtml += '</div>';
     }
 
+    // Coach toggle — inline com o label de participantes (só se logado)
+    var coachToggleHtml = cu ?
+      '<div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">' +
+        '<span style="font-size:0.65rem;font-weight:600;color:' + (_coachMode ? '#22c55e' : 'var(--text-muted)') + ';white-space:nowrap;">🎽 Técnico</span>' +
+        '<label class="toggle-switch toggle-sm" style="--toggle-on-bg:#22c55e;">' +
+          '<input type="checkbox" ' + (_coachMode ? 'checked' : '') + ' onchange="window._casualToggleCoachMode(this.checked)">' +
+          '<span class="toggle-slider"></span>' +
+        '</label>' +
+      '</div>' : '';
+
     // Player names — same 4-card grid for both Sortear ON and OFF
     var playersHtml = '';
     if (isDoubles) {
@@ -7914,6 +7927,8 @@ window._openCasualMatch = function(restoreOpts) {
         // NOTE: sem fallback para cu aqui — se o slot 0 está vazio (criador saiu),
         // não mostrar o avatar de quem está vendo (causava foto errada após saída).
         if (!pp || (!pp.photoURL && !pp.displayName)) return '';
+        // Coach mode: não mostrar avatar do próprio usuário (slot liberado para outro jogador)
+        if (_coachMode && cu && pp.uid === cu.uid) return '';
         if (pp.photoURL) {
           return '<img src="' + window._safeHtml(pp.photoURL) + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.15);" onerror="this.style.display=\'none\'">';
         }
@@ -7950,7 +7965,9 @@ window._openCasualMatch = function(restoreOpts) {
       for (var _ii = 0; _ii < inputIds.length; _ii++) {
         var _isRegSlot = !!(
           _ii < _lobbyParticipants.length && _lobbyParticipants[_ii] &&
-          (_lobbyParticipants[_ii].uid || _lobbyParticipants[_ii].photoURL));
+          (_lobbyParticipants[_ii].uid || _lobbyParticipants[_ii].photoURL) &&
+          // Coach mode: o próprio slot do técnico é tratado como editável
+          !(_coachMode && cu && _lobbyParticipants[_ii].uid === cu.uid));
         if (!_isRegSlot) {
           var _el = document.getElementById(inputIds[_ii]);
           if (_el) {
@@ -8012,8 +8029,10 @@ window._openCasualMatch = function(restoreOpts) {
         // v1.6.32-beta: removido hardcode (ci === 0) — slot 0 só é "registrado"
         // se realmente tem um participante logado lá. Antes, mesmo com slot 0
         // vazio (criador saiu), era tratado como readonly e mostrava avatar errado.
+        // v1.6.42-beta: coach mode libera o próprio slot do técnico para edição.
         var _isRegCard = !!(ci < _lobbyParticipants.length && _lobbyParticipants[ci] &&
-          (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL));
+          (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL) &&
+          !(_coachMode && cu && _lobbyParticipants[ci].uid === cu.uid));
         var _readonlyAttr = _isRegCard ? 'readonly ' : '';
         var _regExtraStyle = _isRegCard ? 'pointer-events:none;cursor:inherit;' : '';
         return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
@@ -8068,7 +8087,10 @@ window._openCasualMatch = function(restoreOpts) {
 
       playersHtml =
         '<div style="margin-bottom:0.8rem;">' +
-          '<label style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:block;">' + _t('casual.participants') + '</label>' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">' +
+            '<label style="font-size:0.7rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">' + _t('casual.participants') + '</label>' +
+            coachToggleHtml +
+          '</div>' +
           '<div id="casual-team-cards">' +
             cardsHtml +
           '</div>' +
@@ -8076,20 +8098,31 @@ window._openCasualMatch = function(restoreOpts) {
         '</div>';
     } else {
       // Singles — show current user avatar next to their input
+      // Coach mode: não mostrar avatar (slot liberado para outro jogador)
       var _cuAvatarSingles = '';
-      if (cu && cu.photoURL) {
-        _cuAvatarSingles = '<img src="' + window._safeHtml(cu.photoURL) + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;position:absolute;left:10px;top:50%;transform:translateY(-50%);border:1.5px solid rgba(59,130,246,0.3);" onerror="this.style.display=\'none\'">';
-      } else if (cu && cu.displayName) {
-        _cuAvatarSingles = '<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:12px;color:white;font-weight:700;position:absolute;left:10px;top:50%;transform:translateY(-50%);">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>';
+      if (!_coachMode) {
+        if (cu && cu.photoURL) {
+          _cuAvatarSingles = '<img src="' + window._safeHtml(cu.photoURL) + '" style="width:28px;height:28px;border-radius:50%;object-fit:cover;position:absolute;left:10px;top:50%;transform:translateY(-50%);border:1.5px solid rgba(59,130,246,0.3);" onerror="this.style.display=\'none\'">';
+        } else if (cu && cu.displayName) {
+          _cuAvatarSingles = '<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#3b82f6,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:12px;color:white;font-weight:700;position:absolute;left:10px;top:50%;transform:translateY(-50%);">' + window._safeHtml((cu.displayName || 'J')[0].toUpperCase()) + '</div>';
+        }
       }
-      var _hasSinglesAvatar = !!(cu && (cu.photoURL || cu.displayName));
+      var _hasSinglesAvatar = !_coachMode && !!(cu && (cu.photoURL || cu.displayName));
+      // Coach mode: preservar o que o técnico digitou no p1 across re-renders;
+      // na primeira ativação o _casualToggleCoachMode já limpou o DOM.
+      var _singlesP1Value = _coachMode
+        ? (function() { var _d = document.getElementById('casual-p1-name'); return _d ? _d.value : ''; }())
+        : p1Name;
       playersHtml =
         '<div style="margin-bottom:1.2rem;">' +
-          '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;display:block;">' + _t('casual.players') + '</label>' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+            '<label style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;">' + _t('casual.players') + '</label>' +
+            coachToggleHtml +
+          '</div>' +
           '<div style="display:flex;gap:10px;">' +
             '<div style="flex:1;display:flex;align-items:center;gap:6px;">' +
               '<div style="flex:1;position:relative;">' + _cuAvatarSingles +
-                '<input type="text" id="casual-p1-name" value="' + window._safeHtml(p1Name) + '" placeholder="Jogador 1" style="width:100%;padding:10px 14px;' + (_hasSinglesAvatar ? 'padding-left:44px;' : '') + 'border-radius:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;box-sizing:border-box;">' +
+                '<input type="text" id="casual-p1-name" value="' + window._safeHtml(_singlesP1Value) + '" placeholder="Jogador 1" style="width:100%;padding:10px 14px;' + (_hasSinglesAvatar ? 'padding-left:44px;' : '') + 'border-radius:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);color:var(--text-bright);font-size:0.95rem;font-weight:600;outline:none;box-sizing:border-box;">' +
               '</div>' +
               _genderIconHtml(0) +
             '</div>' +
@@ -8623,6 +8656,30 @@ window._openCasualMatch = function(restoreOpts) {
     _mixedDoublesEnabled = !!val;
     _renderSetup();
     _syncCasualSetupDebounced();
+  };
+
+  window._casualToggleCoachMode = function(checked) {
+    var activating = !!checked && !_coachMode;
+    _coachMode = !!checked;
+    if (activating) {
+      var cu = window.AppStore && window.AppStore.currentUser;
+      if (cu) {
+        var coachSlotIdx = -1;
+        for (var _ci = 0; _ci < _lobbyParticipants.length; _ci++) {
+          if (_lobbyParticipants[_ci] && _lobbyParticipants[_ci].uid === cu.uid) {
+            coachSlotIdx = _ci; break;
+          }
+        }
+        if (coachSlotIdx >= 0) {
+          var inputIds = isDoubles
+            ? ['casual-p1a-name', 'casual-p2a-name', 'casual-p1b-name', 'casual-p2b-name']
+            : ['casual-p1-name', 'casual-p2-name'];
+          var el = document.getElementById(inputIds[coachSlotIdx]);
+          if (el) el.value = '';
+        }
+      }
+    }
+    _renderSetup();
   };
 
   // v1.6.26-beta: picker de gênero por slot. Abre dialog minimal com
