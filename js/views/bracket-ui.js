@@ -8101,16 +8101,18 @@ window._openCasualMatch = function(restoreOpts) {
         var _isRegCard = !_coachMode && !!(ci < _lobbyParticipants.length && _lobbyParticipants[ci] &&
           (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL));
         // v1.6.52-beta: slot vinculado via autocomplete — visual igual ao registrado
-        var _isLinkedCard = !_isRegCard && !_coachMode && !!_slotLinkedUid[ci];
+        // v1.6.57-beta: _coachMode não bloqueia mais _isLinkedCard — amigo vinculado
+        // mostra avatar mesmo em modo técnico (⠿ só aparece em slots SEM vínculo).
+        var _isLinkedCard = !_isRegCard && !!_slotLinkedUid[ci];
         var _linkedFriendProfile = _isLinkedCard && window._friendProfilesCache ? window._friendProfilesCache[_slotLinkedUid[ci]] : null;
         if (_isLinkedCard) { bg = 'rgba(99,102,241,0.10)'; bdr = 'rgba(99,102,241,0.40)'; textClr = 'var(--text-bright)'; }
         var _readonlyAttr = (_isRegCard || _isLinkedCard) ? 'readonly ' : '';
         var _regExtraStyle = (_isRegCard || _isLinkedCard) ? 'pointer-events:none;cursor:inherit;' : '';
-        // Em modo técnico, o avatar fica oculto; no lugar dele aparece um handle ⠿
-        // que é o único ponto de toque que inicia drag (touchstart verifica data-drag-handle).
-        // Isso libera a textarea para receber foco normalmente ao tocar no celular.
+        // Em modo técnico sem vínculo: handle ⠿ para arrastar (único ponto de
+        // toque que inicia drag via touchstart). Quando há amigo vinculado,
+        // mostra o avatar dele — drag funciona via draggable="true" no card.
         var _leftEl;
-        if (_coachMode) {
+        if (_coachMode && !_isLinkedCard) {
           _leftEl = '<div data-drag-handle="1" style="width:22px;min-width:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:grab;color:var(--text-muted);font-size:1.1rem;line-height:1;-webkit-user-select:none;user-select:none;touch-action:none;" title="Arrastar para formar dupla">⠿</div>';
         } else if (_isLinkedCard && _linkedFriendProfile) {
           var _lfi = ((_linkedFriendProfile.displayName || '?')[0] || '?').toUpperCase();
@@ -8121,6 +8123,8 @@ window._openCasualMatch = function(restoreOpts) {
             _lfAvHtml +
             '<button type="button" onmousedown="event.preventDefault()" onclick="window._casualUnlinkSlot(' + ci + ')" style="position:absolute;bottom:-3px;right:-4px;background:none;border:none;color:#ef4444;font-size:0.85rem;font-weight:900;cursor:pointer;padding:0;line-height:1;text-shadow:0 0 3px rgba(0,0,0,0.9),0 0 2px rgba(0,0,0,0.9);" title="Desvincular">✕</button>' +
             '</div>';
+        } else if (_coachMode) {
+          _leftEl = '<div data-drag-handle="1" style="width:22px;min-width:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:grab;color:var(--text-muted);font-size:1.1rem;line-height:1;-webkit-user-select:none;user-select:none;touch-action:none;" title="Arrastar para formar dupla">⠿</div>';
         } else {
           _leftEl = avatar;
         }

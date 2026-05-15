@@ -8,6 +8,14 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">👤 v1.6.57-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Avatar e foto do amigo aparecem ao autocompletar no modo Técnico.</b><br><br>' +
+      'Ao digitar o nome de um amigo no slot e selecionar via autocomplete, o avatar/foto e o gênero passavam a aparecer corretamente apenas fora do modo Técnico. ' +
+      'No modo Técnico, o card sempre mostrava o ícone de arraste (⠿) em vez do avatar — porque a flag <code>_isLinkedCard</code> excluía o modo Técnico. ' +
+      'Fix: <code>_isLinkedCard</code> não depende mais de <code>!_coachMode</code>; slots com amigo vinculado mostram avatar com ✕ em qualquer modo; ' +
+      'apenas slots <i>sem</i> vínculo exibem o ⠿ de arraste no modo Técnico.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">👤 v1.6.56-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Avatar de amigo carrega mesmo quando não estava em cache local.</b><br><br>' +
