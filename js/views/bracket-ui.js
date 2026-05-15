@@ -7840,8 +7840,8 @@ window._openCasualMatch = function(restoreOpts) {
       function _inputAvatar(idx) {
         var pp = null;
         if (idx < _lobbyParticipants.length) pp = _lobbyParticipants[idx];
-        // Fallback (sala vazia, edge case): usa current user se for slot 0
-        if (!pp && idx === 0 && cu) pp = { displayName: cu.displayName, photoURL: cu.photoURL };
+        // NOTE: sem fallback para cu aqui — se o slot 0 está vazio (criador saiu),
+        // não mostrar o avatar de quem está vendo (causava foto errada após saída).
         if (!pp || (!pp.photoURL && !pp.displayName)) return '';
         if (pp.photoURL) {
           return '<img src="' + window._safeHtml(pp.photoURL) + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.15);" onerror="this.style.display=\'none\'">';
@@ -7856,10 +7856,16 @@ window._openCasualMatch = function(restoreOpts) {
 
       // Setup screen: neutral cards, or team-colored when teams formed via drag-and-drop
       var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
-      var inputPlaceholders = [p1Name || 'Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
+      var inputPlaceholders = ['Jogador 1', 'Jogador 2', 'Jogador 3', 'Jogador 4'];
       // Canonical names: registered participants always come from the data source,
       // never from a previously-rendered DOM value (prevents photoURL corruption).
-      var inputValues = [p1Name, '', '', ''];
+      // v1.6.32-beta: slot 0 derivado de _lobbyParticipants[0] ao invés de p1Name
+      // (closure stale) — p1Name era definido uma vez na criação e nunca atualizado,
+      // causando nome antigo no slot após quem estava em slot 0 sair da sala.
+      var inputValues = [
+        (_lobbyParticipants[0] && _lobbyParticipants[0].displayName) ? _lobbyParticipants[0].displayName : '',
+        '', '', ''
+      ];
       // Slots 1–3: if there's a registered lobby participant, seed from their displayName
       for (var _ri = 1; _ri < _lobbyParticipants.length && _ri < 4; _ri++) {
         if (_lobbyParticipants[_ri] && _lobbyParticipants[_ri].displayName) {
@@ -7871,9 +7877,9 @@ window._openCasualMatch = function(restoreOpts) {
       // (config replaced content.innerHTML), so fall back to _savedPlayerNames
       // which was snapshotted just before _casualOpenConfig() ran.
       for (var _ii = 0; _ii < inputIds.length; _ii++) {
-        var _isRegSlot = (_ii === 0) ||
-          (_ii < _lobbyParticipants.length && _lobbyParticipants[_ii] &&
-           (_lobbyParticipants[_ii].uid || _lobbyParticipants[_ii].photoURL));
+        var _isRegSlot = !!(
+          _ii < _lobbyParticipants.length && _lobbyParticipants[_ii] &&
+          (_lobbyParticipants[_ii].uid || _lobbyParticipants[_ii].photoURL));
         if (!_isRegSlot) {
           var _el = document.getElementById(inputIds[_ii]);
           if (_el) {
@@ -7935,9 +7941,11 @@ window._openCasualMatch = function(restoreOpts) {
         // must be readonly so a stray touch-focus can't let the user edit their name.
         // pointer-events:none on the textarea directs all touch events to the outer
         // div (which carries draggable="true"), so drag-start never fights focus.
-        var _isRegCard = (ci === 0) ||
-          (ci < _lobbyParticipants.length && _lobbyParticipants[ci] &&
-           (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL));
+        // v1.6.32-beta: removido hardcode (ci === 0) — slot 0 só é "registrado"
+        // se realmente tem um participante logado lá. Antes, mesmo com slot 0
+        // vazio (criador saiu), era tratado como readonly e mostrava avatar errado.
+        var _isRegCard = !!(ci < _lobbyParticipants.length && _lobbyParticipants[ci] &&
+          (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL));
         var _readonlyAttr = _isRegCard ? 'readonly ' : '';
         var _regExtraStyle = _isRegCard ? 'pointer-events:none;cursor:inherit;' : '';
         return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
@@ -9399,17 +9407,28 @@ window._openCasualMatch = function(restoreOpts) {
               }
             }
           }
-          _lobbyParticipants = newParts;
+          if (countDecreased) {
+            // v1.6.32-beta: preserva posições de slot quando alguém sai.
+            // Antes: _lobbyParticipants = newParts re-indexava todos — Rodrigo
+            // (slot 1) virava slot 0. Resultado: inputValues[0] = p1Name stale
+            // (ex: "Nelson Barth") + _inputAvatar(0) = foto de Rodrigo (index 0).
+            // Agora: quem saiu vira null no seu slot original. Rodrigo fica em
+            // slot 1. Slot 0 vira vazio → editável → placeholder "Jogador 1".
+            var _newByUid = {};
+            for (var _nbi = 0; _nbi < newParts.length; _nbi++) {
+              if (newParts[_nbi] && newParts[_nbi].uid) _newByUid[newParts[_nbi].uid] = true;
+            }
+            var _preserved = [];
+            for (var _psi = 0; _psi < _lobbyParticipants.length; _psi++) {
+              var _op = _lobbyParticipants[_psi];
+              _preserved[_psi] = (_op && _op.uid && _newByUid[_op.uid]) ? _op : null;
+            }
+            _lobbyParticipants = _preserved;
+          } else {
+            _lobbyParticipants = newParts;
+          }
           _loadMissingGenders();
           if (countDecreased) {
-            // v1.6.28-beta: quando alguém SAI, re-renderizar setup completo
-            // (em vez de só limpar inputs 1b/2a/2b). Antes, slot 0 mantinha
-            // o input value antigo (ex: "Nelson Barth") enquanto o avatar
-            // mostrava _lobbyParticipants[0] novo (ex: foto Rodrigo) —
-            // resultado: nome de quem saiu + foto de quem ficou. Bug
-            // reportado com screenshot.
-            // _renderSetup() reconstrói tudo do zero usando _lobbyParticipants
-            // atualizado → cada slot ganha nome+avatar+gender consistentes.
             _teamAssignments = {};
             autoShuffle = true;
             if (typeof showNotification === 'function' && _leftNames.length > 0) {
