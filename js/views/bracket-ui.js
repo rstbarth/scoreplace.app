@@ -9401,21 +9401,21 @@ window._openCasualMatch = function(restoreOpts) {
           _lobbyParticipants = newParts;
           _loadMissingGenders();
           if (countDecreased) {
-            // Clear ALL non-host inputs so _fillInputsFromLobby can repopulate
-            // from the current participant list. Otherwise stale slots linger
-            // (e.g. the input at the freed position keeps the departed name).
-            var _inpIds = ['casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
-            for (var _ii = 0; _ii < _inpIds.length; _ii++) {
-              var _el = document.getElementById(_inpIds[_ii]);
-              if (_el) _el.value = '';
-            }
-            // Reset any team formation — positions shifted and the slot is
-            // now free for someone else to take.
+            // v1.6.28-beta: quando alguém SAI, re-renderizar setup completo
+            // (em vez de só limpar inputs 1b/2a/2b). Antes, slot 0 mantinha
+            // o input value antigo (ex: "Nelson Barth") enquanto o avatar
+            // mostrava _lobbyParticipants[0] novo (ex: foto Rodrigo) —
+            // resultado: nome de quem saiu + foto de quem ficou. Bug
+            // reportado com screenshot.
+            // _renderSetup() reconstrói tudo do zero usando _lobbyParticipants
+            // atualizado → cada slot ganha nome+avatar+gender consistentes.
             _teamAssignments = {};
             autoShuffle = true;
             if (typeof showNotification === 'function' && _leftNames.length > 0) {
               showNotification(_t('casual.playerLeft'), _t('casual.playerLeftRoom', {name: _leftNames[0]}), 'info');
             }
+            try { _renderSetup(); } catch(_e) {}
+            return; // re-render já cobre _updateLobbySection
           }
           _updateLobbySection();
           if (!countDecreased && newParts.length > 1) {

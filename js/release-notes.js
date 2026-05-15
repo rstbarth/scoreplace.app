@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🛠️ v1.6.28-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>2 bugs corrigidos.</b><br><br>' +
+      '<b>(1) Identidade dos slots embaralhada quando alguém sai.</b> Reportado com screenshot: Nelson (criador) saiu da sala, mas no celular do Rodrigo o slot 0 ficou com nome "Nelson Barth" + foto do Rodrigo, e o slot 1 ficou com "Rodrigo" sem foto. Causa: polling atualizava <code>_lobbyParticipants</code> e limpava só inputs 1b/2a/2b (não o 1a). Slot 0 mantinha o input value antigo ("Nelson Barth") enquanto o avatar lia do <code>_lobbyParticipants[0]</code> que agora era Rodrigo. Fix: quando count decrescer (alguém sai), agora faz <code>_renderSetup()</code> completo — todos os slots reconstruídos do zero usando <code>_lobbyParticipants</code> atualizado.<br><br>' +
+      '<b>(2) Trofeu "Com Rosto" definitivo — exige upload via app.</b> Reportado: continua aparecendo pra quem só logou Google sem foto real. Após 5 versões tentando heurística (patterns de URL v1.6.13, diagnóstico v1.6.16, pixel sampling assíncrono v1.6.24), abordagem foi <b>simplificada drasticamente</b>: ' +
+      '<b>só conta foto que foi feita upload via app</b> (URL contém <code>firebasestorage.googleapis.com</code>). Qualquer URL <code>googleusercontent.com</code> (avatar default OU foto real do Google) agora é REJEITADA. Trade-off: usuário com foto Google real que NUNCA fez upload via app perde o troféu até fazer. Aceitável porque o trofeu chama "Com Rosto" — upload é evidência mais forte. Quem ganhou indevidamente perde no próximo login via flag <code>revocable: true</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">❓ v1.6.27-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Ícone "?" de gênero indefinido agora chamativo.</b> Reportado pelo dono: <i>"quando o perfil não traz o gênero do jogador, isso deve ser selecionável (indicado pelos participantes)"</i>. ' +
       'A funcionalidade já existia (qualquer participante podia clicar no ícone "?" pra definir gênero do slot, inclusive pra logado sem campo gender no perfil), mas o "?" estava cinza discreto e usuários não percebiam que era clicável.<br><br>' +

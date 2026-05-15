@@ -115,38 +115,24 @@ window.TROPHY_CATALOG = [
       // no Sentry ou fazer redeploy só pra coletar a URL real.
       try { window._lastPhotoCheckURL = photoURL; window._lastPhotoCheckFbHas = !!(fbUser && fbUser.photoURL); } catch(_e) {}
 
-      // Não conta: string vazia, URL de dicebear (iniciais geradas pelo app),
-      // ou URL terminada em "/photo.jpg" sem host (padrão de placeholder interno).
       if (!photoURL || typeof photoURL !== 'string' || photoURL.length === 0) return false;
-      if (photoURL.indexOf('dicebear.com') !== -1) return false;
-      // ui-avatars.com — outro serviço de geração de iniciais que algumas
-      // bibliotecas usam como fallback.
-      if (photoURL.indexOf('ui-avatars.com') !== -1) return false;
 
-      // v1.6.13-beta: detecção agressiva de avatares default do Google.
-      // Google retorna PHOTO URL mesmo pra contas sem foto real cadastrada —
-      // tipicamente um "monograma" (inicial colorida sobre fundo sólido).
-      // Patterns observados em 2024-2026:
-      //   - /a-/ (hífen depois de /a) — variante default mais comum
-      //   - /default-user, /default-avatar — defaults explícitos
-      //   - /AAAAAAAAAAI/AAAAAAAAAAA/ — placeholder hash antigo
-      //   - URL contém "no_picture", "no-picture", "no_photo" — placeholder explícito
-      if (photoURL.indexOf('googleusercontent.com') !== -1) {
-        var lcURL = photoURL.toLowerCase();
-        // Padrão 2024+: /a-/ ANTES de qualquer hash significa default
-        if (photoURL.indexOf('/a-/') !== -1) return false;
-        if (lcURL.indexOf('default-user') !== -1) return false;
-        if (lcURL.indexOf('default-avatar') !== -1) return false;
-        if (lcURL.indexOf('no_picture') !== -1) return false;
-        if (lcURL.indexOf('no-picture') !== -1) return false;
-        if (lcURL.indexOf('no_photo') !== -1) return false;
-        // Padrão antigo: placeholder com /AAAAAAAAAAI/AAAAAAAAAAA/ no path
-        if (photoURL.indexOf('/AAAAAAAAAAI/AAAAAAAAAAA/') !== -1) return false;
-        // Firebase Auth confirma ausência: se fbUser.photoURL veio null/vazio
-        // mas u.photoURL ainda tinha valor (stale), não tem foto real agora.
-        if (fbUser && !fbUser.photoURL) return false;
-      }
-      return true;
+      // v1.6.28-beta: ABORDAGEM DEFINITIVA — exige UPLOAD via app (Firebase
+      // Storage). Patterns de detecção de avatar Google default (v1.6.13)
+      // + pixel sampling assíncrono (v1.6.24) sempre tinham falsos positivos
+      // porque Google muda formato e CORS bloqueia leitura de pixels. Único
+      // jeito 100% confiável de saber que o user TEM foto REAL é exigir
+      // upload explícito via app (URL contém firebasestorage.googleapis.com).
+      // Trade-off conhecido: usuário com foto real do Google que NUNCA fez
+      // upload via app perde o troféu até fazer. Aceitável: o trofeu chama
+      // "Com Rosto", upload é evidência mais forte que avatar Google que
+      // pode ser monograma.
+      // Aceita também: Apple iCloud (https://*.icloud.com), Facebook fbsbx,
+      // e qualquer outro provedor que não seja Google avatar/dicebear.
+      if (photoURL.indexOf('firebasestorage.googleapis.com') !== -1) return true;
+      // Tudo o resto: REJEITA. Google avatar (default OU real), dicebear,
+      // ui-avatars, vazio — nenhum vale. Só upload explícito conta.
+      return false;
     }
   },
   {
