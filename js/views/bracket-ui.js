@@ -8609,6 +8609,10 @@ window._openCasualMatch = function(restoreOpts) {
     autoShuffle = true;
     // Reseta sessão: próximo Iniciar cria novo doc no Firestore
     _sessionDocId = null;
+    // v1.6.50-beta: para o polling de refresh — sem isso, o interval continua
+    // lendo o Firestore com _sessionRoomCode antigo e sobrescreve os nomes
+    // digitados nos slots com "Jogador X, Y, Z" após alguns segundos.
+    if (_setupRefreshInterval) { clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; }
     // Re-appenda overlay (ainda em memória no closure)
     if (!document.getElementById('casual-match-overlay')) {
       document.body.appendChild(overlay);
