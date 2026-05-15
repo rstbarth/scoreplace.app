@@ -8411,6 +8411,13 @@ window._openCasualMatch = function(restoreOpts) {
           _touchIdx = null;
           return;
         }
+        // Se o toque foi num botão (ex: ícone de gênero), deixa o click disparar
+        // normalmente — não inicia drag.
+        var _bt = e.target;
+        while (_bt && _bt !== card) {
+          if (_bt.tagName === 'BUTTON') { _touchIdx = null; return; }
+          _bt = _bt.parentElement;
+        }
         // preventDefault impede o browser de focar elementos dentro do card
         // antes do gesto de drag começar. Deve ser {passive:false} para funcionar.
         e.preventDefault();
