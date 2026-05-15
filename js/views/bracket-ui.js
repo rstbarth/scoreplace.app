@@ -7927,8 +7927,8 @@ window._openCasualMatch = function(restoreOpts) {
         // NOTE: sem fallback para cu aqui — se o slot 0 está vazio (criador saiu),
         // não mostrar o avatar de quem está vendo (causava foto errada após saída).
         if (!pp || (!pp.photoURL && !pp.displayName)) return '';
-        // Coach mode: não mostrar avatar do próprio usuário (slot liberado para outro jogador)
-        if (_coachMode && cu && pp.uid === cu.uid) return '';
+        // Coach mode: ocultar todos os avatares — todos os slots ficam livres para edição
+        if (_coachMode) return '';
         if (pp.photoURL) {
           return '<img src="' + window._safeHtml(pp.photoURL) + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.15);" onerror="this.style.display=\'none\'">';
         }
@@ -7963,11 +7963,10 @@ window._openCasualMatch = function(restoreOpts) {
       // (config replaced content.innerHTML), so fall back to _savedPlayerNames
       // which was snapshotted just before _casualOpenConfig() ran.
       for (var _ii = 0; _ii < inputIds.length; _ii++) {
-        var _isRegSlot = !!(
+        // Coach mode: todos os slots são editáveis
+        var _isRegSlot = !_coachMode && !!(
           _ii < _lobbyParticipants.length && _lobbyParticipants[_ii] &&
-          (_lobbyParticipants[_ii].uid || _lobbyParticipants[_ii].photoURL) &&
-          // Coach mode: o próprio slot do técnico é tratado como editável
-          !(_coachMode && cu && _lobbyParticipants[_ii].uid === cu.uid));
+          (_lobbyParticipants[_ii].uid || _lobbyParticipants[_ii].photoURL));
         if (!_isRegSlot) {
           var _el = document.getElementById(inputIds[_ii]);
           if (_el) {
@@ -8029,10 +8028,9 @@ window._openCasualMatch = function(restoreOpts) {
         // v1.6.32-beta: removido hardcode (ci === 0) — slot 0 só é "registrado"
         // se realmente tem um participante logado lá. Antes, mesmo com slot 0
         // vazio (criador saiu), era tratado como readonly e mostrava avatar errado.
-        // v1.6.42-beta: coach mode libera o próprio slot do técnico para edição.
-        var _isRegCard = !!(ci < _lobbyParticipants.length && _lobbyParticipants[ci] &&
-          (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL) &&
-          !(_coachMode && cu && _lobbyParticipants[ci].uid === cu.uid));
+        // Coach mode: todos os slots ficam editáveis (nomes e gêneros livres).
+        var _isRegCard = !_coachMode && !!(ci < _lobbyParticipants.length && _lobbyParticipants[ci] &&
+          (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL));
         var _readonlyAttr = _isRegCard ? 'readonly ' : '';
         var _regExtraStyle = _isRegCard ? 'pointer-events:none;cursor:inherit;' : '';
         return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
@@ -8663,22 +8661,14 @@ window._openCasualMatch = function(restoreOpts) {
     var activating = !!checked && !_coachMode;
     _coachMode = !!checked;
     if (activating) {
-      var cu = window.AppStore && window.AppStore.currentUser;
-      if (cu) {
-        var coachSlotIdx = -1;
-        for (var _ci = 0; _ci < _lobbyParticipants.length; _ci++) {
-          if (_lobbyParticipants[_ci] && _lobbyParticipants[_ci].uid === cu.uid) {
-            coachSlotIdx = _ci; break;
-          }
-        }
-        if (coachSlotIdx >= 0) {
-          var inputIds = isDoubles
-            ? ['casual-p1a-name', 'casual-p2a-name', 'casual-p1b-name', 'casual-p2b-name']
-            : ['casual-p1-name', 'casual-p2-name'];
-          var el = document.getElementById(inputIds[coachSlotIdx]);
-          if (el) el.value = '';
-          delete _slotGenders[coachSlotIdx];
-        }
+      // Limpa nome e gênero de todos os slots — todos ficam livres para edição
+      var _coachInputIds = isDoubles
+        ? ['casual-p1a-name', 'casual-p2a-name', 'casual-p1b-name', 'casual-p2b-name']
+        : ['casual-p1-name', 'casual-p2-name'];
+      for (var _cii = 0; _cii < _coachInputIds.length; _cii++) {
+        var _cel = document.getElementById(_coachInputIds[_cii]);
+        if (_cel) _cel.value = '';
+        delete _slotGenders[_cii];
       }
     }
     _renderSetup();
