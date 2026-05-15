@@ -7648,6 +7648,8 @@ window._openCasualMatch = function(restoreOpts) {
   // tem prioridade sobre o gender do perfil do usuário logado naquele slot.
   function _resolveSlotGender(slotIdx) {
     if (_slotGenders[slotIdx]) return _slotGenders[slotIdx];
+    // Coach mode: não usar gender do perfil do participante — slot foi liberado
+    if (_coachMode) return null;
     var lp = _lobbyParticipants[slotIdx];
     if (lp && lp.uid && _participantGenders[lp.uid]) return _participantGenders[lp.uid];
     return null;
@@ -7948,14 +7950,17 @@ window._openCasualMatch = function(restoreOpts) {
       // v1.6.32-beta: slot 0 derivado de _lobbyParticipants[0] ao invés de p1Name
       // (closure stale) — p1Name era definido uma vez na criação e nunca atualizado,
       // causando nome antigo no slot após quem estava em slot 0 sair da sala.
-      var inputValues = [
+      // Coach mode: não pré-preencher nomes dos participantes — técnico preenche do zero
+      var inputValues = _coachMode ? ['', '', '', ''] : [
         (_lobbyParticipants[0] && _lobbyParticipants[0].displayName) ? _lobbyParticipants[0].displayName : '',
         '', '', ''
       ];
       // Slots 1–3: if there's a registered lobby participant, seed from their displayName
-      for (var _ri = 1; _ri < _lobbyParticipants.length && _ri < 4; _ri++) {
-        if (_lobbyParticipants[_ri] && _lobbyParticipants[_ri].displayName) {
-          inputValues[_ri] = _lobbyParticipants[_ri].displayName;
+      if (!_coachMode) {
+        for (var _ri = 1; _ri < _lobbyParticipants.length && _ri < 4; _ri++) {
+          if (_lobbyParticipants[_ri] && _lobbyParticipants[_ri].displayName) {
+            inputValues[_ri] = _lobbyParticipants[_ri].displayName;
+          }
         }
       }
       // Preserve input values across re-renders ONLY for unregistered (editable) slots.
@@ -7971,8 +7976,9 @@ window._openCasualMatch = function(restoreOpts) {
           var _el = document.getElementById(inputIds[_ii]);
           if (_el) {
             inputValues[_ii] = _el.value;
-          } else if (_savedPlayerNames[_ii] !== undefined && _savedPlayerNames[_ii] !== '') {
+          } else if (!_coachMode && _savedPlayerNames[_ii] !== undefined && _savedPlayerNames[_ii] !== '') {
             // DOM was replaced by config screen — restore from pre-config snapshot
+            // Coach mode: nunca restaurar nomes antigos — técnico preenche do zero
             inputValues[_ii] = _savedPlayerNames[_ii];
           }
         }
