@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📸 v1.6.20-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Scanner QR robustecido — 5 bugs prováveis fixados.</b> Reportado: scanner não estava lendo QR. Auditoria identificou 5 causas potenciais e todas foram corrigidas no mesmo deploy:<br><br>' +
+      '<b>(1) <code>video.play()</code> agora é explícito</b> — autoplay nem sempre dispara em iOS Safari PWA standalone, apesar dos atributos <code>autoplay/playsinline/muted</code>. Adicionado <code>play()</code> explícito após <code>srcObject</code>.<br>' +
+      '<b>(2) Resolução de câmera elevada</b> — antes era default (frequentemente 640×480, baixa demais pra jsQR decodificar QRs pequenos). Agora pede <code>1280×720</code> ideal, com fallback <code>OverconstrainedError</code> pra câmeras mais limitadas.<br>' +
+      '<b>(3) jsQR pré-carregado em paralelo</b> — antes carregava DEPOIS de pedir câmera, criando race onde user apontava QR mas decoder ainda não existia. Agora carrega ANTES da câmera abrir.<br>' +
+      '<b>(4) Mensagens de erro específicas</b> — antes erro de permissão era só <code>console.warn</code>. Agora cada tipo (<code>NotAllowedError</code>, <code>NotFoundError</code>, <code>NotReadableError</code>) tem mensagem clara na tela com instrução de como resolver.<br>' +
+      '<b>(5) <code>inversionAttempts: \'attemptBoth\'</code></b> — antes só tentava QRs não-invertidos. Agora tenta os dois (regular + invertido), cobre QRs com fundos escuros.<br><br>' +
+      '<b>Loop de detecção também mais rápido</b>: 200ms (5fps) vs 300ms antes. <b>Diagnóstico exposto</b> em <code>window._scanDebug</code> com: frames processados, video dimensions, erros, status do decoder, última detecção. Permite debug remoto via DevTools quando user reportar.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🎯 v1.6.19-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Scanner QR com leitura em tempo real estilo iOS.</b> Reversão da v1.6.18 (que abria câmera sem detecção). PWA web não consegue invocar o "Scanner de Código" nativo do iOS (não há URL scheme público), mas dá pra reproduzir a UX usando <code>getUserMedia</code> + decodificação contínua via <code>BarcodeDetector</code> nativo (Chrome Android — super rápido) ou <code>jsQR</code> (Safari iOS — fallback).<br><br>' +
       'UI redesenhada estilo iOS: câmera ocupando a tela inteira, mira centralizada com 4 cantos brancos animados, texto sutil "Aponte para o QR code" no topo, X pra fechar no canto superior direito, botão discreto "⌨️ Digitar código" no rodapé pra entrada manual. Sem mais overlay competindo com o feed.<br><br>' +

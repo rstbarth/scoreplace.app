@@ -7093,81 +7093,180 @@ window._openScanQR = function() {
     if (e.key === 'Enter') _tryManualCode();
   });
 
-  // Start camera scanner — uses jsQR library (works on all browsers)
-  // or BarcodeDetector as primary, with jsQR fallback
+  // v1.6.20-beta: scanner reescrito com robustez + diagnóstico.
+  // Bugs anteriores prováveis:
+  //   1. video.play() não disparava em alguns navegadores apesar de autoplay
+  //   2. resolução padrão do getUserMedia era muito baixa pra jsQR decodificar
+  //   3. jsQR carregava DEPOIS da câmera abrir, criando race window
+  //   4. erro de permissão era logado só em console (user não via)
+  //   5. inversionAttempts: 'dontInvert' falha em QRs invertidos
+  // Diagnóstico exposto em window._scanDebug pra inspeção via DevTools.
   var video = document.getElementById('scan-qr-video');
   var canvas = document.getElementById('scan-qr-canvas');
   var placeholder = document.getElementById('scan-qr-placeholder');
   var hasBarcodeAPI = typeof window.BarcodeDetector !== 'undefined';
+  window._scanDebug = {
+    hasBarcodeAPI: hasBarcodeAPI,
+    jsQRLoaded: !!window.jsQR,
+    framesProcessed: 0,
+    lastError: null,
+    lastDetectionAttempt: null,
+    cameraOpened: false,
+    videoWidth: 0,
+    videoHeight: 0,
+    decoderReady: false
+  };
 
-  function _startScanning(decodeMethod) {
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function(stream) {
-      _scanStream = stream;
-      video.srcObject = stream;
-      video.style.display = 'block';
-      placeholder.style.display = 'none';
+  function _showError(emoji, msg) {
+    placeholder.style.display = 'flex';
+    placeholder.innerHTML =
+      '<div style="font-size:2.5rem;">' + emoji + '</div>' +
+      '<div style="font-size:0.88rem;color:rgba(255,255,255,0.9);padding:0 1.5rem;text-align:center;line-height:1.5;max-width:300px;">' + msg + '</div>';
+  }
 
-      var ctx = canvas.getContext('2d');
-      _scanInterval = setInterval(function() {
-        if (_scanFound || !video.videoWidth) return;
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        decodeMethod(canvas, ctx);
-      }, 300);
-    }).catch(function(err) {
-      console.warn('Camera access denied:', err);
-      placeholder.innerHTML =
-        '<div style="font-size:2rem;">🚫</div>' +
-        '<div style="font-size:0.78rem;color:var(--text-muted);padding:0 1rem;">Câmera não disponível.<br>Digite o código da sala abaixo.</div>';
+  function _showStatus(emoji, msg) {
+    placeholder.innerHTML =
+      '<div style="font-size:2.5rem;">' + emoji + '</div>' +
+      '<div style="font-size:0.85rem;color:rgba(255,255,255,0.85);">' + msg + '</div>';
+  }
+
+  // Pré-carrega jsQR em paralelo se BarcodeDetector não existir.
+  // Garante que decoder está pronto quando câmera abrir.
+  function _ensureJsQR() {
+    return new Promise(function(resolve, reject) {
+      if (window.jsQR) { window._scanDebug.jsQRLoaded = true; resolve(); return; }
+      var script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+      script.onload = function() { window._scanDebug.jsQRLoaded = true; resolve(); };
+      script.onerror = function() { reject(new Error('jsQR CDN load failed')); };
+      document.head.appendChild(script);
     });
   }
 
   function _onDetected(rawValue) {
     if (_scanFound) return;
+    window._scanDebug.lastDetectionAttempt = (rawValue || '').slice(0, 80);
     var code = _extractRoomCode(rawValue);
     if (code) {
-      if (typeof showNotification === 'function') showNotification(_t('bui.qrDetected'), _t('bui.qrDetectedMsg', {code: code}), 'success');
+      if (typeof showNotification === 'function') showNotification('QR detectado!', code, 'success');
       _navigateToRoom(code);
     }
   }
 
+  function _startScanning(decodeMethod) {
+    // Solicita resolução decente pra jsQR funcionar bem.
+    // 1280x720 é suportado por basicamente todo celular moderno.
+    var constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    };
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      _showError('🚫', 'Seu navegador não suporta acesso à câmera. Use o botão "Digitar código" abaixo.');
+      window._scanDebug.lastError = 'no-mediaDevices';
+      return;
+    }
+    _showStatus('📷', 'Iniciando câmera…');
+    navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+      window._scanDebug.cameraOpened = true;
+      _scanStream = stream;
+      video.srcObject = stream;
+      video.style.display = 'block';
+      placeholder.style.display = 'none';
+
+      // play() explícito — em iOS Safari standalone PWA, autoplay nem sempre
+      // funciona apesar dos atributos. Catch silencioso porque autoplay
+      // geralmente cobre, e a única forma de saber pra certeza é tentar.
+      var playPromise = video.play();
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(function(_e) { /* autoplay deve cobrir */ });
+      }
+
+      // Aguarda o vídeo ter dimensões antes de iniciar o loop.
+      // Polling em vez de loadedmetadata pra ser robusto contra eventos perdidos.
+      var startedLoop = false;
+      function _tryStartLoop() {
+        if (startedLoop) return;
+        if (video.videoWidth > 0 && video.videoHeight > 0) {
+          startedLoop = true;
+          window._scanDebug.videoWidth = video.videoWidth;
+          window._scanDebug.videoHeight = video.videoHeight;
+          window._scanDebug.decoderReady = true;
+          var ctx = canvas.getContext('2d');
+          _scanInterval = setInterval(function() {
+            if (_scanFound || !video.videoWidth) return;
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            try {
+              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              window._scanDebug.framesProcessed++;
+              decodeMethod(canvas, ctx);
+            } catch (e) {
+              window._scanDebug.lastError = String(e && e.message || e);
+            }
+          }, 200); // 200ms = 5fps, bom balance bateria/responsividade
+          return;
+        }
+        setTimeout(_tryStartLoop, 80);
+      }
+      _tryStartLoop();
+    }).catch(function(err) {
+      window._scanDebug.lastError = String(err && err.name || err);
+      var msg = 'Não consegui acessar a câmera.';
+      if (err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError')) {
+        msg = 'Permissão de câmera negada. Habilite no menu do navegador (cadeado ao lado da URL → Câmera → Permitir) e tente de novo.';
+      } else if (err && err.name === 'NotFoundError') {
+        msg = 'Nenhuma câmera encontrada no dispositivo.';
+      } else if (err && err.name === 'NotReadableError') {
+        msg = 'Câmera ocupada por outro app. Feche aplicativos de câmera e tente novamente.';
+      } else if (err && err.name === 'OverconstrainedError') {
+        // Tenta de novo sem constraints de resolução
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false })
+          .then(function(s) {
+            window._scanDebug.cameraOpened = true;
+            window._scanDebug.lastError = 'overconstrained-fallback';
+            _scanStream = s;
+            video.srcObject = s;
+            video.style.display = 'block';
+            placeholder.style.display = 'none';
+            video.play().catch(function(){});
+          })
+          .catch(function() {
+            _showError('🚫', 'Não consegui usar a câmera traseira. ' + msg);
+          });
+        return;
+      }
+      _showError('🚫', msg);
+    });
+  }
+
+  // Inicializa scanner: BarcodeDetector quando disponível (super rápido,
+  // nativo do SO), senão jsQR como fallback.
   if (hasBarcodeAPI) {
-    // Use native BarcodeDetector (Chrome Android, etc.)
-    var detector = new BarcodeDetector({ formats: ['qr_code'] });
+    var detector = new window.BarcodeDetector({ formats: ['qr_code'] });
     _startScanning(function(cvs) {
       detector.detect(cvs).then(function(barcodes) {
         if (barcodes && barcodes.length > 0) _onDetected(barcodes[0].rawValue);
-      }).catch(function() {});
-    });
-  } else if (window.jsQR) {
-    // jsQR already loaded
-    _startScanning(function(cvs, ctx) {
-      var imageData = ctx.getImageData(0, 0, cvs.width, cvs.height);
-      var qr = window.jsQR(imageData.data, cvs.width, cvs.height, { inversionAttempts: 'dontInvert' });
-      if (qr && qr.data) _onDetected(qr.data);
+      }).catch(function(e) {
+        window._scanDebug.lastError = 'detect:' + String(e && e.message || e);
+      });
     });
   } else {
-    // Load jsQR from CDN then start
-    placeholder.innerHTML =
-      '<div style="font-size:2.5rem;">📷</div>' +
-      '<div style="font-size:0.78rem;color:var(--text-muted);">Carregando scanner...</div>';
-    var script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
-    script.onload = function() {
+    // Pré-carrega jsQR em paralelo com pedir câmera — sem esperar antes da UX
+    _ensureJsQR().then(function() {
       _startScanning(function(cvs, ctx) {
         var imageData = ctx.getImageData(0, 0, cvs.width, cvs.height);
-        var qr = window.jsQR(imageData.data, cvs.width, cvs.height, { inversionAttempts: 'dontInvert' });
+        // attemptBoth (regular + invertido) cobre QRs em fundos pretos/claros.
+        // Marginal mais lento que dontInvert mas garante detecção.
+        var qr = window.jsQR(imageData.data, cvs.width, cvs.height, { inversionAttempts: 'attemptBoth' });
         if (qr && qr.data) _onDetected(qr.data);
       });
-    };
-    script.onerror = function() {
-      // jsQR failed to load and no BarcodeDetector — manual only
-      placeholder.innerHTML =
-        '<div style="font-size:2rem;">⌨️</div>' +
-        '<div style="font-size:0.78rem;color:var(--text-muted);padding:0 1rem;">Scanner indisponível.<br>Digite o código da sala abaixo.</div>';
-    };
-    document.head.appendChild(script);
+    }).catch(function() {
+      _showError('⌨️', 'Não consegui carregar o leitor de QR. Sem internet? Use o botão "Digitar código" abaixo.');
+    });
   }
 };
 
