@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📸 v1.6.18-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Scanner QR agora abre câmera nativa do celular.</b> Antes: overlay customizado com câmera embarcada via <code>getUserMedia</code> + jsQR rodando em loop — interface diferente do que os usuários conhecem, e em alguns dispositivos a permissão de câmera era negada silenciosamente.<br><br>' +
+      'Agora: o botão dispara <code>&lt;input type="file" accept="image/*" capture="environment"&gt;</code> — abre o <b>app de câmera nativo</b> do celular (UI 100% do SO, sem overlay customizado). Usuário tira foto do QR code, retorna pro app, jsQR decodifica e navega pra <code>#casual/&lt;roomCode&gt;</code>.<br><br>' +
+      '<b>Limitação técnica honesta:</b> PWA web não consegue abrir o "Scanner de Código" nativo do iOS (não existe URL scheme público). Esse fluxo "tirar foto + decodificar" é o mais nativo possível — sem mais overlay simulado. Fallback elegante: se a foto não tiver QR detectável, abre dialog pra digitar o código manualmente.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🎯 v1.6.17-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Botão "Escanear QR" redesenhado no estilo iOS.</b> Pedido do dono. Antes: botão ciano grande com texto "📷 Entrar via QR" (54px de altura, mesma proeminência de Pessoas/Convidar). Agora: ícone circular pequeno e discreto (44×44px), transparente com borda sutil, SVG com 4 vértices angulares (cantos L) e um QR code estilizado de 4 quadrinhos no centro — exatamente como o ícone de scanner do iOS. Não compete visualmente com os botões primários da row.</p>' +
     '</div>' +

@@ -7149,6 +7149,132 @@ window._openScanQR = function() {
   }
 };
 
+// ─── Native Camera Capture QR Scanner ───────────────────────────────────────
+// v1.6.18-beta: usa <input type="file" accept="image/*" capture="environment">
+// pra abrir o app de câmera NATIVO do celular (UI nativa do iOS/Android,
+// sem overlay customizado). Usuário tira foto do QR code, foto retorna
+// pro app, jsQR decodifica, navega pra #casual/<roomCode>.
+//
+// LIMITAÇÃO TÉCNICA: PWA web não consegue abrir o "Scanner de Código" nativo
+// do iOS via URL scheme (não existe API pública). O fluxo "tirar foto +
+// decodificar" é o mais próximo de nativo possível em web — interface da
+// câmera é 100% do SO, sem overlay customizado.
+window._openScanQRNative = function() {
+  // Helper: extrai roomCode de URL completa ou texto curto
+  function _extractRoomCode(text) {
+    text = (text || '').trim();
+    var urlMatch = text.match(/#casual\/([A-Za-z0-9]{4,8})/);
+    if (urlMatch) return urlMatch[1].toUpperCase();
+    var plain = text.replace(/[^A-Za-z0-9]/g, '');
+    if (plain.length >= 4 && plain.length <= 8) return plain.toUpperCase();
+    return null;
+  }
+
+  // Helper: carrega jsQR (CDN) sob demanda
+  function _ensureJsQR(callback) {
+    if (window.jsQR) return callback();
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js';
+    script.onload = callback;
+    script.onerror = function() { callback(); }; // segue mesmo se falhar, callback checa window.jsQR
+    document.head.appendChild(script);
+  }
+
+  // Helper: dialog simples pra entrada manual quando decode falha
+  function _showManualCodeDialog(reason) {
+    if (typeof showAlertDialog !== 'function' && typeof window.showAlertDialog !== 'function') {
+      alert(reason || 'Não consegui ler o QR. Digite o código manualmente.');
+      return;
+    }
+    var msg = reason || 'Não consegui detectar o QR code na foto.';
+    var inputHtml = '<div style="margin-top:14px;"><input type="text" id="_qr-manual-input" placeholder="Ex: ABC123" maxlength="8" style="width:100%;box-sizing:border-box;padding:14px;border-radius:10px;background:rgba(255,255,255,0.06);border:2px solid rgba(168,85,247,0.3);color:#fff;font-size:1.2rem;font-weight:800;letter-spacing:4px;text-align:center;text-transform:uppercase;outline:none;font-family:monospace;"></div>';
+    (window.showAlertDialog || showAlertDialog)('Digite o código da sala', msg + inputHtml, function() {
+      var v = document.getElementById('_qr-manual-input');
+      if (!v) return;
+      var code = _extractRoomCode(v.value);
+      if (code) window.location.hash = '#casual/' + code;
+    });
+    setTimeout(function() {
+      var el = document.getElementById('_qr-manual-input');
+      if (el) el.focus();
+    }, 250);
+  }
+
+  // Helper: decodifica imagem File via jsQR
+  function _decodeQRFromFile(file, callback) {
+    var reader = new FileReader();
+    reader.onerror = function() { callback(null); };
+    reader.onload = function(ev) {
+      var img = new Image();
+      img.onerror = function() { callback(null); };
+      img.onload = function() {
+        try {
+          var canvas = document.createElement('canvas');
+          // Limita dimensão pra evitar OOM em fotos de alta resolução
+          var maxDim = 1280;
+          var w = img.naturalWidth, h = img.naturalHeight;
+          if (w > maxDim || h > maxDim) {
+            var scale = Math.min(maxDim / w, maxDim / h);
+            w = Math.round(w * scale);
+            h = Math.round(h * scale);
+          }
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          var imageData = ctx.getImageData(0, 0, w, h);
+          _ensureJsQR(function() {
+            if (!window.jsQR) return callback(null);
+            var qr = window.jsQR(imageData.data, imageData.width, imageData.height, { inversionAttempts: 'attemptBoth' });
+            if (qr && qr.data) {
+              callback(_extractRoomCode(qr.data));
+            } else {
+              callback(null);
+            }
+          });
+        } catch (_err) {
+          callback(null);
+        }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // Cria input invisível com capture pra abrir câmera nativa do SO
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment'; // câmera traseira em mobile; ignorado em desktop
+  input.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+
+  // Pré-carrega jsQR em paralelo pra reduzir delay depois de tirar foto
+  _ensureJsQR(function() {});
+
+  input.onchange = function(e) {
+    var file = e.target.files && e.target.files[0];
+    if (input.parentNode) input.parentNode.removeChild(input);
+    if (!file) return; // usuário cancelou
+    _decodeQRFromFile(file, function(code) {
+      if (code) {
+        window.location.hash = '#casual/' + code;
+      } else {
+        _showManualCodeDialog('Não consegui detectar o QR code na foto. Tente outra foto ou digite o código manualmente.');
+      }
+    });
+  };
+
+  // Safety: se o usuário cancelar a câmera (sem trigger de change em alguns
+  // navegadores), remove o input depois de 60s pra não vazar.
+  setTimeout(function() {
+    if (input.parentNode && !(input.files && input.files.length)) {
+      input.parentNode.removeChild(input);
+    }
+  }, 60000);
+
+  document.body.appendChild(input);
+  input.click();
+};
+
 // ─── Casual Match Setup Screen ──────────────────────────────────────────────
 // Opens from dashboard "Partida Casual" button. Shows sport picker, player
 // names, scoring config summary + gear icon, then launches live scoring.
