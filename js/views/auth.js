@@ -405,7 +405,11 @@ if (firebase && firebase.auth) {
         }
       } catch(e) {}
       if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
-        window.FirestoreDB.saveUserProfile(user.uid, { authProvider: 'google.com' }).catch(function() {});
+        window.FirestoreDB.saveUserProfile(user.uid, {
+          authProvider: 'google.com',
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || ''
+        }).catch(function() {});
       }
       try { _tryLinkPendingCredential(result); } catch(e) {}
 
@@ -653,9 +657,13 @@ function handleGoogleLogin() {
 
       showNotification(_t('auth.loginDone'), _t('auth.welcomeName', {name: user.displayName}), 'success');
 
-      // Save auth provider to Firestore
+      // Save auth provider + displayName/photoURL to Firestore on first Google login
       if (window.FirestoreDB && window.FirestoreDB.db && user.uid) {
-        window.FirestoreDB.saveUserProfile(user.uid, { authProvider: 'google.com' }).catch(function() {});
+        window.FirestoreDB.saveUserProfile(user.uid, {
+          authProvider: 'google.com',
+          displayName: user.displayName || '',
+          photoURL: user.photoURL || ''
+        }).catch(function() {});
       }
 
       // v1.6.29-beta: detecta se o usuário tem FOTO REAL no Google (não
@@ -2136,6 +2144,10 @@ async function simulateLoginSuccess(user) {
         _betterDN = user.phoneNumber;
       }
       if (_betterDN) { basicData.displayName = _betterDN; needsSave = true; }
+    }
+    // Persist displayName from Google auth if Firestore doc doesn't have it yet
+    if ((!existingProfile || !existingProfile.displayName) && user.displayName) {
+      basicData.displayName = user.displayName; needsSave = true;
     }
     if (!existingProfile || !existingProfile.email) {
       if (user.email) { basicData.email = user.email; needsSave = true; }

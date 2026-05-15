@@ -9,6 +9,17 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">👤 v1.6.53-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Fix: nome do usuário Google visível para outros usuários imediatamente após o primeiro login.</b><br><br>' +
+      'Novos usuários que fizeram login pelo Google apareciam para outros com o <b>e-mail no lugar do nome</b> (ex: "fernando@gmail.com" em vez de "Fernando Cerri"). ' +
+      'O nome só era corrigido se o próprio usuário abrisse o perfil e salvasse sem alterar nada.<br><br>' +
+      'Causa: os handlers de login Google (popup e redirect) persistiam apenas <code>{ authProvider: "google.com" }</code> no Firestore — sem <code>displayName</code> nem <code>photoURL</code>. ' +
+      'Outros usuários buscam o nome via Firestore, não via Firebase Auth, então viam o campo vazio e caíam no fallback de e-mail.<br><br>' +
+      'Fix em três camadas: (1) handler do popup Google agora persiste <code>displayName</code> e <code>photoURL</code> junto com <code>authProvider</code>; ' +
+      '(2) handler do redirect faz o mesmo; (3) safety net em <code>simulateLoginSuccess</code> — se o perfil Firestore ainda não tem <code>displayName</code> mas o auth do Google tem, ' +
+      'persiste imediatamente. Novo usuário agora aparece com o nome correto para todos desde o primeiro login.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔗 v1.6.52-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Visual e integridade de dados no vínculo de amigos na partida casual.</b><br><br>' +
       'Quando um amigo é selecionado via autocomplete num slot editável, o slot agora exibe o <b>avatar/foto e nome completo do perfil</b> — ' +
