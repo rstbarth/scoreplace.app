@@ -7579,7 +7579,7 @@ window._openCasualMatch = function(restoreOpts) {
   // tem participante logado com gender no perfil, é usado como default;
   // caso contrário (guest ou logado sem gender), usuário pode setar via
   // ícone clicável no card. Sincronizado via Firestore (campo slotGenders).
-  // Format: { 0: 'masculino'|'feminino'|'outro'|null, ... }
+  // Format: { 0: 'masculino'|'feminino'|null, ... }
   var _slotGenders = (restoreOpts && restoreOpts.slotGenders) ? Object.assign({}, restoreOpts.slotGenders) : {};
   // Helper canônico: gênero efetivo do slot. Override por partida (_slotGenders)
   // tem prioridade sobre o gender do perfil do usuário logado naquele slot.
@@ -7914,9 +7914,6 @@ window._openCasualMatch = function(restoreOpts) {
           bg = 'rgba(255,255,255,0.06)'; bdr = 'rgba(255,255,255,0.12)'; pulseClass = '';
         } else if (g === 'feminino') {
           sym = '♀'; clr = '#f472b6'; title = 'Feminino — toque pra mudar';
-          bg = 'rgba(255,255,255,0.06)'; bdr = 'rgba(255,255,255,0.12)'; pulseClass = '';
-        } else if (g === 'outro') {
-          sym = '⚥'; clr = '#c084fc'; title = 'Outro — toque pra mudar';
           bg = 'rgba(255,255,255,0.06)'; bdr = 'rgba(255,255,255,0.12)'; pulseClass = '';
         } else {
           // Estado não definido — visualmente chamativo
@@ -8555,16 +8552,13 @@ window._openCasualMatch = function(restoreOpts) {
     _syncCasualSetupDebounced();
   };
 
-  // v1.6.26-beta: picker de gênero por slot. Abre dialog minimal com 4
-  // opções (Masc/Fem/Outro/Limpar). Valor sobrescreve qualquer perfil
-  // pra o caso da partida — propaga via _syncCasualSetupDebounced.
+  // v1.6.26-beta: picker de gênero por slot. Abre dialog minimal com
+  // Masculino/Feminino. Propaga via _syncCasualSetupDebounced.
   window._casualSetSlotGender = function(slotIdx) {
     var current = _resolveSlotGender(slotIdx);
     var options = [
       { value: 'masculino', label: '♂  Masculino', color: '#60a5fa' },
-      { value: 'feminino',  label: '♀  Feminino',  color: '#f472b6' },
-      { value: 'outro',     label: '⚥  Outro',     color: '#c084fc' },
-      { value: null,        label: '✕  Não definir', color: 'rgba(255,255,255,0.5)' }
+      { value: 'feminino',  label: '♀  Feminino',  color: '#f472b6' }
     ];
     var ov = document.createElement('div');
     ov.id = '_gender-picker-overlay';
