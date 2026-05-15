@@ -6303,10 +6303,12 @@ window._openLiveScoring = function(tId, matchId, opts) {
           if (data && data.status === 'finished' && !_casualCancelled) {
             // Aplica o liveState final (com isFinished=true e todos os
             // dados de pointLog/gameLog/sets pra render das stats).
+            // _isRemoteUpdate mantido true DURANTE o _render() para que
+            // _syncLiveState() não escreva de volta no Firestore e cause
+            // um loop infinito (listener → render → sync → listener → ...).
+            _isRemoteUpdate = true;
             if (data.liveState) {
-              _isRemoteUpdate = true;
               _applyRemoteState(data.liveState);
-              _isRemoteUpdate = false;
               state.isFinished = true; // garantia, caso liveState nao tenha
               if (data.liveState.winner != null) state.winner = data.liveState.winner;
               _matchEndTime = _matchEndTime || Date.now();
@@ -6317,6 +6319,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
             // detalhadas aparece automaticamente no _render() quando
             // isFinished=true.
             try { _render(); } catch(e) {}
+            _isRemoteUpdate = false;
             // Notificação leve pro guest saber que jogo acabou (host não
             // recebe esta — ele já viu o confirm dialog).
             var cuDone2 = window.AppStore && window.AppStore.currentUser;
