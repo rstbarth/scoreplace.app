@@ -3403,8 +3403,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
       if (pm.name) _playerMeta[pm.name] = { uid: pm.uid || null, photoURL: pm.photoURL || null };
     }
   }
-  // Also add current user's info for self-matching
-  (function() {
+  // Also add current user's info for self-matching.
+  // Coach mode: técnico não é jogador — pular para não atribuir foto/uid do
+  // técnico a um jogador cujo nome coincida com o primeiro nome do técnico.
+  if (!opts || !opts.coachMode) (function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (cu && cu.photoURL) {
       // Match by first name or displayName in any player name
@@ -9193,7 +9195,9 @@ window._openCasualMatch = function(restoreOpts) {
         var freshMatch = await window.FirestoreDB.loadCasualMatch(_sessionRoomCode);
         if (freshMatch && Array.isArray(freshMatch.participants)) {
           var lobbyNames = freshMatch.participants.map(function(p) { return p.displayName || ''; }).filter(function(n) { return !!n; });
-          // Fill empty player slots with lobby participant names
+          // Coach mode: técnico não é jogador — não enriquecer slots com dados do lobby.
+          // Sem coach mode: preencher slots padrão e enriquecer foto/uid dos personalizados.
+          if (!_coachMode) {
           var usedLobby = 0;
           for (var pi = 0; pi < players.length; pi++) {
             var defaultNames = ['Jogador 1', 'Parceiro', 'Adversário 1', 'Adversário 2'];
@@ -9214,6 +9218,7 @@ window._openCasualMatch = function(restoreOpts) {
               }
               usedLobby++;
             }
+          }
           }
         }
       } catch(e) {}
@@ -9396,7 +9401,8 @@ window._openCasualMatch = function(restoreOpts) {
       casualDocId: _sessionDocId,
       createdBy: cu && cu.uid,
       roomCode: _sessionRoomCode,
-      players: players
+      players: players,
+      coachMode: !!_coachMode
     });
   };
 
