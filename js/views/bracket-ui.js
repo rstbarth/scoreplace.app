@@ -236,7 +236,8 @@ window._loadFriendProfilesCached = async function() {
         window._friendProfilesCache[item.uid] = {
           uid: item.uid,
           displayName: item.profile.displayName || '',
-          photoURL: item.profile.photoURL || ''
+          photoURL: item.profile.photoURL || '',
+          gender: item.profile.gender || ''
         };
       }
     });
@@ -8839,6 +8840,11 @@ window._openCasualMatch = function(restoreOpts) {
       // Usa primeiro nome para exibição (consistente com lobby)
       inp.value = (friendName || '').split(' ')[0] || friendName || '';
       if (window._autosizeCasualInput) window._autosizeCasualInput(inp);
+    }
+    // Auto-preenche gênero do amigo se disponível no cache
+    if (friendUid && window._friendProfilesCache && window._friendProfilesCache[friendUid]) {
+      var _fg = window._friendProfilesCache[friendUid].gender;
+      if (_fg) _slotGenders[ci] = _fg;
     }
     // Remove dropdown imediatamente
     var wrapper = document.querySelector('[data-casual-ac-wrapper="' + ci + '"]');

@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">⚥ v1.6.54-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Autocomplete de amigos preenche o gênero automaticamente.</b><br><br>' +
+      'Ao selecionar um amigo via autocomplete num slot da partida casual, o ícone de gênero do slot é preenchido automaticamente com o gênero do perfil do amigo. ' +
+      'Isso garante que o toggle de duplas mistas apareça corretamente quando há 2 homens e 2 mulheres, sem precisar setar o gênero manualmente para cada slot vinculado.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">👤 v1.6.53-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Fix: nome do usuário Google visível para outros usuários imediatamente após o primeiro login.</b><br><br>' +
       'Novos usuários que fizeram login pelo Google apareciam para outros com o <b>e-mail no lugar do nome</b> (ex: "fernando@gmail.com" em vez de "Fernando Cerri"). ' +
