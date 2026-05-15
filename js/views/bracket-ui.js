@@ -7672,7 +7672,31 @@ window._openCasualMatch = function(restoreOpts) {
   // o técnico ou organizador vincula um nome a um amigo, o uid é armazenado
   // aqui e propagado para _buildPlayers() — assim as stats pós-partida são
   // atribuídas ao perfil correto via casual_link_request notification.
-  var _slotLinkedUid = [null, null, null, null];
+  var _slotLinkedUid = (restoreOpts && Array.isArray(restoreOpts.slotLinkedUid))
+    ? restoreOpts.slotLinkedUid.slice()
+    : [null, null, null, null];
+  // Pré-carrega perfis dos amigos vinculados via restoreOpts para que o avatar
+  // esteja disponível no primeiro render (sem esperar o próximo poll de 3s).
+  (function() {
+    for (var _ri = 0; _ri < _slotLinkedUid.length; _ri++) {
+      var _rUid = _slotLinkedUid[_ri];
+      if (_rUid && window._friendProfilesCache && !window._friendProfilesCache[_rUid]) {
+        (function(_u) {
+          if (window.FirestoreDB && window.FirestoreDB.loadUserProfile) {
+            window.FirestoreDB.loadUserProfile(_u).then(function(p) {
+              if (p) {
+                window._friendProfilesCache[_u] = {
+                  uid: _u, displayName: p.displayName || '',
+                  photoURL: p.photoURL || '', gender: p.gender || ''
+                };
+                if (document.getElementById('casual-match-overlay')) _renderSetup();
+              }
+            }).catch(function() {});
+          }
+        })(_rUid);
+      }
+    }
+  })();
   var _acTimerSlot = [null, null, null, null];
   // Gender cache keyed by uid: 'masculino' | 'feminino' | '' (checked, missing) | undefined (not loaded yet)
   var _participantGenders = {};
@@ -9209,7 +9233,8 @@ window._openCasualMatch = function(restoreOpts) {
           scoring: _getConfig(),
           isDoubles: isDoubles,
           teamsFormed: _isTeamsFormed(),
-          slotGenders: _slotGenders
+          slotGenders: _slotGenders,
+          slotLinkedUid: _slotLinkedUid.slice()
         });
       } catch(e) {}
     }, 500);
@@ -9885,6 +9910,39 @@ window._openCasualMatch = function(restoreOpts) {
             try { _renderSetup(); } catch(e) {}
           }
         }
+
+        // v1.6.55-beta: sincroniza slotLinkedUid de outros clientes para que
+        // o avatar/foto e nome do amigo vinculado via autocomplete apareçam
+        // em todos os dispositivos da sala, não só no dispositivo do criador.
+        if (Array.isArray(fresh.slotLinkedUid)) {
+          var _luChanged = false;
+          for (var _luk = 0; _luk < 4; _luk++) {
+            var _remoteUid = fresh.slotLinkedUid[_luk] || null;
+            var _localUid = _slotLinkedUid[_luk] || null;
+            if (_remoteUid !== _localUid) {
+              _slotLinkedUid[_luk] = _remoteUid;
+              // Pré-carrega perfil do amigo no cache se ainda não está disponível
+              if (_remoteUid && window._friendProfilesCache && !window._friendProfilesCache[_remoteUid]) {
+                (function(_uid) {
+                  if (window.FirestoreDB && window.FirestoreDB.loadUserProfile) {
+                    window.FirestoreDB.loadUserProfile(_uid).then(function(p) {
+                      if (p) window._friendProfilesCache[_uid] = {
+                        uid: _uid,
+                        displayName: p.displayName || '',
+                        photoURL: p.photoURL || '',
+                        gender: p.gender || ''
+                      };
+                    }).catch(function() {});
+                  }
+                })(_remoteUid);
+              }
+              _luChanged = true;
+            }
+          }
+          if (_luChanged) {
+            try { _renderSetup(); } catch(e) {}
+          }
+        }
       }).catch(function() {});
     }, 3000);
   }
@@ -10286,7 +10344,9 @@ window._renderCasualJoin = function(container, roomCode) {
         participants: participants,
         players: players,
         scoring: match.scoring || null,
-        createdBy: match.createdBy || null
+        createdBy: match.createdBy || null,
+        slotLinkedUid: Array.isArray(match.slotLinkedUid) ? match.slotLinkedUid : null,
+        slotGenders: (match.slotGenders && typeof match.slotGenders === 'object') ? match.slotGenders : null
       });
       return;
     }

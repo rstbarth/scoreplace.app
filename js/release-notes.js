@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔗 v1.6.55-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Vínculo de amigo via autocomplete propagado para todos os participantes da sala.</b><br><br>' +
+      'Quando o criador (ou técnico) seleciona um amigo via autocomplete, o avatar, foto e nome do perfil agora aparecem no slot de <b>todos os dispositivos</b> conectados à sala — ' +
+      'não só no dispositivo que fez a seleção. O campo <code>slotLinkedUid</code> passou a ser persistido no Firestore e sincronizado pelo polling a cada 3 s. ' +
+      'Participantes que entram depois do vínculo já formado vêem o estado correto desde o primeiro render. ' +
+      'Perfis de amigos ainda não no cache local são carregados automaticamente ao sincronizar.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">⚥ v1.6.54-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Autocomplete de amigos preenche o gênero automaticamente.</b><br><br>' +
       'Ao selecionar um amigo via autocomplete num slot da partida casual, o ícone de gênero do slot é preenchido automaticamente com o gênero do perfil do amigo. ' +
