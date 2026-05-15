@@ -6362,11 +6362,27 @@ window._openLiveScoring = function(tId, matchId, opts) {
             }
             return;
           }
-          // v1.6.41-beta: alguém clicou "Jogar Novamente" — status virou
-          // 'setup'. Todos os demais participantes voltam para o setup
-          // com os mesmos jogadores (sem times pré-formados).
+          // v1.6.41-beta: alguém clicou "Jogar Novamente" ou "Desparear" —
+          // status virou 'setup'. Todos os demais participantes voltam para
+          // o setup com os mesmos jogadores (sem times pré-formados).
+          // v1.6.59-beta: usa _casualReopenSetup em vez de _goToSetupLocally
+          // para reutilizar o mesmo overlay/sala. Antes: criava nova sala →
+          // nomes viravam "Jogador X" por auto-save de doc vazio.
           if (data && data.status === 'setup' && !_casualCancelled) {
-            setTimeout(function() { _goToSetupLocally(); }, 50);
+            setTimeout(function() {
+              if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
+              try { window.removeEventListener('resize', _onResize); } catch(e) {}
+              try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+              try { window.removeEventListener('pagehide', _onPagehide); } catch(e) {}
+              try { _releaseWakeLock(); } catch(e) {}
+              var ov = document.getElementById('live-scoring-overlay');
+              if (ov) ov.remove();
+              if (typeof window._casualReopenSetup === 'function') {
+                window._casualReopenSetup();
+              } else {
+                _goToSetupLocally();
+              }
+            }, 50);
             return;
           }
           // Alguém clicou "Jogar Novamente" nas stats —
@@ -6719,20 +6735,49 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
   }
 
+  // Fecha o live-scoring-overlay e reabre o setup overlay reutilizando a
+  // mesma sala (via _casualReopenSetup). Chamado por _liveScoreUnpairFromStats
+  // e _liveScoreGoToSetup. Fallback pra _goToSetupLocally quando
+  // _casualReopenSetup não está disponível (ex: partida aberta do histórico).
+  function _closeLiveScoringAndReopenSetup() {
+    if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
+    try { window.removeEventListener('resize', _onResize); } catch(e) {}
+    try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
+    try { window.removeEventListener('pagehide', _onPagehide); } catch(e) {}
+    try { _releaseWakeLock(); } catch(e) {}
+    var ov = document.getElementById('live-scoring-overlay');
+    if (ov) ov.remove();
+    if (typeof window._casualReopenSetup === 'function') {
+      window._casualReopenSetup();
+    } else {
+      _goToSetupLocally();
+    }
+  }
+
   // v1.3.69-beta: versão SEM confirm dialog para a tela de estatísticas
   // (a partida já foi encerrada e salva — não há nada a confirmar).
-  // Funciona tanto para partida recém-encerrada quanto para histórico
-  // (viewOnly=true via _casualOpenPastMatch).
+  // v1.6.59-beta: usa _closeLiveScoringAndReopenSetup (reutiliza a mesma
+  // sala via _casualReopenSetup) + escreve status:'setup' para que os
+  // outros participantes logados também voltem ao setup.
   window._liveScoreUnpairFromStats = function() {
     if (state.isFinished && !_resultSaved) {
       try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
     }
-    _goToSetupLocally();
+    // Propaga para os outros participantes via Firestore
+    if (_casualDocId && window.FirestoreDB && window.FirestoreDB.db) {
+      try {
+        window.FirestoreDB.db.collection('casualMatches').doc(_casualDocId)
+          .update({ status: 'setup' })
+          .catch(function(e) { console.warn('[LiveScore] unpair setup write failed:', e); });
+      } catch(e) {}
+    }
+    _closeLiveScoringAndReopenSetup();
   };
 
   // v1.6.41-beta: "Jogar Novamente" nas stats — propaga status:'setup' no
   // Firestore para que TODOS os participantes logados voltem ao setup.
-  // O próprio caller também vai via _goToSetupLocally() (chamado após write).
+  // v1.6.59-beta: usa _closeLiveScoringAndReopenSetup para reutilizar a
+  // mesma sala (evita criação de nova sala com nomes "Jogador X").
   window._liveScoreGoToSetup = function() {
     if (state.isFinished && !_resultSaved) {
       try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
@@ -6745,8 +6790,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
           .catch(function(e) { console.warn('[LiveScore] setup status write failed:', e); });
       } catch(e) {}
     }
-    // Vai ao setup localmente (não espera o Firestore confirmar)
-    _goToSetupLocally();
+    _closeLiveScoringAndReopenSetup();
   };
 
   // Compartilhar resultado da partida casual — tournament match já tem o
