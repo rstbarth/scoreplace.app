@@ -3403,8 +3403,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
       if (pm.name) _playerMeta[pm.name] = { uid: pm.uid || null, photoURL: pm.photoURL || null };
     }
   }
-  // Also add current user's info for self-matching
-  (function() {
+  // Also add current user's info for self-matching.
+  // Coach mode: técnico não é jogador — pular para não atribuir foto/uid do
+  // técnico a um jogador cujo nome coincida com o primeiro nome do técnico.
+  if (!opts || !opts.coachMode) (function() {
     var cu = window.AppStore && window.AppStore.currentUser;
     if (cu && cu.photoURL) {
       // Match by first name or displayName in any player name
@@ -7635,6 +7637,12 @@ window._openCasualMatch = function(restoreOpts) {
   // Coach mode: user stays on screen to manage score for 4 other players (not playing).
   // Frees their own slot (editable), all name inputs become editable.
   var _coachMode = false;
+  // v1.6.51-beta: uid de amigos vinculados via autocomplete por slot. Quando
+  // o técnico ou organizador vincula um nome a um amigo, o uid é armazenado
+  // aqui e propagado para _buildPlayers() — assim as stats pós-partida são
+  // atribuídas ao perfil correto via casual_link_request notification.
+  var _slotLinkedUid = [null, null, null, null];
+  var _acTimerSlot = [null, null, null, null];
   // Gender cache keyed by uid: 'masculino' | 'feminino' | '' (checked, missing) | undefined (not loaded yet)
   var _participantGenders = {};
   if (cu && cu.uid) _participantGenders[cu.uid] = cu.gender || '';
@@ -8039,11 +8047,32 @@ window._openCasualMatch = function(restoreOpts) {
           (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL));
         var _readonlyAttr = _isRegCard ? 'readonly ' : '';
         var _regExtraStyle = _isRegCard ? 'pointer-events:none;cursor:inherit;' : '';
-        return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
-          avatar +
-          '<textarea id="' + inputIds[ci] + '" ' + _readonlyAttr + 'rows="1" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput();window._autosizeCasualInput && window._autosizeCasualInput(this);window._equalizeCasualCards && window._equalizeCasualCards();" style="' + _inputStyle + _regExtraStyle + 'color:' + textClr + ';">' + window._safeHtml(inputValues[ci]) + '</textarea>' +
+        // Em modo técnico, o avatar fica oculto; no lugar dele aparece um handle ⠿
+        // que é o único ponto de toque que inicia drag (touchstart verifica data-drag-handle).
+        // Isso libera a textarea para receber foco normalmente ao tocar no celular.
+        var _leftEl = _coachMode
+          ? '<div data-drag-handle="1" style="width:22px;min-width:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:grab;color:var(--text-muted);font-size:1.1rem;line-height:1;-webkit-user-select:none;user-select:none;touch-action:none;" title="Arrastar para formar dupla">⠿</div>'
+          : avatar;
+        // v1.6.51-beta: badge de amigo vinculado via autocomplete
+        var _linkedBadge = '';
+        if (!_isRegCard && _slotLinkedUid[ci]) {
+          var _lf = window._friendProfilesCache && window._friendProfilesCache[_slotLinkedUid[ci]];
+          var _lfName = _lf ? (_lf.displayName || '').split(' ')[0] : '';
+          _linkedBadge = '<div style="font-size:0.68rem;color:#a5b4fc;padding:2px 2px 0 2px;display:flex;align-items:center;gap:4px;">' +
+            '🔗 ' + (_lfName ? window._safeHtml(_lfName) + ' vinculado' : 'amigo vinculado') +
+            ' <button type="button" onmousedown="event.preventDefault()" onclick="window._casualUnlinkSlot(' + ci + ')" style="background:none;border:none;color:#f87171;cursor:pointer;font-size:0.72rem;padding:0 2px;line-height:1;" title="Desvincular">✕</button>' +
+            '</div>';
+        }
+        // Autocomplete só em slots editáveis (não registrados / coach mode)
+        var _acInput = _isRegCard ? '' : 'window._casualSlotAutocomplete(this,' + ci + ');';
+        return '<div style="position:relative;" data-casual-ac-wrapper="' + ci + '">' +
+          '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
+          _leftEl +
+          '<textarea id="' + inputIds[ci] + '" ' + _readonlyAttr + 'rows="1" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput();window._autosizeCasualInput && window._autosizeCasualInput(this);window._equalizeCasualCards && window._equalizeCasualCards();' + _acInput + '" style="' + _inputStyle + _regExtraStyle + 'color:' + textClr + ';">' + window._safeHtml(inputValues[ci]) + '</textarea>' +
           _genderIconHtml(ci) +
-        '</div>';
+          '</div>' +
+          _linkedBadge +
+          '</div>';
       }
 
       var cardsHtml;
@@ -8471,20 +8500,28 @@ window._openCasualMatch = function(restoreOpts) {
     var _touchIdx = null;
     cards.forEach(function(card) {
       card.addEventListener('touchstart', function(e) {
-        // Se o toque foi direto numa textarea editável (jogador não-cadastrado),
-        // deixa o browser focar o campo — não inicia drag nesse caso.
-        // Exceção: modo técnico — todas os slots são livres e o técnico precisa
-        // arrastar para formar duplas; drag é permitido mesmo em textarea editável.
-        if (e.target && e.target.tagName === 'TEXTAREA' && !e.target.readOnly && !_coachMode) {
+        // Textarea editável sempre recebe foco — drag nunca começa ao tocar nela.
+        if (e.target && e.target.tagName === 'TEXTAREA' && !e.target.readOnly) {
           _touchIdx = null;
           return;
         }
-        // Se o toque foi num botão (ex: ícone de gênero), deixa o click disparar
-        // normalmente — não inicia drag.
+        // Botão (ex: ícone de gênero) deixa o click disparar normalmente.
         var _bt = e.target;
         while (_bt && _bt !== card) {
           if (_bt.tagName === 'BUTTON') { _touchIdx = null; return; }
           _bt = _bt.parentElement;
+        }
+        // Em modo técnico, drag só começa pelo handle ⠿ (data-drag-handle).
+        // Qualquer outro toque no card (ex: padding) não inicia drag — garante
+        // que a textarea possa ser tocada sem conflito em toda a área do card.
+        if (_coachMode) {
+          var _hdl = e.target;
+          var _onHandle = false;
+          while (_hdl && _hdl !== card) {
+            if (_hdl.getAttribute && _hdl.getAttribute('data-drag-handle')) { _onHandle = true; break; }
+            _hdl = _hdl.parentElement;
+          }
+          if (!_onHandle) { _touchIdx = null; return; }
         }
         // preventDefault impede o browser de focar elementos dentro do card
         // antes do gesto de drag começar. Deve ser {passive:false} para funcionar.
@@ -8593,6 +8630,10 @@ window._openCasualMatch = function(restoreOpts) {
     autoShuffle = true;
     // Reseta sessão: próximo Iniciar cria novo doc no Firestore
     _sessionDocId = null;
+    // v1.6.50-beta: para o polling de refresh — sem isso, o interval continua
+    // lendo o Firestore com _sessionRoomCode antigo e sobrescreve os nomes
+    // digitados nos slots com "Jogador X, Y, Z" após alguns segundos.
+    if (_setupRefreshInterval) { clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; }
     // Re-appenda overlay (ainda em memória no closure)
     if (!document.getElementById('casual-match-overlay')) {
       document.body.appendChild(overlay);
@@ -8666,6 +8707,7 @@ window._openCasualMatch = function(restoreOpts) {
   window._casualToggleCoachMode = function(checked) {
     var activating = !!checked && !_coachMode;
     _coachMode = !!checked;
+    _slotLinkedUid = [null, null, null, null]; // v1.6.51: limpa vínculos ao trocar modo
     if (activating) {
       // Limpa nome e gênero de todos os slots — todos ficam livres para edição
       var _coachInputIds = isDoubles
@@ -8677,6 +8719,103 @@ window._openCasualMatch = function(restoreOpts) {
         delete _slotGenders[_cii];
       }
     }
+    _renderSetup();
+  };
+
+  // v1.6.51-beta: autocomplete de amigos nos slots editáveis.
+  // Chamado a cada keystroke (com debounce 220ms). Filtra amigos via
+  // _suggestFriendsForGuestName e renderiza dropdown abaixo do card.
+  window._casualSlotAutocomplete = function(inputEl, ci) {
+    if (_acTimerSlot[ci]) clearTimeout(_acTimerSlot[ci]);
+    _acTimerSlot[ci] = setTimeout(function() {
+      _acTimerSlot[ci] = null;
+      var val = (inputEl.value || '').trim();
+      // Encontra o wrapper (data-casual-ac-wrapper)
+      var wrapper = null;
+      var p = inputEl.parentElement;
+      while (p) {
+        if (p.getAttribute && p.getAttribute('data-casual-ac-wrapper') !== null) { wrapper = p; break; }
+        p = p.parentElement;
+      }
+      if (!wrapper) return;
+      // Remove dropdown existente
+      var existing = wrapper.querySelector('[data-casual-ac-dropdown]');
+      if (existing) existing.parentNode.removeChild(existing);
+      if (val.length < 2) return;
+      // Exclui uids já em outros slots ou já no lobby
+      var excludeUids = [];
+      for (var _ei = 0; _ei < _slotLinkedUid.length; _ei++) {
+        if (_ei !== ci && _slotLinkedUid[_ei]) excludeUids.push(_slotLinkedUid[_ei]);
+      }
+      for (var _li = 0; _li < (_lobbyParticipants || []).length; _li++) {
+        if (_lobbyParticipants[_li] && _lobbyParticipants[_li].uid) excludeUids.push(_lobbyParticipants[_li].uid);
+      }
+      window._loadFriendProfilesCached && window._loadFriendProfilesCached().then(function() {
+        var sugs = window._suggestFriendsForGuestName ? window._suggestFriendsForGuestName(val, excludeUids) : [];
+        if (!sugs || sugs.length === 0) return;
+        var dd = document.createElement('div');
+        dd.setAttribute('data-casual-ac-dropdown', String(ci));
+        dd.style.cssText = 'position:absolute;left:0;right:0;top:calc(100% + 2px);z-index:9999;' +
+          'background:var(--bg-card,#1e293b);border:1px solid rgba(99,102,241,0.4);' +
+          'border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,0.45);';
+        sugs.slice(0, 5).forEach(function(s) {
+          var item = document.createElement('div');
+          item.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;transition:background 0.12s;font-size:0.84rem;';
+          var initLetter = (s.displayName || '?')[0].toUpperCase();
+          var avatarHtml = s.photoURL
+            ? '<img src="' + window._safeHtml(s.photoURL) + '" style="width:26px;height:26px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.style.display=\'none\'">'
+            : '<div style="width:26px;height:26px;border-radius:50%;background:rgba(99,102,241,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:0.7rem;color:#a5b4fc;">' + window._safeHtml(initLetter) + '</div>';
+          item.innerHTML = avatarHtml + '<span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + window._safeHtml(s.displayName || '') + '</span>';
+          item.onmouseover = function() { this.style.background = 'rgba(99,102,241,0.15)'; };
+          item.onmouseout = function() { this.style.background = ''; };
+          item.onmousedown = function(e) { e.preventDefault(); }; // evita blur antes de onclick
+          (function(friend) {
+            item.onclick = function() {
+              window._casualSelectSlotFriend(ci, friend.uid, friend.displayName, friend.photoURL || null);
+            };
+          })(s);
+          dd.appendChild(item);
+        });
+        wrapper.appendChild(dd);
+        // Fecha dropdown ao perder foco
+        var _onBlur = function() {
+          setTimeout(function() {
+            var d = wrapper.querySelector('[data-casual-ac-dropdown]');
+            if (d) d.parentNode.removeChild(d);
+          }, 180);
+          inputEl.removeEventListener('blur', _onBlur);
+        };
+        inputEl.addEventListener('blur', _onBlur);
+      });
+    }, 220);
+  };
+
+  // Seleciona um amigo para o slot ci: preenche o nome, guarda uid, re-renderiza.
+  window._casualSelectSlotFriend = function(ci, friendUid, friendName, friendPhotoURL) {
+    _slotLinkedUid[ci] = friendUid || null;
+    var ids = isDoubles
+      ? ['casual-p1a-name','casual-p2a-name','casual-p1b-name','casual-p2b-name']
+      : ['casual-p1-name','casual-p2-name'];
+    var inputId = ids[ci];
+    var inp = inputId ? document.getElementById(inputId) : null;
+    if (inp) {
+      // Usa primeiro nome para exibição (consistente com lobby)
+      inp.value = (friendName || '').split(' ')[0] || friendName || '';
+      if (window._autosizeCasualInput) window._autosizeCasualInput(inp);
+    }
+    // Remove dropdown imediatamente
+    var wrapper = document.querySelector('[data-casual-ac-wrapper="' + ci + '"]');
+    if (wrapper) {
+      var dd = wrapper.querySelector('[data-casual-ac-dropdown]');
+      if (dd) dd.parentNode.removeChild(dd);
+    }
+    if (window._syncCasualSetupFromInput) window._syncCasualSetupFromInput();
+    _renderSetup();
+  };
+
+  // Remove vínculo de amigo do slot ci.
+  window._casualUnlinkSlot = function(ci) {
+    _slotLinkedUid[ci] = null;
     _renderSetup();
   };
 
@@ -8891,7 +9030,9 @@ window._openCasualMatch = function(restoreOpts) {
       var resolved = [null, null, null, null];
       for (var slotIdx = 0; slotIdx < 4; slotIdx++) {
         var lp = _lobbyParticipants[slotIdx];
-        if (lp && lp.uid && lp.displayName) {
+        // Coach mode: técnico não joga — ignorar lobby e sempre ler do input.
+        // Sem _coachMode: participante logado (uid+displayName) é source of truth.
+        if (!_coachMode && lp && lp.uid && lp.displayName) {
           // Slot com participante logado — _lobbyParticipants é source of
           // truth. Usa first name pro display (consistente com lobby).
           resolved[slotIdx] = {
@@ -8901,15 +9042,18 @@ window._openCasualMatch = function(restoreOpts) {
             source: 'lobby'
           };
         } else {
-          // Slot vazio — lê o input (guest digitado pelo organizador)
+          // Slot vazio ou coach mode — lê o input (nome digitado pelo técnico/org)
           var inp = document.getElementById(inputIds[slotIdx]);
           var v = inp ? (inp.value || '').trim() : '';
           if (!v) v = 'Jogador ' + (slotIdx + 1);
+          // v1.6.51: uid de amigo vinculado via autocomplete
+          var _lUid = _slotLinkedUid[slotIdx] || null;
+          var _lProf = _lUid && window._friendProfilesCache ? window._friendProfilesCache[_lUid] : null;
           resolved[slotIdx] = {
             name: v,
-            uid: null,
-            photoURL: null,
-            source: 'input'
+            uid: _lUid,
+            photoURL: _lProf ? (_lProf.photoURL || null) : null,
+            source: _lUid ? 'linked' : 'input'
           };
         }
       }
@@ -8930,21 +9074,29 @@ window._openCasualMatch = function(restoreOpts) {
       var lp1 = _lobbyParticipants[1];
       var n1, u1, ph1;
       var n2, u2, ph2;
-      if (lp0 && lp0.uid && lp0.displayName) {
+      if (!_coachMode && lp0 && lp0.uid && lp0.displayName) {
         n1 = lp0.displayName.split(' ')[0] || lp0.displayName;
         u1 = lp0.uid; ph1 = lp0.photoURL || null;
       } else {
         var inp1 = document.getElementById('casual-p1-name');
         n1 = (inp1 && inp1.value ? inp1.value.trim() : '') || 'Jogador 1';
-        u1 = (cu && cu.uid) || null; ph1 = (cu && cu.photoURL) || null;
+        // v1.6.51: amigo vinculado tem prioridade sobre uid do técnico
+        var _s0Uid = _slotLinkedUid[0] || null;
+        var _s0Prof = _s0Uid && window._friendProfilesCache ? window._friendProfilesCache[_s0Uid] : null;
+        u1 = _s0Uid || ((!_coachMode && cu && cu.uid) || null);
+        ph1 = (_s0Prof ? (_s0Prof.photoURL || null) : null) || ((!_coachMode && cu && cu.photoURL) || null);
       }
-      if (lp1 && lp1.uid && lp1.displayName) {
+      if (!_coachMode && lp1 && lp1.uid && lp1.displayName) {
         n2 = lp1.displayName.split(' ')[0] || lp1.displayName;
         u2 = lp1.uid; ph2 = lp1.photoURL || null;
       } else {
         var inp2 = document.getElementById('casual-p2-name');
         n2 = (inp2 && inp2.value ? inp2.value.trim() : '') || 'Jogador 2';
-        u2 = null; ph2 = null;
+        // v1.6.51: amigo vinculado no slot 1
+        var _s1Uid = _slotLinkedUid[1] || null;
+        var _s1Prof = _s1Uid && window._friendProfilesCache ? window._friendProfilesCache[_s1Uid] : null;
+        u2 = _s1Uid || null;
+        ph2 = _s1Prof ? (_s1Prof.photoURL || null) : null;
       }
       players.push({ slot: 0, name: n1, displayName: n1, team: 1, uid: u1, photoURL: ph1, gender: _resolveSlotGender(0) || null });
       players.push({ slot: 1, name: n2, displayName: n2, team: 2, uid: u2, photoURL: ph2, gender: _resolveSlotGender(1) || null });
@@ -9175,7 +9327,9 @@ window._openCasualMatch = function(restoreOpts) {
         var freshMatch = await window.FirestoreDB.loadCasualMatch(_sessionRoomCode);
         if (freshMatch && Array.isArray(freshMatch.participants)) {
           var lobbyNames = freshMatch.participants.map(function(p) { return p.displayName || ''; }).filter(function(n) { return !!n; });
-          // Fill empty player slots with lobby participant names
+          // Coach mode: técnico não é jogador — não enriquecer slots com dados do lobby.
+          // Sem coach mode: preencher slots padrão e enriquecer foto/uid dos personalizados.
+          if (!_coachMode) {
           var usedLobby = 0;
           for (var pi = 0; pi < players.length; pi++) {
             var defaultNames = ['Jogador 1', 'Parceiro', 'Adversário 1', 'Adversário 2'];
@@ -9196,6 +9350,7 @@ window._openCasualMatch = function(restoreOpts) {
               }
               usedLobby++;
             }
+          }
           }
         }
       } catch(e) {}
@@ -9378,7 +9533,8 @@ window._openCasualMatch = function(restoreOpts) {
       casualDocId: _sessionDocId,
       createdBy: cu && cu.uid,
       roomCode: _sessionRoomCode,
-      players: players
+      players: players,
+      coachMode: !!_coachMode
     });
   };
 

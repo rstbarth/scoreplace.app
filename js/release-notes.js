@@ -9,6 +9,19 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔗 v1.6.51-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Autocomplete de amigos nos slots da partida casual.</b><br><br>' +
+      'Ao digitar o nome de um jogador num slot editável (modo técnico ou slot de convidado), ' +
+      'um dropdown de sugestões aparece com amigos do scoreplace cujo nome bate com o que foi digitado. ' +
+      'Clicar preenche o nome e vincula o uid do amigo ao slot — assim as stats pós-partida são atribuídas ao perfil correto.<br><br>' +
+      'O vínculo fica visível como badge "🔗 nome vinculado" abaixo do card, com botão ✕ para desvincular. ' +
+      'A confirmação de vínculo acontece <b>pós-partida</b> via notificação existente (<code>casual_link_request</code>) — ' +
+      'o amigo aceita ou recusa no app, e-mail ou WhatsApp, sem interromper a partida.<br><br>' +
+      'Fix (v1.6.50): nomes dos slots resetavam para "Jogador X" após clicar 🔗 para desfazer duplas. ' +
+      'O intervalo de polling Firestore continuava rodando com o room code antigo após o reset da sessão. ' +
+      'Corrigido parando o intervalo dentro de <code>_casualReopenSetup</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📸 v1.6.29-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Trofeu "Com Rosto" usa Google People API — fonte autoritativa.</b><br><br>' +
       'A v1.6.28 rejeitava TODA URL <code>googleusercontent.com</code> (default ou foto real) e só aceitava upload via app. Trade-off: usuário com foto Google real perdia o troféu até fazer upload.<br><br>' +
