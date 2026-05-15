@@ -6986,29 +6986,45 @@ window._openScanQR = function() {
   var _scanInterval = null;
   var _scanFound = false;
 
-  // v1.6.21-beta: cleanup robusto pra liberar a câmera no iOS. Em iOS Safari,
-  // só chamar track.stop() NÃO é suficiente — o badge "câmera em uso" no
-  // topo da tela continua aparecendo porque o <video> ainda mantém
-  // referência ao stream via srcObject. Ordem correta:
-  //   1. video.pause() — para o stream de exibição
-  //   2. parar TODOS os tracks (de _scanStream E do video.srcObject — pode
-  //      haver streams órfãos se um restart aconteceu)
-  //   3. video.srcObject = null — solta a referência
-  //   4. video.removeAttribute('src') + video.load() — força browser a
-  //      liberar recursos de mídia. Sem isso o iOS pode segurar o stream
-  //      indefinidamente apesar de track.stop() já ter sido chamado.
+  // v1.6.23-beta: registry global de TODOS os streams criados pelo scanner
+  // nessa sessão. iOS PWA standalone pode segurar streams órfãos se o user
+  // abriu/fechou scanner múltiplas vezes — esses streams não estão em
+  // _scanStream (que aponta só ao último). Registry pega todos.
+  window._scanStreamRegistry = window._scanStreamRegistry || [];
+
+  // v1.6.23-beta: cleanup ainda mais agressivo. v1.6.21 já tinha
+  // video.pause()/srcObject=null/load(), mas iOS PWA standalone ainda
+  // manteve o badge "câmera em uso" em alguns casos. 3 defesas extras:
+  //   (a) Para TODOS os streams do registry (pega órfãos de sessions anteriores)
+  //   (b) srcObject = new MediaStream() vazia em vez de null — bug iOS
+  //       conhecido onde null não libera o stream em alguns builds
+  //   (c) Navegação/remove DOM com 150ms de delay pra iOS processar a
+  //       liberação dos recursos antes do video element ser destruído
   function _cleanupScanner() {
     if (_scanInterval) {
       try { clearInterval(_scanInterval); } catch(e) {}
       _scanInterval = null;
     }
-    // Pega referência ao video element (pode estar undefined se cleanup
-    // dispara antes do DOM ter renderizado).
+    // (a) Para TODOS os streams do registry primeiro — defesa contra
+    // streams órfãos de sessions anteriores que ficaram com tracks ativos.
+    try {
+      window._scanStreamRegistry.forEach(function(s) {
+        if (s && s.getTracks) {
+          try {
+            s.getTracks().forEach(function(t) {
+              try { t.stop(); } catch(e) {}
+            });
+          } catch(e) {}
+        }
+      });
+      window._scanStreamRegistry.length = 0;
+    } catch(e) {}
+
     var v = document.getElementById('scan-qr-video');
     if (v) {
       try { v.pause(); } catch(e) {}
-      // Para QUALQUER stream attached ao video — defesa contra streams
-      // órfãos que ficaram após restart parcial.
+      // Para QUALQUER stream attached ao video (defesa em camadas — o
+      // registry deve ter pegado, mas garante).
       var attachedStream = null;
       try { attachedStream = v.srcObject; } catch(e) {}
       if (attachedStream && attachedStream.getTracks) {
@@ -7018,7 +7034,18 @@ window._openScanQR = function() {
           });
         } catch(e) {}
       }
-      try { v.srcObject = null; } catch(e) {}
+      // (b) Substitui srcObject por MediaStream vazia em vez de null.
+      // iOS PWA standalone bug: srcObject = null não libera o stream em
+      // alguns builds; MediaStream vazia força o browser a desconectar.
+      try {
+        if (typeof MediaStream !== 'undefined') {
+          v.srcObject = new MediaStream();
+        } else {
+          v.srcObject = null;
+        }
+      } catch(e) {
+        try { v.srcObject = null; } catch(_e) {}
+      }
       try { v.removeAttribute('src'); } catch(e) {}
       try { v.load(); } catch(e) {}
     }
@@ -7034,19 +7061,30 @@ window._openScanQR = function() {
 
   function _closeOverlay() {
     _cleanupScanner();
-    var o = document.getElementById('scan-qr-overlay');
-    if (o) o.remove();
+    // (c) Pequeno delay pra iOS processar liberação dos recursos antes
+    // do video element ser destruído. Sem isto, em iOS PWA standalone o
+    // badge da câmera persistia mesmo após track.stop().
+    setTimeout(function() {
+      var o = document.getElementById('scan-qr-overlay');
+      if (o) o.remove();
+    }, 150);
   }
 
   function _navigateToRoom(code) {
     if (_scanFound) return;
     _scanFound = true;
-    // Cleanup ANTES de qualquer outra coisa — garante câmera liberada
-    // imediatamente, antes do hash change disparar nova view.
+    // Cleanup ANTES de tudo — para tracks imediatamente.
     _cleanupScanner();
-    var o = document.getElementById('scan-qr-overlay');
-    if (o) o.remove();
-    window.location.hash = '#casual/' + code.toUpperCase();
+    // (c) Pequeno delay antes de remover DOM e navegar. iOS Safari PWA
+    // standalone precisa de tempo pra processar a liberação dos recursos
+    // de mídia antes do video element ser destruído pelo o.remove().
+    // Sem este delay, o badge "câmera em uso" persiste no topo apesar
+    // de track.stop() ter sido chamado.
+    setTimeout(function() {
+      var o = document.getElementById('scan-qr-overlay');
+      if (o) o.remove();
+      window.location.hash = '#casual/' + code.toUpperCase();
+    }, 150);
   }
 
   // Try extracting room code from URL or raw code
@@ -7239,6 +7277,8 @@ window._openScanQR = function() {
     navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
       window._scanDebug.cameraOpened = true;
       _scanStream = stream;
+      // v1.6.23-beta: registra no registry pra cleanup pegar streams órfãos
+      try { window._scanStreamRegistry.push(stream); } catch(e) {}
       video.srcObject = stream;
       video.style.display = 'block';
       placeholder.style.display = 'none';
@@ -7295,6 +7335,8 @@ window._openScanQR = function() {
             window._scanDebug.cameraOpened = true;
             window._scanDebug.lastError = 'overconstrained-fallback';
             _scanStream = s;
+            // v1.6.23-beta: registra stream pra cleanup pegar
+            try { window._scanStreamRegistry.push(s); } catch(e) {}
             video.srcObject = s;
             video.style.display = 'block';
             placeholder.style.display = 'none';

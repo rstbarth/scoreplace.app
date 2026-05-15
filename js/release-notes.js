@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🎥 v1.6.23-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Câmera do scanner libera definitivamente após entrar na sala (iOS PWA).</b> Screenshot do dono mostrou que após o scanner ler o QR e entrar na partida, o badge "gravando" continuou no Dynamic Island do iPhone. v1.6.21 não foi suficiente em iOS PWA standalone.<br><br>' +
+      '<b>3 defesas adicionais:</b><br>' +
+      '<b>(a) Registry global de streams</b> — todos os MediaStreams criados pelo scanner ficam em <code>window._scanStreamRegistry</code>. Cleanup itera o registry inteiro parando tracks de qualquer stream órfão de aberturas anteriores. <code>_scanStream</code> só apontava ao último.<br>' +
+      '<b>(b) <code>srcObject = new MediaStream()</code> vazia em vez de <code>null</code></b> — bug iOS PWA standalone conhecido: <code>srcObject = null</code> não libera o stream em alguns builds; MediaStream vazia força o browser a desconectar.<br>' +
+      '<b>(c) Delay de 150ms antes de remover DOM</b> — dá tempo do iOS processar a liberação dos recursos antes do video element ser destruído pelo <code>o.remove()</code>. Sem isto, o badge persistia mesmo após <code>track.stop()</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">👥 v1.6.22-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Partida casual sem mais nomes duplicados nos times.</b> Reportado: partida gravou "Nelson nos 2 times" em vez de "Rodrigo e Cica × Nelson e Kelly".<br><br>' +
       '<b>Causa-raiz:</b> <code>_buildPlayers</code> lia os <i>inputs do DOM</i> como source of truth pra todos os 4 slots. Esses inputs podiam ser corrompidos por: (a) sync polling escrevendo nomes errados; (b) touch focus em iOS causando race; (c) DOM duplicado em re-render parcial; (d) o usuário tocando acidentalmente um input que já tinha um logado.<br><br>' +
