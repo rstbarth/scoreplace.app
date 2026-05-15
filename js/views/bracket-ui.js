@@ -9926,12 +9926,16 @@ window._openCasualMatch = function(restoreOpts) {
                 (function(_uid) {
                   if (window.FirestoreDB && window.FirestoreDB.loadUserProfile) {
                     window.FirestoreDB.loadUserProfile(_uid).then(function(p) {
-                      if (p) window._friendProfilesCache[_uid] = {
-                        uid: _uid,
-                        displayName: p.displayName || '',
-                        photoURL: p.photoURL || '',
-                        gender: p.gender || ''
-                      };
+                      if (p) {
+                        window._friendProfilesCache[_uid] = {
+                          uid: _uid,
+                          displayName: p.displayName || '',
+                          photoURL: p.photoURL || '',
+                          gender: p.gender || ''
+                        };
+                        // Re-renderiza após o perfil carregar para exibir avatar/nome corretos
+                        try { if (document.getElementById('casual-match-overlay')) _renderSetup(); } catch(e) {}
+                      }
                     }).catch(function() {});
                   }
                 })(_remoteUid);

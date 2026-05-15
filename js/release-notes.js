@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">👤 v1.6.56-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Avatar de amigo carrega mesmo quando não estava em cache local.</b><br><br>' +
+      'Ao sincronizar o <code>slotLinkedUid</code> de outro dispositivo, se o perfil do amigo ainda não estava no cache local (<code>_friendProfilesCache</code>), ' +
+      'ele era buscado do Firestore mas a tela só re-renderizava <i>antes</i> do fetch completar — exibindo apenas o nome sem avatar/foto. ' +
+      'Fix: <code>_renderSetup()</code> agora é chamado dentro do <code>.then()</code>, após o perfil chegar, garantindo que avatar e nome aparecem juntos em todos os clientes.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔗 v1.6.55-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Vínculo de amigo via autocomplete propagado para todos os participantes da sala.</b><br><br>' +
       'Quando o criador (ou técnico) seleciona um amigo via autocomplete, o avatar, foto e nome do perfil agora aparecem no slot de <b>todos os dispositivos</b> conectados à sala — ' +
