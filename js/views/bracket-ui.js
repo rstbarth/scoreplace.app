@@ -6311,8 +6311,8 @@ window._openLiveScoring = function(tId, matchId, opts) {
               if (data.liveState.winner != null) state.winner = data.liveState.winner;
               _matchEndTime = _matchEndTime || Date.now();
             }
-            // Para de escutar updates (jogo já acabou).
-            if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
+            // NÃO para o listener — mantém vivo para detectar se alguém
+            // clicar "Jogar Novamente" (status volta pra 'active').
             // Re-render no estado finished — comparativeSection com stats
             // detalhadas aparece automaticamente no _render() quando
             // isFinished=true.
@@ -6324,6 +6324,26 @@ window._openLiveScoring = function(tId, matchId, opts) {
             if (!wasHost2 && typeof showNotification === 'function') {
               showNotification('🏆 Partida encerrada', 'Confira as estatísticas abaixo. Toque em ✕ pra fechar.', 'success');
             }
+            return;
+          }
+          // v1.6.37-beta: alguém clicou "Jogar Novamente" nas stats —
+          // status voltou pra 'active'. Reseta state e re-renderiza o
+          // placar ao vivo para todos os demais logados que estavam
+          // vendo as stats.
+          if (data && data.status === 'active' && state.isFinished && !_casualCancelled) {
+            _isRemoteUpdate = true;
+            if (data.liveState) {
+              _applyRemoteState(data.liveState);
+            } else {
+              state.isFinished = false;
+              state.winner = null;
+            }
+            _isRemoteUpdate = false;
+            _resultSaved = false;
+            _matchStartTime = null;
+            _matchEndTime = null;
+            _lastSyncTs = (data.liveState && data.liveState._ts) || 0;
+            try { _render(); } catch(e) {}
             return;
           }
           if (!data.liveState || !data.liveState._ts) return;
@@ -6569,6 +6589,16 @@ window._openLiveScoring = function(tId, matchId, opts) {
         _matchEndTime = null;
         _courtLeft = 1;
         _reinitServeOrderForNewMatch();
+        // v1.6.37-beta: escreve sinal de restart no Firestore para que
+        // todos os demais logados (que estavam nas stats) vejam o placar
+        // ao vivo aparecer automaticamente. Re-anexa listener se parou.
+        if (_casualDocId && window.FirestoreDB && window.FirestoreDB.db) {
+          if (!_unsubFirestore) _startFirestoreListener();
+          window.FirestoreDB.db.collection('casualMatches').doc(_casualDocId).update({
+            status: 'active',
+            liveState: _serializeState()
+          }).catch(function(e) { console.warn('[Casual] restart write err:', e); });
+        }
         _render();
       }
     );
