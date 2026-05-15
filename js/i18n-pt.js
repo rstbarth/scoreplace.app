@@ -601,7 +601,7 @@ window._translations['pt'] = {
   'profile.emailRequiredMsg': 'Para receber notificações por email, seu perfil precisa ter um email cadastrado.',
   'profile.myProfile': 'Meu Perfil',
   'profile.labelName': 'Nome',
-  'profile.labelSex': 'Sexo',
+  'profile.labelSex': 'Gênero',
   'profile.sexNotInform': 'Não informar',
   'profile.sexMasc': 'Masculino',
   'profile.sexFem': 'Feminino',

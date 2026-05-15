@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">⚥ v1.6.26-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Gênero do jogador por slot + toggle "Duplas mistas" automático.</b><br><br>' +
+      '<b>(1) "Sexo" → "Gênero"</b> no perfil dos usuários. Apenas mudança de label, valores internos (<code>masculino</code>/<code>feminino</code>/<code>outro</code>) preservados.<br><br>' +
+      '<b>(2) Ícone de gênero no card de cada jogador</b> da partida casual: ♂ azul / ♀ rosa / ⚥ roxo / ? cinza (não definido). Vem do perfil quando o jogador é logado e tem o campo preenchido. Para guests OU logados sem gênero no perfil, é clicável — abre picker com 4 opções (Masculino / Feminino / Outro / Não definir). Sobrescrita por partida é local ao jogo, não altera o perfil.<br><br>' +
+      '<b>(3) Toggle "Duplas mistas"</b> aparece automaticamente logo abaixo de "Sortear Duplas" QUANDO houver 2M+2F entre os 4 slots (logados + guests com gênero definido). Antes só contava logados com gênero no perfil — agora qualquer combinação que totalize 2+2 ativa o toggle, e ao iniciar a partida o sorteio força 1M+1F por dupla.<br><br>' +
+      'Gêneros por slot sincronizados via Firestore (<code>slotGenders</code>) → todos os clientes da sala veem a mesma configuração em até 3s (polling do setup).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔁 v1.6.25-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>2 bugs de sincronização da sala única.</b><br><br>' +
       '<b>(1) Drag-drop de duplas não propagava entre clientes.</b> Quando A formava times via drag-drop, gravava <code>players[].team</code> no Firestore corretamente — mas o polling de B SÓ sincronizava nomes (inputs), nunca aplicava o <code>.team</code> no <code>_teamAssignments</code> local. Resultado: time formado por A não aparecia visualmente pra B. Agora o polling deriva <code>_teamAssignments</code> de <code>fresh.players[].team</code> quando <code>teamsFormed=true</code>, faz re-render. Espelho do break (clicar 🔗 pra desfazer) também propaga.<br><br>' +

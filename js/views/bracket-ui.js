@@ -7575,6 +7575,20 @@ window._openCasualMatch = function(restoreOpts) {
   // Gender cache keyed by uid: 'masculino' | 'feminino' | '' (checked, missing) | undefined (not loaded yet)
   var _participantGenders = {};
   if (cu && cu.uid) _participantGenders[cu.uid] = cu.gender || '';
+  // v1.6.26-beta: gender per slot (override por partida). Quando o slot
+  // tem participante logado com gender no perfil, é usado como default;
+  // caso contrário (guest ou logado sem gender), usuário pode setar via
+  // ícone clicável no card. Sincronizado via Firestore (campo slotGenders).
+  // Format: { 0: 'masculino'|'feminino'|'outro'|null, ... }
+  var _slotGenders = (restoreOpts && restoreOpts.slotGenders) ? Object.assign({}, restoreOpts.slotGenders) : {};
+  // Helper canônico: gênero efetivo do slot. Override por partida (_slotGenders)
+  // tem prioridade sobre o gender do perfil do usuário logado naquele slot.
+  function _resolveSlotGender(slotIdx) {
+    if (_slotGenders[slotIdx]) return _slotGenders[slotIdx];
+    var lp = _lobbyParticipants[slotIdx];
+    if (lp && lp.uid && _participantGenders[lp.uid]) return _participantGenders[lp.uid];
+    return null;
+  }
   // Restore participants from the existing Firestore doc when re-entering after reload
   var _lobbyParticipants = (restoreOpts && Array.isArray(restoreOpts.participants) && restoreOpts.participants.length > 0)
     ? restoreOpts.participants
@@ -7618,12 +7632,15 @@ window._openCasualMatch = function(restoreOpts) {
     });
   }
 
-  // Count males/females among current lobby participants.
+  // v1.6.26-beta: agora conta gênero por SLOT (0-3), não por logado.
+  // Antes só logados com gender no perfil contavam — guests não contavam.
+  // Agora _resolveSlotGender considera override por partida + perfil do
+  // logado, fazendo o toggle Misto aparecer SEMPRE que houver 2M+2F entre
+  // os 4 slots (logados + guests com gênero setado pelo organizador).
   function _genderCounts() {
     var m = 0, f = 0, unknown = 0;
-    for (var i = 0; i < _lobbyParticipants.length; i++) {
-      var uid = _lobbyParticipants[i] && _lobbyParticipants[i].uid;
-      var g = uid ? _participantGenders[uid] : undefined;
+    for (var i = 0; i < 4; i++) {
+      var g = _resolveSlotGender(i);
       if (g === 'masculino') m++;
       else if (g === 'feminino') f++;
       else unknown++;
@@ -7631,10 +7648,9 @@ window._openCasualMatch = function(restoreOpts) {
     return { male: m, female: f, unknown: unknown };
   }
 
-  // Is the 2M+2F condition satisfied?
+  // Toggle Misto aparece quando há 2M+2F entre os 4 slots.
   function _canShowMixedToggle() {
     if (!isDoubles) return false;
-    if (_lobbyParticipants.length !== 4) return false;
     var c = _genderCounts();
     return c.male === 2 && c.female === 2;
   }
@@ -7868,6 +7884,26 @@ window._openCasualMatch = function(restoreOpts) {
           }
         }
       }
+      // v1.6.26-beta: helper pra renderizar ícone de gênero do slot
+      function _genderIconHtml(ci) {
+        var g = _resolveSlotGender(ci);
+        var sym, clr, title;
+        if (g === 'masculino') { sym = '♂'; clr = '#60a5fa'; title = 'Masculino'; }
+        else if (g === 'feminino') { sym = '♀'; clr = '#f472b6'; title = 'Feminino'; }
+        else if (g === 'outro') { sym = '⚥'; clr = '#c084fc'; title = 'Outro'; }
+        else { sym = '?'; clr = 'rgba(255,255,255,0.4)'; title = 'Definir gênero'; }
+        // Click abre dialog pra editar — onclick.stopPropagation pra não disparar drag
+        return '<button type="button" data-gender-slot="' + ci + '" ' +
+          'onclick="event.stopPropagation();window._casualSetSlotGender(' + ci + ')" ' +
+          'title="' + title + '" aria-label="' + title + '" ' +
+          'style="width:24px;height:24px;min-width:24px;border-radius:50%;background:rgba(255,255,255,0.06);' +
+          'border:1px solid rgba(255,255,255,0.12);color:' + clr + ';font-size:0.92rem;font-weight:700;' +
+          'display:flex;align-items:center;justify-content:center;padding:0;cursor:pointer;flex-shrink:0;' +
+          'transition:background 0.15s;-webkit-tap-highlight-color:transparent;line-height:1;" ' +
+          'onmouseover="this.style.background=\'rgba(255,255,255,0.12)\'" ' +
+          'onmouseout="this.style.background=\'rgba(255,255,255,0.06)\'">' + sym + '</button>';
+      }
+
       function _buildSetupCard(ci) {
         var avatar = _inputAvatar(ci);
         var team = _teamAssignments[ci]; // 1, 2, or undefined
@@ -7893,6 +7929,7 @@ window._openCasualMatch = function(restoreOpts) {
         return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
           avatar +
           '<textarea id="' + inputIds[ci] + '" ' + _readonlyAttr + 'rows="1" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput();window._autosizeCasualInput && window._autosizeCasualInput(this);window._equalizeCasualCards && window._equalizeCasualCards();" style="' + _inputStyle + _regExtraStyle + 'color:' + textClr + ';">' + window._safeHtml(inputValues[ci]) + '</textarea>' +
+          _genderIconHtml(ci) +
         '</div>';
       }
 
@@ -8485,6 +8522,52 @@ window._openCasualMatch = function(restoreOpts) {
     _syncCasualSetupDebounced();
   };
 
+  // v1.6.26-beta: picker de gênero por slot. Abre dialog minimal com 4
+  // opções (Masc/Fem/Outro/Limpar). Valor sobrescreve qualquer perfil
+  // pra o caso da partida — propaga via _syncCasualSetupDebounced.
+  window._casualSetSlotGender = function(slotIdx) {
+    var current = _resolveSlotGender(slotIdx);
+    var options = [
+      { value: 'masculino', label: '♂  Masculino', color: '#60a5fa' },
+      { value: 'feminino',  label: '♀  Feminino',  color: '#f472b6' },
+      { value: 'outro',     label: '⚥  Outro',     color: '#c084fc' },
+      { value: null,        label: '✕  Não definir', color: 'rgba(255,255,255,0.5)' }
+    ];
+    var ov = document.createElement('div');
+    ov.id = '_gender-picker-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100010;display:flex;align-items:center;justify-content:center;padding:1rem;';
+    var btnsHtml = options.map(function(o) {
+      var isCur = current === o.value || (current == null && o.value == null);
+      return '<button data-gv="' + (o.value === null ? '__null__' : o.value) + '" ' +
+        'style="display:flex;align-items:center;gap:14px;padding:14px 18px;border-radius:12px;background:' +
+        (isCur ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)') + ';' +
+        'border:1px solid ' + (isCur ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.1)') + ';' +
+        'color:' + o.color + ';font-size:1rem;font-weight:700;cursor:pointer;text-align:left;width:100%;">' +
+        o.label + '</button>';
+    }).join('');
+    ov.innerHTML =
+      '<div style="background:var(--bg-darker,#0f172a);border-radius:18px;padding:22px;max-width:340px;width:100%;">' +
+        '<div style="font-size:1.05rem;font-weight:800;color:#fff;margin-bottom:14px;text-align:center;">Gênero do jogador</div>' +
+        '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">' + btnsHtml + '</div>' +
+        '<button id="_gender-picker-cancel" style="width:100%;padding:12px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);font-size:0.88rem;font-weight:600;cursor:pointer;">Cancelar</button>' +
+      '</div>';
+    document.body.appendChild(ov);
+    function _close() { try { ov.remove(); } catch(e) {} }
+    ov.addEventListener('click', function(e) {
+      if (e.target === ov) _close();
+    });
+    document.getElementById('_gender-picker-cancel').onclick = _close;
+    ov.querySelectorAll('[data-gv]').forEach(function(btn) {
+      btn.onclick = function() {
+        var v = btn.getAttribute('data-gv');
+        _slotGenders[slotIdx] = (v === '__null__') ? null : v;
+        _close();
+        _renderSetup();
+        _syncCasualSetupDebounced();
+      };
+    });
+  };
+
   // Join a friend's room by code
   window._casualJoinRoom = function() {
     var inp = document.getElementById('casual-join-code');
@@ -8758,11 +8841,14 @@ window._openCasualMatch = function(restoreOpts) {
     clearTimeout(_syncCasualSetupT);
     _syncCasualSetupT = setTimeout(function() {
       try {
+        // v1.6.26-beta: também sincroniza slotGenders pra que o toggle Misto
+        // apareça/desapareça consistentemente entre todos os clientes da sala.
         window.FirestoreDB.updateCasualMatch(_sessionDocId, {
           players: _buildPlayers(),
           scoring: _getConfig(),
           isDoubles: isDoubles,
-          teamsFormed: _isTeamsFormed()
+          teamsFormed: _isTeamsFormed(),
+          slotGenders: _slotGenders
         });
       } catch(e) {}
     }, 500);
@@ -9380,6 +9466,22 @@ window._openCasualMatch = function(restoreOpts) {
           _teamAssignments = {};
           autoShuffle = true;
           try { _renderSetup(); } catch(e) {}
+        }
+
+        // v1.6.26-beta: sincroniza slotGenders de outros clientes
+        if (fresh.slotGenders && typeof fresh.slotGenders === 'object') {
+          var _gChanged = false;
+          for (var _gk = 0; _gk < 4; _gk++) {
+            var _remoteG = fresh.slotGenders[_gk] || null;
+            var _localG = _slotGenders[_gk] || null;
+            if (_remoteG !== _localG) {
+              _slotGenders[_gk] = _remoteG;
+              _gChanged = true;
+            }
+          }
+          if (_gChanged) {
+            try { _renderSetup(); } catch(e) {}
+          }
         }
       }).catch(function() {});
     }, 3000);

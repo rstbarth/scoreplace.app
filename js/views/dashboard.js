@@ -946,7 +946,7 @@ function renderDashboard(container) {
 
     var checks = [
       { key: 'photo',    label: 'foto real',            ok: hasPhoto },
-      { key: 'gender',   label: 'sexo',                 ok: hasGender },
+      { key: 'gender',   label: 'gênero',               ok: hasGender },
       { key: 'birth',    label: 'data de nascimento',   ok: hasBirth },
       { key: 'city',     label: 'cidade',               ok: hasCity },
       { key: 'sports',   label: 'modalidade preferida', ok: hasSports },

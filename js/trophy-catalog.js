@@ -51,7 +51,7 @@ window.TROPHY_CATALOG = [
     id: 'perfil_completo',
     category: 'perfil',
     title: 'Identidade Completa',
-    desc: 'Preencha nome, foto real, sexo, nascimento, cidade, modalidade, habilidade, telefone e local favorito.',
+    desc: 'Preencha nome, foto real, gênero, nascimento, cidade, modalidade, habilidade, telefone e local favorito.',
     icon: '👤',
     tier: null,
     trigger: 'profile_saved',
