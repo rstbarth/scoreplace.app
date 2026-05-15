@@ -1790,6 +1790,7 @@ function renderDashboard(container) {
              próprias. Apoie/Pro ficam em uma linha menor — não competem
              visualmente com Pessoas/Convidar que são uso mais frequente. -->
         <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+          <button id="btn-scan-qr" class="btn hover-lift" title="Escanear QR Code ou digitar código de sala pra entrar numa partida casual" style="background: linear-gradient(135deg,#06b6d4,#0891b2); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="if(typeof window._openScanQR==='function')window._openScanQR();">📷 Entrar via QR</button>
           <button id="btn-people" class="btn hover-lift" title="Encontre jogadores e expanda sua rede" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#explore'">👥 ${_t('dashboard.people') || 'Pessoas'}</button>
           <button id="btn-invite-app" class="btn hover-lift" title="${_t('invite.appQrTitle')}" style="background: #7c3aed; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#invite'">📱 ${_t('invite.inviteFriends')}</button>
         </div>

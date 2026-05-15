@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📷 v1.6.15-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Botão "Entrar via QR" na dashboard.</b> Acesso direto ao leitor de QR code (com fallback pra digitar código manualmente) na home — logo abaixo da row "Partida Casual / Novo Torneio / Place", à esquerda de "Pessoas". ' +
+      'Usa a câmera do dispositivo (BarcodeDetector nativo em Chrome Android, jsQR carregado via CDN em outros browsers) pra escanear QR code de partida casual e entrar direto na sala via <code>#casual/&lt;roomCode&gt;</code>. ' +
+      'Cor ciano pra diferenciar dos demais (índigo do Pessoas, roxo do Convidar).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🏁 v1.6.14-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Stats no fim da partida casual + persistência em "últimas partidas" — fix duplo.</b> Reportado: tela do Nelson travou sem stats no final, apareceu só pro Rodrigo. Nenhum dos dois viu a partida em "últimas partidas".<br><br>' +
       '<b>Bug A (Nelson sem stats):</b> o autosave em <code>_saveResult</code> gravava apenas <code>status:\'finished\'</code> + <code>result</code> + <code>playerUids</code> no Firestore, MAS não gravava o <code>liveState</code>. O <code>liveState</code> ficava pra próxima sincronização debounced (<code>_syncLiveState</code>, 300ms). Race: o cliente B (Nelson) recebia <code>status:\'finished\'</code> via <code>onSnapshot</code> antes do <code>liveState</code> atualizado chegar, então <code>_applyRemoteState</code> aplicava um estado antigo (sem <code>isFinished=true</code> nem <code>winner</code>) e a tela travava sem stats. ' +
