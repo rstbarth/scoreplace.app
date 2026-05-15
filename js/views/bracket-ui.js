@@ -8407,10 +8407,9 @@ window._openCasualMatch = function(restoreOpts) {
     // Helper: form team from two card indices
     function _formTeam(idx1, idx2) {
       if (idx1 === idx2) return;
-      // Ensure current user (card 0) is always on Team 1
-      // If user card is in the pair → that pair is Team 1
-      // If user card is NOT in the pair → the pair is Team 2, user's pair is Team 1
-      var userInPair = (idx1 === 0 || idx2 === 0);
+      // In coach mode no user slot exists — dragged pair is always Team 1.
+      // Otherwise: ensure current user (slot 0) is always on Team 1.
+      var userInPair = _coachMode ? true : (idx1 === 0 || idx2 === 0);
       _teamAssignments = {};
       if (userInPair) {
         _teamAssignments[idx1] = 1;
@@ -8470,7 +8469,9 @@ window._openCasualMatch = function(restoreOpts) {
       card.addEventListener('touchstart', function(e) {
         // Se o toque foi direto numa textarea editável (jogador não-cadastrado),
         // deixa o browser focar o campo — não inicia drag nesse caso.
-        if (e.target && e.target.tagName === 'TEXTAREA' && !e.target.readOnly) {
+        // Exceção: modo técnico — todas os slots são livres e o técnico precisa
+        // arrastar para formar duplas; drag é permitido mesmo em textarea editável.
+        if (e.target && e.target.tagName === 'TEXTAREA' && !e.target.readOnly && !_coachMode) {
           _touchIdx = null;
           return;
         }
