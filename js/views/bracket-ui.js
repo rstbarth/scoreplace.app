@@ -6974,9 +6974,13 @@ window._openScanQR = function() {
   var existing = document.getElementById('scan-qr-overlay');
   if (existing) existing.remove();
 
+  // v1.6.19-beta: UI reformulada estilo scanner nativo iOS — fullscreen com
+  // câmera ocupando a tela inteira, mira centralizada (4 cantos brancos),
+  // texto sutil no topo, X pra fechar no canto. Entrada manual como link
+  // discreto no rodapé. Sem overlay competindo com o feed da câmera.
   var ov = document.createElement('div');
   ov.id = 'scan-qr-overlay';
-  ov.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:#0a0e1a;z-index:100003;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem;box-sizing:border-box;';
+  ov.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;height:100dvh;background:#000;z-index:100003;display:flex;flex-direction:column;overflow:hidden;';
 
   var _scanStream = null;
   var _scanInterval = null;
@@ -7012,41 +7016,48 @@ window._openScanQR = function() {
     return null;
   }
 
-  // Build UI
+  // Build UI — fullscreen scanner estilo iOS
   ov.innerHTML =
-    '<div style="display:flex;flex-direction:column;align-items:center;max-width:420px;width:100%;">' +
-      '<div style="font-size:1.4rem;font-weight:800;color:#a855f7;margin-bottom:4px;">📷 Escanear QR Code</div>' +
-      '<div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:clamp(1rem,3vh,1.5rem);">Aponte a câmera para o QR code ou digite o código da sala</div>' +
+    // Camera video fullscreen como background
+    '<video id="scan-qr-video" autoplay playsinline muted style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;display:none;"></video>' +
+    '<canvas id="scan-qr-canvas" style="display:none;"></canvas>' +
 
-      // Camera viewfinder
-      '<div id="scan-qr-camera-box" style="position:relative;width:min(80vw,300px);aspect-ratio:1;margin-bottom:clamp(0.8rem,2vh,1.2rem);border-radius:16px;overflow:hidden;background:#111;border:2px solid rgba(168,85,247,0.3);">' +
-        '<video id="scan-qr-video" autoplay playsinline muted style="width:100%;height:100%;object-fit:cover;display:none;"></video>' +
-        '<canvas id="scan-qr-canvas" style="display:none;"></canvas>' +
-        '<div id="scan-qr-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:8px;">' +
-          '<div style="font-size:2.5rem;">📷</div>' +
-          '<div style="font-size:0.78rem;color:var(--text-muted);">Iniciando câmera...</div>' +
+    // Placeholder enquanto câmera inicia
+    '<div id="scan-qr-placeholder" style="position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:rgba(255,255,255,0.85);">' +
+      '<div style="font-size:3rem;">📷</div>' +
+      '<div style="font-size:0.85rem;">Iniciando câmera…</div>' +
+    '</div>' +
+
+    // Top bar — texto sutil + X pra fechar
+    '<div style="position:absolute;top:0;left:0;right:0;padding:env(safe-area-inset-top,12px) 16px 16px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,rgba(0,0,0,0.7),transparent);z-index:2;">' +
+      '<div style="color:#fff;font-size:0.95rem;font-weight:600;text-shadow:0 1px 4px rgba(0,0,0,0.5);">Aponte para o QR code</div>' +
+      '<button id="scan-qr-close-btn" aria-label="Fechar" style="width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:1.2rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;line-height:1;">×</button>' +
+    '</div>' +
+
+    // Center viewfinder — 4 cantos brancos como iOS scanner
+    '<div id="scan-qr-viewfinder" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:min(70vw,280px);aspect-ratio:1;pointer-events:none;z-index:1;">' +
+      // 4 cantos
+      '<div style="position:absolute;top:0;left:0;width:36px;height:36px;border-top:4px solid #fff;border-left:4px solid #fff;border-radius:6px 0 0 0;"></div>' +
+      '<div style="position:absolute;top:0;right:0;width:36px;height:36px;border-top:4px solid #fff;border-right:4px solid #fff;border-radius:0 6px 0 0;"></div>' +
+      '<div style="position:absolute;bottom:0;left:0;width:36px;height:36px;border-bottom:4px solid #fff;border-left:4px solid #fff;border-radius:0 0 0 6px;"></div>' +
+      '<div style="position:absolute;bottom:0;right:0;width:36px;height:36px;border-bottom:4px solid #fff;border-right:4px solid #fff;border-radius:0 0 6px 0;"></div>' +
+    '</div>' +
+
+    // Bottom — botão pra entrada manual de código (link discreto)
+    '<div style="position:absolute;bottom:0;left:0;right:0;padding:24px 16px env(safe-area-inset-bottom,24px);display:flex;flex-direction:column;align-items:center;gap:12px;background:linear-gradient(0deg,rgba(0,0,0,0.7),transparent);z-index:2;">' +
+      '<button id="scan-qr-manual-btn" style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);color:#fff;border-radius:22px;padding:10px 22px;font-size:0.88rem;font-weight:600;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">⌨️ Digitar código</button>' +
+    '</div>' +
+
+    // Manual code dialog (hidden inicialmente)
+    '<div id="scan-qr-manual-overlay" style="display:none;position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:3;align-items:center;justify-content:center;padding:1.5rem;">' +
+      '<div style="background:var(--bg-darker,#1a1a2e);border-radius:18px;padding:24px;max-width:360px;width:100%;">' +
+        '<div style="font-size:1.1rem;font-weight:800;color:#fff;margin-bottom:14px;text-align:center;">Digite o código da sala</div>' +
+        '<input type="text" id="scan-qr-code-input" placeholder="Ex: ABC123" maxlength="8" style="width:100%;box-sizing:border-box;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.06);border:2px solid rgba(168,85,247,0.3);color:#fff;font-size:1.3rem;font-weight:800;letter-spacing:4px;text-align:center;text-transform:uppercase;outline:none;font-family:monospace;margin-bottom:14px;" onfocus="this.style.borderColor=\'rgba(168,85,247,0.7)\'" onblur="this.style.borderColor=\'rgba(168,85,247,0.3)\'" />' +
+        '<div style="display:flex;gap:8px;">' +
+          '<button id="scan-qr-manual-cancel-btn" style="flex:1;padding:14px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:#fff;font-size:0.95rem;font-weight:600;cursor:pointer;">Cancelar</button>' +
+          '<button id="scan-qr-go-btn" style="flex:1;padding:14px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;color:white;font-size:0.95rem;font-weight:700;cursor:pointer;">Entrar</button>' +
         '</div>' +
-        '<div style="position:absolute;top:12px;left:12px;width:24px;height:24px;border-top:3px solid #a855f7;border-left:3px solid #a855f7;border-radius:4px 0 0 0;"></div>' +
-        '<div style="position:absolute;top:12px;right:12px;width:24px;height:24px;border-top:3px solid #a855f7;border-right:3px solid #a855f7;border-radius:0 4px 0 0;"></div>' +
-        '<div style="position:absolute;bottom:12px;left:12px;width:24px;height:24px;border-bottom:3px solid #a855f7;border-left:3px solid #a855f7;border-radius:0 0 0 4px;"></div>' +
-        '<div style="position:absolute;bottom:12px;right:12px;width:24px;height:24px;border-bottom:3px solid #a855f7;border-right:3px solid #a855f7;border-radius:0 0 4px 0;"></div>' +
       '</div>' +
-
-      // Divider
-      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:clamp(0.6rem,2vh,1rem);width:min(80vw,300px);">' +
-        '<div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>' +
-        '<span style="font-size:0.72rem;color:var(--text-muted);font-weight:600;">OU DIGITE O CÓDIGO</span>' +
-        '<div style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></div>' +
-      '</div>' +
-
-      // Manual code input
-      '<div style="display:flex;gap:8px;width:min(80vw,300px);margin-bottom:clamp(0.8rem,2vh,1.2rem);">' +
-        '<input type="text" id="scan-qr-code-input" placeholder="Ex: ABC123" maxlength="8" style="flex:1;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,0.06);border:2px solid rgba(168,85,247,0.25);color:var(--text-bright);font-size:1.2rem;font-weight:800;letter-spacing:4px;text-align:center;text-transform:uppercase;outline:none;font-family:monospace;" onfocus="this.style.borderColor=\'rgba(168,85,247,0.6)\'" onblur="this.style.borderColor=\'rgba(168,85,247,0.25)\'" />' +
-        '<button id="scan-qr-go-btn" style="padding:14px 20px;border-radius:12px;background:linear-gradient(135deg,#a855f7,#7c3aed);border:none;color:white;font-size:1rem;font-weight:700;cursor:pointer;flex-shrink:0;">Entrar</button>' +
-      '</div>' +
-
-      // Back button
-      '<button id="scan-qr-close-btn" style="padding:12px 28px;border-radius:12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-bright);font-size:0.88rem;font-weight:600;cursor:pointer;">← Voltar</button>' +
     '</div>';
 
   document.body.appendChild(ov);
@@ -7054,16 +7065,27 @@ window._openScanQR = function() {
   // Wire up close
   document.getElementById('scan-qr-close-btn').onclick = _closeOverlay;
 
-  // Wire up manual entry
+  // Wire up manual entry dialog (hidden by default; toggled by button)
+  var manualOv = document.getElementById('scan-qr-manual-overlay');
+  var manualBtn = document.getElementById('scan-qr-manual-btn');
+  var manualCancelBtn = document.getElementById('scan-qr-manual-cancel-btn');
   var goBtn = document.getElementById('scan-qr-go-btn');
   var codeInput = document.getElementById('scan-qr-code-input');
+  manualBtn.onclick = function() {
+    manualOv.style.display = 'flex';
+    setTimeout(function() { if (codeInput) codeInput.focus(); }, 80);
+  };
+  manualCancelBtn.onclick = function() {
+    manualOv.style.display = 'none';
+    if (codeInput) codeInput.value = '';
+  };
   function _tryManualCode() {
     var code = _extractRoomCode(codeInput.value);
     if (code) {
       _navigateToRoom(code);
     } else {
       codeInput.style.borderColor = '#ef4444';
-      setTimeout(function() { codeInput.style.borderColor = 'rgba(168,85,247,0.25)'; }, 1000);
+      setTimeout(function() { codeInput.style.borderColor = 'rgba(168,85,247,0.3)'; }, 1000);
     }
   }
   goBtn.onclick = _tryManualCode;

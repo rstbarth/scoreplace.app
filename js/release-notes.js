@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🎯 v1.6.19-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Scanner QR com leitura em tempo real estilo iOS.</b> Reversão da v1.6.18 (que abria câmera sem detecção). PWA web não consegue invocar o "Scanner de Código" nativo do iOS (não há URL scheme público), mas dá pra reproduzir a UX usando <code>getUserMedia</code> + decodificação contínua via <code>BarcodeDetector</code> nativo (Chrome Android — super rápido) ou <code>jsQR</code> (Safari iOS — fallback).<br><br>' +
+      'UI redesenhada estilo iOS: câmera ocupando a tela inteira, mira centralizada com 4 cantos brancos animados, texto sutil "Aponte para o QR code" no topo, X pra fechar no canto superior direito, botão discreto "⌨️ Digitar código" no rodapé pra entrada manual. Sem mais overlay competindo com o feed.<br><br>' +
+      'Detecção em tempo real (300ms loop): câmera abre, usuário aponta pro QR, sistema detecta automaticamente e navega pra <code>#casual/&lt;roomCode&gt;</code> sem precisar tirar foto.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📸 v1.6.18-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Scanner QR agora abre câmera nativa do celular.</b> Antes: overlay customizado com câmera embarcada via <code>getUserMedia</code> + jsQR rodando em loop — interface diferente do que os usuários conhecem, e em alguns dispositivos a permissão de câmera era negada silenciosamente.<br><br>' +
       'Agora: o botão dispara <code>&lt;input type="file" accept="image/*" capture="environment"&gt;</code> — abre o <b>app de câmera nativo</b> do celular (UI 100% do SO, sem overlay customizado). Usuário tira foto do QR code, retorna pro app, jsQR decodifica e navega pra <code>#casual/&lt;roomCode&gt;</code>.<br><br>' +
