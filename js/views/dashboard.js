@@ -1789,8 +1789,23 @@ function renderDashboard(container) {
              (utilitários: Pro + Apoie, mais discretos) separados em linhas
              próprias. Apoie/Pro ficam em uma linha menor — não competem
              visualmente com Pessoas/Convidar que são uso mais frequente. -->
-        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-          <button id="btn-scan-qr" class="btn hover-lift" title="Escanear QR Code ou digitar código de sala pra entrar numa partida casual" style="background: linear-gradient(135deg,#06b6d4,#0891b2); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="if(typeof window._openScanQR==='function')window._openScanQR();">📷 Entrar via QR</button>
+        <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center;">
+          <!-- v1.6.17-beta: botão de scanner QR com design iOS-style — pequeno,
+               transparente, SVG com 4 vértices angulares + QR code estilizado
+               no centro. Ícone discreto, não compete visualmente com os botões
+               primários (Pessoas, Convidar). -->
+          <button id="btn-scan-qr" class="hover-lift" aria-label="Escanear QR Code" title="Escanear QR Code ou digitar código pra entrar numa partida casual" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.85); width: 44px; height: 44px; min-width: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; transition: background 0.18s, border-color 0.18s;" onmouseover="this.style.background='rgba(255,255,255,0.12)';this.style.borderColor='rgba(255,255,255,0.3)';" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.borderColor='rgba(255,255,255,0.15)';" onclick="if(typeof window._openScanQR==='function')window._openScanQR();">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 8V6a2 2 0 0 1 2-2h2"/>
+              <path d="M16 4h2a2 2 0 0 1 2 2v2"/>
+              <path d="M20 16v2a2 2 0 0 1-2 2h-2"/>
+              <path d="M8 20H6a2 2 0 0 1-2-2v-2"/>
+              <rect x="8" y="8" width="3" height="3" rx="0.5" fill="currentColor" stroke="none"/>
+              <rect x="13" y="8" width="3" height="3" rx="0.5" fill="currentColor" stroke="none"/>
+              <rect x="8" y="13" width="3" height="3" rx="0.5" fill="currentColor" stroke="none"/>
+              <rect x="13.5" y="13.5" width="2" height="2" rx="0.3" fill="currentColor" stroke="none"/>
+            </svg>
+          </button>
           <button id="btn-people" class="btn hover-lift" title="Encontre jogadores e expanda sua rede" style="background: linear-gradient(135deg,#6366f1,#4f46e5); color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#explore'">👥 ${_t('dashboard.people') || 'Pessoas'}</button>
           <button id="btn-invite-app" class="btn hover-lift" title="${_t('invite.appQrTitle')}" style="background: #7c3aed; color: #fff; border: 1px solid rgba(255,255,255,0.3); font-size: 0.92rem; font-weight: 600; padding: 0 20px; height: 54px; border-radius: 12px;" onclick="window.location.hash='#invite'">📱 ${_t('invite.inviteFriends')}</button>
         </div>

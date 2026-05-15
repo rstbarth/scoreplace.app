@@ -9,6 +9,10 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🎯 v1.6.17-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Botão "Escanear QR" redesenhado no estilo iOS.</b> Pedido do dono. Antes: botão ciano grande com texto "📷 Entrar via QR" (54px de altura, mesma proeminência de Pessoas/Convidar). Agora: ícone circular pequeno e discreto (44×44px), transparente com borda sutil, SVG com 4 vértices angulares (cantos L) e um QR code estilizado de 4 quadrinhos no centro — exatamente como o ícone de scanner do iOS. Não compete visualmente com os botões primários da row.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📐 v1.6.16-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>(1) Fontes proporcionais em Android — fim das fontes infladas no live scoring.</b> Reportado: no Android da amiga as fontes do placar ao vivo ficaram bem maiores do que no iOS, sem caber na tela. ' +
       'Causa: Android Chrome respeita o setting de Acessibilidade "Tamanho de fonte" do sistema e multiplica os <code>rem</code>/<code>em</code> do CSS — quando o usuário tem font scaling acima de 100% no Android, todas as fontes inflam, quebrando layouts calibrados com <code>clamp()</code>. iOS Safari ignora esse setting por default. ' +
