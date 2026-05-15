@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.6.28-beta';
+window.SCOREPLACE_VERSION = '1.6.29-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -1983,6 +1983,11 @@ window.AppStore = {
         if (profile.notifyLevel) this.currentUser.notifyLevel = profile.notifyLevel;
         if (profile.preferredCeps !== undefined) this.currentUser.preferredCeps = profile.preferredCeps;
         if (Array.isArray(profile.preferredLocations)) this.currentUser.preferredLocations = profile.preferredLocations;
+        // v1.6.29-beta: flag setado pelo login Google via People API.
+        // True = foto real cadastrada no Google. False = monograma default.
+        // Usado pela check do trofeu perfil_foto pra decidir se Google
+        // avatar conta como foto real.
+        if (profile.hasGooglePhotoReal !== undefined) this.currentUser.hasGooglePhotoReal = profile.hasGooglePhotoReal;
         if (Array.isArray(profile.friends)) this.currentUser.friends = profile.friends;
         if (Array.isArray(profile.friendRequestsSent)) this.currentUser.friendRequestsSent = profile.friendRequestsSent;
         if (Array.isArray(profile.friendRequestsReceived)) this.currentUser.friendRequestsReceived = profile.friendRequestsReceived;

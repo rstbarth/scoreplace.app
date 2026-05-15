@@ -24,13 +24,74 @@
  */
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 
 admin.initializeApp();
+
+// ─── One-shot: purge ALL perfil_foto trophies ─────────────────────────────
+// v1.6.28-beta: o trofeu perfil_foto foi concedido incorretamente a usuários
+// que logaram com Google mas não têm foto real. Após mudar a check pra
+// exigir upload via app (firebasestorage), todos os trofeus existentes
+// precisam ser revogados de uma vez — em vez de esperar cada user logar
+// na nova versão pra revoke automático (pode demorar semanas).
+//
+// Chamada: curl 'https://us-central1-scoreplace-app.cloudfunctions.net/purgePerfilFotoTrophies?secret=SCOREPLACE_TROPHY_PURGE_20260515'
+// Função one-shot. Depois do uso, pode ser removida do código no próximo deploy.
+exports.purgePerfilFotoTrophies = onRequest(
+  { region: "us-central1", timeoutSeconds: 540, memory: "512MiB" },
+  async (req, res) => {
+    const SECRET = "SCOREPLACE_TROPHY_PURGE_20260515";
+    if (req.query.secret !== SECRET) {
+      res.status(403).json({ error: "forbidden" });
+      return;
+    }
+    const db = admin.firestore();
+    const usersSnap = await db.collection("users").get();
+    let checked = 0;
+    let deleted = 0;
+    const errors = [];
+    // Processa em batches de 50 pra paralelizar sem esgotar conexões
+    const batchSize = 50;
+    for (let i = 0; i < usersSnap.docs.length; i += batchSize) {
+      const batch = usersSnap.docs.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map(async (userDoc) => {
+          checked++;
+          const ref = db
+            .collection("users")
+            .doc(userDoc.id)
+            .collection("trophies")
+            .doc("perfil_foto");
+          try {
+            const snap = await ref.get();
+            if (snap.exists) {
+              await ref.delete();
+              deleted++;
+            }
+          } catch (err) {
+            errors.push({ uid: userDoc.id, err: String(err && err.message) });
+          }
+        })
+      );
+    }
+    res.json({
+      ok: true,
+      checked,
+      deleted,
+      errors: errors.length > 0 ? errors.slice(0, 10) : undefined,
+      message:
+        "Purge concluído. " +
+        deleted +
+        " trofeus 'Com Rosto' deletados de " +
+        checked +
+        " usuários. Quem realmente tem upload via app reganha no próximo login.",
+    });
+  }
+);
 
 // ─── Helper: batched delete of a query, page by page ─────────────────────────
 // Firestore caps batch writes at 500 docs. We pull pages of up to 400 and

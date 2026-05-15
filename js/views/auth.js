@@ -658,6 +658,42 @@ function handleGoogleLogin() {
         window.FirestoreDB.saveUserProfile(user.uid, { authProvider: 'google.com' }).catch(function() {});
       }
 
+      // v1.6.29-beta: detecta se o usuário tem FOTO REAL no Google (não
+      // monograma default) via People API. Substitui as heurísticas de
+      // URL pattern (frágeis) e pixel sampling (CORS-blocked) por uma
+      // resposta autoritativa do próprio Google. Campo `default: true`
+      // no objeto photos[0] significa "user nunca cadastrou foto, isso
+      // é monograma gerado". Salva hasGooglePhotoReal no profile pra
+      // que a check do trofeu perfil_foto use como source of truth.
+      // Falha graceful: se People API der erro/CORS/quota, fallback fica
+      // sem flag e a check só aceita upload via app (comportamento v1.6.28).
+      try {
+        var _credential = firebase.auth.GoogleAuthProvider.credentialFromResult && firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+        var _googleAccessToken = _credential && _credential.accessToken;
+        if (_googleAccessToken && user.uid) {
+          fetch('https://people.googleapis.com/v1/people/me?personFields=photos', {
+            headers: { 'Authorization': 'Bearer ' + _googleAccessToken }
+          }).then(function(r) { return r.ok ? r.json() : null; })
+            .then(function(data) {
+              if (!data || !Array.isArray(data.photos) || data.photos.length === 0) return;
+              var primary = data.photos.find(function(p) { return p.metadata && p.metadata.primary; }) || data.photos[0];
+              var hasReal = !primary['default']; // bracket pra evitar reserved word issues
+              console.log('[scoreplace-auth] Google People API photo.default=', primary['default'], '→ hasGooglePhotoReal=', hasReal);
+              if (window.FirestoreDB && window.FirestoreDB.saveUserProfile) {
+                window.FirestoreDB.saveUserProfile(user.uid, { hasGooglePhotoReal: hasReal }).catch(function() {});
+              }
+              // Atualiza AppStore.currentUser pra check do trofeu pegar imediatamente
+              if (window.AppStore && window.AppStore.currentUser && window.AppStore.currentUser.uid === user.uid) {
+                window.AppStore.currentUser.hasGooglePhotoReal = hasReal;
+              }
+            }).catch(function(err) {
+              console.warn('[scoreplace-auth] People API error (non-fatal):', err && err.message);
+            });
+        }
+      } catch (_peopleErr) {
+        console.warn('[scoreplace-auth] People API setup error (non-fatal):', _peopleErr && _peopleErr.message);
+      }
+
       // Try linking pending credential from another provider.
       // v0.17.85: try/catch — sem ele, exception aqui pulava simulateLoginSuccess.
       try { _tryLinkPendingCredential(result); } catch(_lkErr) {

@@ -9,6 +9,19 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📸 v1.6.29-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Trofeu "Com Rosto" usa Google People API — fonte autoritativa.</b><br><br>' +
+      'A v1.6.28 rejeitava TODA URL <code>googleusercontent.com</code> (default ou foto real) e só aceitava upload via app. Trade-off: usuário com foto Google real perdia o troféu até fazer upload.<br><br>' +
+      '<b>Agora:</b> no login Google, capturamos o <code>accessToken</code> e chamamos <code>https://people.googleapis.com/v1/people/me?personFields=photos</code>. ' +
+      'A People API retorna o campo <code>default</code> na foto: <code>true</code> significa "monograma gerado automaticamente, user nunca cadastrou foto"; <code>false</code> significa "foto real cadastrada no Google".<br><br>' +
+      'Resposta autoritativa do próprio Google — substitui todas as heurísticas frágeis das versões anteriores (URL patterns v1.6.13, pixel sampling v1.6.24).<br><br>' +
+      'Flag <code>hasGooglePhotoReal</code> salvo no profile. Check do trofeu aceita:<br>' +
+      '• URL <code>firebasestorage.googleapis.com</code> (upload via app), OU<br>' +
+      '• URL <code>googleusercontent.com</code> com <code>hasGooglePhotoReal === true</code><br><br>' +
+      'Falha graceful: se People API der erro de rede/CORS, fallback fica sem flag e a check só aceita upload via app (comportamento v1.6.28).<br><br>' +
+      '<b>Para usuários afetados:</b> basta fazer login Google na nova versão. People API roda 1 vez, flag fica salva. <code>revocable:true</code> garante revogação automática pra quem está com flag ausente ou false.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🛠️ v1.6.28-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>2 bugs corrigidos.</b><br><br>' +
       '<b>(1) Identidade dos slots embaralhada quando alguém sai.</b> Reportado com screenshot: Nelson (criador) saiu da sala, mas no celular do Rodrigo o slot 0 ficou com nome "Nelson Barth" + foto do Rodrigo, e o slot 1 ficou com "Rodrigo" sem foto. Causa: polling atualizava <code>_lobbyParticipants</code> e limpava só inputs 1b/2a/2b (não o 1a). Slot 0 mantinha o input value antigo ("Nelson Barth") enquanto o avatar lia do <code>_lobbyParticipants[0]</code> que agora era Rodrigo. Fix: quando count decrescer (alguém sai), agora faz <code>_renderSetup()</code> completo — todos os slots reconstruídos do zero usando <code>_lobbyParticipants</code> atualizado.<br><br>' +

@@ -117,21 +117,21 @@ window.TROPHY_CATALOG = [
 
       if (!photoURL || typeof photoURL !== 'string' || photoURL.length === 0) return false;
 
-      // v1.6.28-beta: ABORDAGEM DEFINITIVA — exige UPLOAD via app (Firebase
-      // Storage). Patterns de detecção de avatar Google default (v1.6.13)
-      // + pixel sampling assíncrono (v1.6.24) sempre tinham falsos positivos
-      // porque Google muda formato e CORS bloqueia leitura de pixels. Único
-      // jeito 100% confiável de saber que o user TEM foto REAL é exigir
-      // upload explícito via app (URL contém firebasestorage.googleapis.com).
-      // Trade-off conhecido: usuário com foto real do Google que NUNCA fez
-      // upload via app perde o troféu até fazer. Aceitável: o trofeu chama
-      // "Com Rosto", upload é evidência mais forte que avatar Google que
-      // pode ser monograma.
-      // Aceita também: Apple iCloud (https://*.icloud.com), Facebook fbsbx,
-      // e qualquer outro provedor que não seja Google avatar/dicebear.
+      // v1.6.29-beta: 2 fontes confiáveis de "tem foto real":
+      // (a) UPLOAD via app — URL contém firebasestorage.googleapis.com.
+      //     Evidência forte e direta: usuário fez upload pela tela de perfil.
+      // (b) Google People API confirmou foto real — flag hasGooglePhotoReal
+      //     === true no profile do usuário. Esse flag é setado no login
+      //     Google (auth.js v1.6.29) consultando o campo `default` da
+      //     People API: default=true significa monograma gerado, default=
+      //     false significa foto real cadastrada pelo usuário no Google.
+      //     Resposta autoritativa do próprio Google — substitui as
+      //     heurísticas frágeis (URL patterns v1.6.13, pixel sampling
+      //     v1.6.24) que sempre tinham falsos positivos.
       if (photoURL.indexOf('firebasestorage.googleapis.com') !== -1) return true;
-      // Tudo o resto: REJEITA. Google avatar (default OU real), dicebear,
-      // ui-avatars, vazio — nenhum vale. Só upload explícito conta.
+      if (photoURL.indexOf('googleusercontent.com') !== -1 && u.hasGooglePhotoReal === true) return true;
+      // Tudo o resto: REJEITA. Google avatar sem confirmação da People API,
+      // dicebear, ui-avatars, vazio — nenhum vale.
       return false;
     }
   },
