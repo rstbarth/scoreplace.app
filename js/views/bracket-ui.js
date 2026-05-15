@@ -6773,9 +6773,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
           .catch(function(e) { console.warn('[LiveScore] unpair setup write failed:', e); });
       } catch(e) {}
     }
-    // v1.6.60-beta: keepSession=true preserva _sessionDocId para que gêneros
-    // e formação de duplas sejam propagados via Firestore após voltar ao setup.
-    _closeLiveScoringAndReopenSetup({ keepSession: true });
+    // v1.6.60-beta: isInitiator=true — este dispositivo escreveu status:'setup'
+    // e tem os gêneros corretos; outros dispositivos devem só ler via polling.
+    _closeLiveScoringAndReopenSetup({ keepSession: true, isInitiator: true });
   };
 
   // v1.6.41-beta: "Jogar Novamente" nas stats — propaga status:'setup' no
@@ -6794,9 +6794,9 @@ window._openLiveScoring = function(tId, matchId, opts) {
           .catch(function(e) { console.warn('[LiveScore] setup status write failed:', e); });
       } catch(e) {}
     }
-    // v1.6.60-beta: keepSession=true preserva _sessionDocId para que gêneros
-    // e formação de duplas sejam propagados via Firestore após voltar ao setup.
-    _closeLiveScoringAndReopenSetup({ keepSession: true });
+    // v1.6.60-beta: isInitiator=true — este dispositivo escreveu status:'setup'
+    // e tem os gêneros corretos; outros dispositivos devem só ler via polling.
+    _closeLiveScoringAndReopenSetup({ keepSession: true, isInitiator: true });
   };
 
   // Compartilhar resultado da partida casual — tournament match já tem o
@@ -8751,6 +8751,10 @@ window._openCasualMatch = function(restoreOpts) {
   // closure — só foi desanexada do DOM.
   window._casualReopenSetup = function(opts) {
     var keepSession = !!(opts && opts.keepSession);
+    // isInitiator=true: quem clicou Desparear/Jogar Novamente (host).
+    // isInitiator=false: demais dispositivos detectaram status:'setup' via
+    // Firestore listener e entraram aqui automaticamente.
+    var isInitiator = !!(opts && opts.isInitiator);
     // Zera times para formar novos pares livremente
     _teamAssignments = {};
     autoShuffle = true;
@@ -8774,13 +8778,20 @@ window._openCasualMatch = function(restoreOpts) {
     }
     // Renderiza setup com os jogadores já presentes
     _renderSetup();
-    // v1.6.60-beta: com keepSession, mantém _sessionDocId para que sync
-    // continue funcionando — gêneros e times são propagados via Firestore.
-    _syncCasualSetupDebounced();
     if (keepSession) {
-      // Reinicia polling para receber mudanças dos outros participantes
-      // (o interval foi parado quando a partida iniciou via _startSetupRefresh)
-      _startSetupRefresh();
+      if (isInitiator) {
+        // Iniciador (host) escreve gêneros/times atuais no Firestore logo que
+        // volta ao setup. Debounce 500ms. Polling começa com delay de 1500ms
+        // para garantir que a escrita chegou ao Firestore antes da 1ª leitura
+        // — evita que o poll leia dados stale e sobrescreva _slotGenders local.
+        _syncCasualSetupDebounced();
+        setTimeout(function() { _startSetupRefresh(); }, 1500);
+      } else {
+        // Não-iniciador: NÃO escreve no Firestore (evita sobrescrever gêneros
+        // do host com dados locais potencialmente desatualizados). Apenas lê
+        // via polling, com delay de 2000ms para o host ter escrito primeiro.
+        setTimeout(function() { _startSetupRefresh(); }, 2000);
+      }
     }
     // Hidrata "Últimas partidas" (pode ter nova partida agora)
     setTimeout(function() {
