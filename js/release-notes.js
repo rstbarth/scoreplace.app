@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🛑 v1.6.21-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Câmera do scanner QR libera corretamente no iOS.</b> Reportado: indicador "câmera em uso" no topo do iOS continuava aparecendo mesmo depois de entrar na sala. ' +
+      'Causa: no iOS Safari, só chamar <code>track.stop()</code> NÃO basta — o elemento <code>&lt;video&gt;</code> ainda mantém referência ao MediaStream via <code>srcObject</code>, e o iOS mantém o badge da câmera enquanto essa referência existir.<br><br>' +
+      '<b>Cleanup robusto agora faz na ordem certa:</b> (1) <code>video.pause()</code> — para exibição; (2) para tracks de QUALQUER stream attached (defesa contra streams órfãos); (3) <code>video.srcObject = null</code> — solta a referência; (4) <code>video.removeAttribute(\'src\')</code> + <code>video.load()</code> — força o browser a liberar recursos de mídia.<br><br>' +
+      '<b>Defense in depth:</b> listeners <code>pagehide</code> e <code>hashchange</code> também disparam cleanup, caso o user navegue por outro caminho que não o X ou a detecção de QR (raro mas possível com browser back/forward).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📸 v1.6.20-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Scanner QR robustecido — 5 bugs prováveis fixados.</b> Reportado: scanner não estava lendo QR. Auditoria identificou 5 causas potenciais e todas foram corrigidas no mesmo deploy:<br><br>' +
       '<b>(1) <code>video.play()</code> agora é explícito</b> — autoplay nem sempre dispara em iOS Safari PWA standalone, apesar dos atributos <code>autoplay/playsinline/muted</code>. Adicionado <code>play()</code> explícito após <code>srcObject</code>.<br>' +

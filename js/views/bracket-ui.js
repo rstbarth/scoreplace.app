@@ -6986,9 +6986,50 @@ window._openScanQR = function() {
   var _scanInterval = null;
   var _scanFound = false;
 
+  // v1.6.21-beta: cleanup robusto pra liberar a câmera no iOS. Em iOS Safari,
+  // só chamar track.stop() NÃO é suficiente — o badge "câmera em uso" no
+  // topo da tela continua aparecendo porque o <video> ainda mantém
+  // referência ao stream via srcObject. Ordem correta:
+  //   1. video.pause() — para o stream de exibição
+  //   2. parar TODOS os tracks (de _scanStream E do video.srcObject — pode
+  //      haver streams órfãos se um restart aconteceu)
+  //   3. video.srcObject = null — solta a referência
+  //   4. video.removeAttribute('src') + video.load() — força browser a
+  //      liberar recursos de mídia. Sem isso o iOS pode segurar o stream
+  //      indefinidamente apesar de track.stop() já ter sido chamado.
   function _cleanupScanner() {
-    if (_scanInterval) { clearInterval(_scanInterval); _scanInterval = null; }
-    if (_scanStream) { _scanStream.getTracks().forEach(function(t) { t.stop(); }); _scanStream = null; }
+    if (_scanInterval) {
+      try { clearInterval(_scanInterval); } catch(e) {}
+      _scanInterval = null;
+    }
+    // Pega referência ao video element (pode estar undefined se cleanup
+    // dispara antes do DOM ter renderizado).
+    var v = document.getElementById('scan-qr-video');
+    if (v) {
+      try { v.pause(); } catch(e) {}
+      // Para QUALQUER stream attached ao video — defesa contra streams
+      // órfãos que ficaram após restart parcial.
+      var attachedStream = null;
+      try { attachedStream = v.srcObject; } catch(e) {}
+      if (attachedStream && attachedStream.getTracks) {
+        try {
+          attachedStream.getTracks().forEach(function(t) {
+            try { t.stop(); } catch(e) {}
+          });
+        } catch(e) {}
+      }
+      try { v.srcObject = null; } catch(e) {}
+      try { v.removeAttribute('src'); } catch(e) {}
+      try { v.load(); } catch(e) {}
+    }
+    if (_scanStream) {
+      try {
+        _scanStream.getTracks().forEach(function(t) {
+          try { t.stop(); } catch(e) {}
+        });
+      } catch(e) {}
+      _scanStream = null;
+    }
   }
 
   function _closeOverlay() {
@@ -7000,6 +7041,8 @@ window._openScanQR = function() {
   function _navigateToRoom(code) {
     if (_scanFound) return;
     _scanFound = true;
+    // Cleanup ANTES de qualquer outra coisa — garante câmera liberada
+    // imediatamente, antes do hash change disparar nova view.
     _cleanupScanner();
     var o = document.getElementById('scan-qr-overlay');
     if (o) o.remove();
@@ -7061,6 +7104,29 @@ window._openScanQR = function() {
     '</div>';
 
   document.body.appendChild(ov);
+
+  // v1.6.21-beta: cleanup defensivo se o user navegar/fechar aba — sem isto
+  // o stream poderia ficar pendurado se um hashchange acontecesse por outro
+  // caminho que não _navigateToRoom ou _closeOverlay (raro mas possível).
+  // Listener auto-removível pra não vazar event handlers entre sessões.
+  var _onPageHideScan = function() {
+    _cleanupScanner();
+    try { window.removeEventListener('pagehide', _onPageHideScan); } catch(e) {}
+    try { window.removeEventListener('hashchange', _onHashChangeScan); } catch(e) {}
+  };
+  var _onHashChangeScan = function() {
+    // Se hash mudou e overlay ainda existe (caso edge — user voltou via
+    // browser back, etc.), garante cleanup antes de remover overlay.
+    if (document.getElementById('scan-qr-overlay')) {
+      _cleanupScanner();
+      var o2 = document.getElementById('scan-qr-overlay');
+      if (o2) o2.remove();
+    }
+    try { window.removeEventListener('pagehide', _onPageHideScan); } catch(e) {}
+    try { window.removeEventListener('hashchange', _onHashChangeScan); } catch(e) {}
+  };
+  window.addEventListener('pagehide', _onPageHideScan);
+  window.addEventListener('hashchange', _onHashChangeScan);
 
   // Wire up close
   document.getElementById('scan-qr-close-btn').onclick = _closeOverlay;
