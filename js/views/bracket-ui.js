@@ -8676,6 +8676,7 @@ window._openCasualMatch = function(restoreOpts) {
             : ['casual-p1-name', 'casual-p2-name'];
           var el = document.getElementById(inputIds[coachSlotIdx]);
           if (el) el.value = '';
+          delete _slotGenders[coachSlotIdx];
         }
       }
     }
