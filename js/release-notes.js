@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔄 v1.6.12-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>Sincronização de nomes entre clientes na sala única.</b> Fix follow-up da v1.6.11-beta — após o refactor de sala única, dois clientes na mesma partida casual ainda não viam os nomes que o outro digitava. ' +
+      'Quando A digitava "Maria" no slot 2, o <code>_syncCasualSetupDebounced</code> persistia no Firestore após 500ms, mas o polling de 3s do cliente B só checava <code>participants.length</code> (entrada/saída de logados) — ignorava mudanças em <code>players[]</code> (nomes digitados). ' +
+      'Agora o polling sincroniza o array <code>fresh.players</code> nos inputs do DOM com 3 guards: (1) skip slots ocupados por participantes logados (input é readonly, vem de displayName), (2) skip input atualmente focado pelo usuário local (não sobrescreve enquanto está digitando — last-write-wins via debounce 500ms), (3) skip nomes default ("Jogador 1-4", "Parceiro", "Adversário"). ' +
+      'Convergência típica: até 3s entre digitação no cliente A e visualização no cliente B.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">⚡ v1.6.11-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Correções críticas em Partida Casual</b> — 5 regressões reportadas em uso real foram diagnosticadas e corrigidas no mesmo deploy. <b>Auditoria consolidada</b>, sem hotfix em cima de hotfix.<br><br>' +
       '<b>(1) Sala única — sem host/guest:</b> agora todos os logados que entram numa partida casual veem a <i>mesma</i> tela editável (nomes, drag-and-drop de duplas, scoring, botão Iniciar). Antes, só o criador via a tela de setup completa — quem entrava via QR/link caía em lobby readonly "Aguardando organizador". Pedido literal do dono: <i>"existe apenas a sala de um jogador e quando o outro entra passa a estar na mesma sala. não há host ou guest. todos tem que ter os mesmos poderes na partida casual."</i> Slot 0 agora é sempre o primeiro participante (criador) — antes era hardcoded no current user, gerando inconsistência entre clientes.<br><br>' +

@@ -8879,6 +8879,38 @@ window._openCasualMatch = function(restoreOpts) {
             }
           }
         }
+        // v1.6.12-beta: sincroniza nomes digitados pelos OUTROS clientes
+        // (sala única). Antes só checava participants.length — se A digitava
+        // "Maria" no slot 2, B não via no input dele. Agora reflete os
+        // players[] do Firestore nos inputs do DOM. Skip:
+        //   (a) slot que tem participante logado (input é readonly, vem de displayName)
+        //   (b) input que está atualmente focado (estou digitando agora — last-write-wins)
+        //   (c) valor já idêntico (não rerenderiza desnecessariamente)
+        var _freshPl = Array.isArray(fresh.players) ? fresh.players : [];
+        if (_freshPl.length > 0 && fresh.isDoubles !== false) {
+          var _syncInputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
+          var _focusedEl = document.activeElement;
+          for (var _spi = 0; _spi < _syncInputIds.length && _spi < _freshPl.length; _spi++) {
+            var _inpSync = document.getElementById(_syncInputIds[_spi]);
+            if (!_inpSync) continue;
+            if (_inpSync === _focusedEl) continue; // estou digitando — não sobrescreve
+            var _isRegSlotSync = (_spi < _lobbyParticipants.length) &&
+              _lobbyParticipants[_spi] &&
+              (_lobbyParticipants[_spi].uid || _lobbyParticipants[_spi].photoURL);
+            if (_isRegSlotSync) continue; // displayName dos logados não vem de input editável
+            var _remoteName = (_freshPl[_spi] && _freshPl[_spi].name) ? String(_freshPl[_spi].name) : '';
+            // Pula nomes default — se o outro cliente nunca digitou nada
+            // pra esse slot, players[idx].name vem "Jogador N" e isso não
+            // deve sobrescrever um input que o usuário local começou a
+            // editar e ainda não atingiu o debounce de 500ms.
+            var _defaults = ['Jogador 1','Jogador 2','Jogador 3','Jogador 4','Parceiro','Adversário 1','Adversário 2'];
+            if (_defaults.indexOf(_remoteName) !== -1) continue;
+            if (_inpSync.value === _remoteName) continue;
+            _inpSync.value = _remoteName;
+            // Autosize textarea se a função existir
+            try { if (typeof window._autosizeCasualInput === 'function') window._autosizeCasualInput(_inpSync); } catch(e) {}
+          }
+        }
       }).catch(function() {});
     }, 3000);
   }
