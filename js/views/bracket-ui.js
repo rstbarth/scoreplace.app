@@ -5382,7 +5382,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
         // representa a ação visualmente consistente com a tela de setup.
         restartSection =
           '<div style="display:flex;align-items:center;gap:8px;width:100%;">' +
-            '<button onclick="window._liveScoreRestart()" title="Jogar novamente com os mesmos times" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);white-space:nowrap;">🔄 Jogar</button>' +
+            '<button onclick="window._liveScoreGoToSetup()" title="Jogar novamente com os mesmos times" style="flex:0 0 auto;padding:12px 14px;border-radius:12px;font-size:0.88rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);white-space:nowrap;">🔄 Jogar</button>' +
             '<label style="flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);cursor:pointer;">' +
               '<span style="font-size:0.68rem;font-weight:600;color:var(--text-bright);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;">Re-sortear</span>' +
               '<span class="toggle-switch toggle-sm" style="flex-shrink:0;">' +
@@ -5394,7 +5394,7 @@ window._openLiveScoring = function(tId, matchId, opts) {
       } else {
         restartSection =
           '<div style="display:flex;gap:8px;width:100%;">' +
-            '<button onclick="window._liveScoreRestart()" style="flex:1;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">🔄 Jogar Novamente</button>' +
+            '<button onclick="window._liveScoreGoToSetup()" style="flex:1;padding:14px;border-radius:12px;font-size:0.95rem;font-weight:800;border:none;cursor:pointer;background:linear-gradient(135deg,#10b981,#059669);color:white;box-shadow:0 4px 20px rgba(16,185,129,0.4);">🔄 Jogar Novamente</button>' +
             '<button onclick="window._liveScoreShareCasual()" title="Compartilhar resultado" style="flex:0 0 auto;padding:14px 16px;border-radius:12px;font-size:0.95rem;font-weight:800;border:none;cursor:pointer;background:#25d366;color:white;box-shadow:0 4px 20px rgba(37,211,102,0.3);">📤</button>' +
           '</div>';
       }
@@ -6329,7 +6329,14 @@ window._openLiveScoring = function(tId, matchId, opts) {
             }
             return;
           }
-          // v1.6.37-beta: alguém clicou "Jogar Novamente" nas stats —
+          // v1.6.41-beta: alguém clicou "Jogar Novamente" — status virou
+          // 'setup'. Todos os demais participantes voltam para o setup
+          // com os mesmos jogadores (sem times pré-formados).
+          if (data && data.status === 'setup' && !_casualCancelled) {
+            setTimeout(function() { _goToSetupLocally(); }, 50);
+            return;
+          }
+          // Alguém clicou "Jogar Novamente" nas stats —
           // status voltou pra 'active'. Reseta state e re-renderiza o
           // placar ao vivo para todos os demais logados que estavam
           // vendo as stats.
@@ -6640,28 +6647,19 @@ window._openLiveScoring = function(tId, matchId, opts) {
     );
   };
 
-  // v1.3.69-beta: versão SEM confirm dialog para a tela de estatísticas
-  // (a partida já foi encerrada e salva — não há nada a confirmar).
-  // Extrai jogadores de _casualPlayers e chama _openCasualMatch com todos
-  // eles despareados, prontos para nova formação de duplas ou sorteio.
-  // Funciona tanto para partida recém-encerrada quanto para histórico
-  // (viewOnly=true via _casualOpenPastMatch), onde _casualReopenSetup não
-  // pode ser usado (closure do setup IIFE pode ter players diferentes).
-  window._liveScoreUnpairFromStats = function() {
-    // 1. Salva resultado silenciosamente se ainda não foi salvo
-    if (state.isFinished && !_resultSaved) {
-      try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
-    }
-    // 2. Cleanup (espelha _closeLiveScoring)
+  // v1.6.41-beta: lógica comum de "voltar ao setup" usada por
+  // _liveScoreUnpairFromStats (botão Desparear) e _liveScoreGoToSetup
+  // ("Jogar Novamente"). Fecha o overlay e reabre _openCasualMatch com
+  // os mesmos jogadores sem times definidos.
+  function _goToSetupLocally() {
     if (_unsubFirestore) { try { _unsubFirestore(); } catch(e) {} _unsubFirestore = null; }
     try { window.removeEventListener('resize', _onResize); } catch(e) {}
     try { document.removeEventListener('visibilitychange', _onVisibility); } catch(e) {}
-      try { window.removeEventListener('pagehide', _onPagehide); } catch(e) {}
+    try { window.removeEventListener('pagehide', _onPagehide); } catch(e) {}
     try { _releaseWakeLock(); } catch(e) {}
     var ov = document.getElementById('live-scoring-overlay');
     if (ov) ov.remove();
-    // 3. Mapeia _casualPlayers → formato de participants do _openCasualMatch
-    //    { uid, displayName, photoURL, joinedAt }
+    // Mapeia _casualPlayers → formato de participants do _openCasualMatch
     var participants = [];
     if (_casualPlayers && _casualPlayers.length > 0) {
       _casualPlayers.forEach(function(p) {
@@ -6682,11 +6680,40 @@ window._openLiveScoring = function(tId, matchId, opts) {
         participants.push({ uid: '', displayName: name, photoURL: '', joinedAt: new Date().toISOString() });
       });
     }
-    // 4. Re-abre o setup com os mesmos jogadores, sem times definidos
     var matchSport = (opts && (opts.sportName || opts.title)) || 'Beach Tennis';
     if (typeof window._openCasualMatch === 'function') {
       window._openCasualMatch({ sport: matchSport, isDoubles: !!isDoubles, participants: participants });
     }
+  }
+
+  // v1.3.69-beta: versão SEM confirm dialog para a tela de estatísticas
+  // (a partida já foi encerrada e salva — não há nada a confirmar).
+  // Funciona tanto para partida recém-encerrada quanto para histórico
+  // (viewOnly=true via _casualOpenPastMatch).
+  window._liveScoreUnpairFromStats = function() {
+    if (state.isFinished && !_resultSaved) {
+      try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
+    }
+    _goToSetupLocally();
+  };
+
+  // v1.6.41-beta: "Jogar Novamente" nas stats — propaga status:'setup' no
+  // Firestore para que TODOS os participantes logados voltem ao setup.
+  // O próprio caller também vai via _goToSetupLocally() (chamado após write).
+  window._liveScoreGoToSetup = function() {
+    if (state.isFinished && !_resultSaved) {
+      try { _saveResult({ keepOpen: true, silent: true }); } catch(e) {}
+    }
+    // Propaga para os outros participantes via Firestore
+    if (_casualDocId && window.FirestoreDB && window.FirestoreDB.db) {
+      try {
+        window.FirestoreDB.db.collection('casualMatches').doc(_casualDocId)
+          .update({ status: 'setup' })
+          .catch(function(e) { console.warn('[LiveScore] setup status write failed:', e); });
+      } catch(e) {}
+    }
+    // Vai ao setup localmente (não espera o Firestore confirmar)
+    _goToSetupLocally();
   };
 
   // Compartilhar resultado da partida casual — tournament match já tem o
