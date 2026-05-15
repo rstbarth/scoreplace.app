@@ -7733,7 +7733,7 @@ window._openCasualMatch = function(restoreOpts) {
   // Build lobby HTML showing participants who joined
   function _buildLobbyHtml() {
     var totalNeeded = isDoubles ? 4 : 2;
-    var count = _lobbyParticipants.length;
+    var count = _lobbyParticipants.filter(Boolean).length;
     var myUid = cu ? cu.uid : null;
     if (count <= 1) return ''; // Only the creator — nothing to show yet
 
@@ -7745,6 +7745,7 @@ window._openCasualMatch = function(restoreOpts) {
       '<style>@keyframes casualPulse{0%,100%{opacity:0.3;transform:scale(0.8)}50%{opacity:1;transform:scale(1.2)}}</style>';
     for (var i = 0; i < _lobbyParticipants.length; i++) {
       var pp = _lobbyParticipants[i];
+      if (!pp) continue; // slot liberado — não renderizar
       var isMe = myUid && pp.uid === myUid;
       var isHost = pp.uid === (cu ? cu.uid : '');
       h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;margin-bottom:3px;' +
@@ -9462,6 +9463,7 @@ window._openCasualMatch = function(restoreOpts) {
                 var _vEl = document.getElementById(_vacatedIds[_vsi]);
                 if (_vEl) _vEl.value = '';
                 _savedPlayerNames[_vsi] = '';
+                _slotGenders[_vsi] = null; // reseta gênero do slot para ? (editável)
               }
             }
             if (typeof showNotification === 'function' && _leftNames.length > 0) {
