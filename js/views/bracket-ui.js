@@ -8039,8 +8039,14 @@ window._openCasualMatch = function(restoreOpts) {
           (_lobbyParticipants[ci].uid || _lobbyParticipants[ci].photoURL));
         var _readonlyAttr = _isRegCard ? 'readonly ' : '';
         var _regExtraStyle = _isRegCard ? 'pointer-events:none;cursor:inherit;' : '';
+        // Em modo técnico, o avatar fica oculto; no lugar dele aparece um handle ⠿
+        // que é o único ponto de toque que inicia drag (touchstart verifica data-drag-handle).
+        // Isso libera a textarea para receber foco normalmente ao tocar no celular.
+        var _leftEl = _coachMode
+          ? '<div data-drag-handle="1" style="width:22px;min-width:22px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:grab;color:var(--text-muted);font-size:1.1rem;line-height:1;-webkit-user-select:none;user-select:none;touch-action:none;" title="Arrastar para formar dupla">⠿</div>'
+          : avatar;
         return '<div data-casual-idx="' + ci + '"' + (isDraggable ? ' draggable="true"' : '') + ' style="display:flex;align-items:center;gap:6px;padding:8px 8px;border-radius:12px;background:' + bg + ';border:1px solid ' + bdr + ';box-sizing:border-box;min-width:0;overflow:hidden;transition:transform 0.15s,border-color 0.2s,background 0.2s;' + dragStyle + '">' +
-          avatar +
+          _leftEl +
           '<textarea id="' + inputIds[ci] + '" ' + _readonlyAttr + 'rows="1" placeholder="' + inputPlaceholders[ci] + '" oninput="window._syncCasualSetupFromInput && window._syncCasualSetupFromInput();window._autosizeCasualInput && window._autosizeCasualInput(this);window._equalizeCasualCards && window._equalizeCasualCards();" style="' + _inputStyle + _regExtraStyle + 'color:' + textClr + ';">' + window._safeHtml(inputValues[ci]) + '</textarea>' +
           _genderIconHtml(ci) +
         '</div>';
@@ -8471,20 +8477,28 @@ window._openCasualMatch = function(restoreOpts) {
     var _touchIdx = null;
     cards.forEach(function(card) {
       card.addEventListener('touchstart', function(e) {
-        // Se o toque foi direto numa textarea editável (jogador não-cadastrado),
-        // deixa o browser focar o campo — não inicia drag nesse caso.
-        // Exceção: modo técnico — todas os slots são livres e o técnico precisa
-        // arrastar para formar duplas; drag é permitido mesmo em textarea editável.
-        if (e.target && e.target.tagName === 'TEXTAREA' && !e.target.readOnly && !_coachMode) {
+        // Textarea editável sempre recebe foco — drag nunca começa ao tocar nela.
+        if (e.target && e.target.tagName === 'TEXTAREA' && !e.target.readOnly) {
           _touchIdx = null;
           return;
         }
-        // Se o toque foi num botão (ex: ícone de gênero), deixa o click disparar
-        // normalmente — não inicia drag.
+        // Botão (ex: ícone de gênero) deixa o click disparar normalmente.
         var _bt = e.target;
         while (_bt && _bt !== card) {
           if (_bt.tagName === 'BUTTON') { _touchIdx = null; return; }
           _bt = _bt.parentElement;
+        }
+        // Em modo técnico, drag só começa pelo handle ⠿ (data-drag-handle).
+        // Qualquer outro toque no card (ex: padding) não inicia drag — garante
+        // que a textarea possa ser tocada sem conflito em toda a área do card.
+        if (_coachMode) {
+          var _hdl = e.target;
+          var _onHandle = false;
+          while (_hdl && _hdl !== card) {
+            if (_hdl.getAttribute && _hdl.getAttribute('data-drag-handle')) { _onHandle = true; break; }
+            _hdl = _hdl.parentElement;
+          }
+          if (!_onHandle) { _touchIdx = null; return; }
         }
         // preventDefault impede o browser de focar elementos dentro do card
         // antes do gesto de drag começar. Deve ser {passive:false} para funcionar.
