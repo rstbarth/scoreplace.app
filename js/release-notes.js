@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">👥 v1.6.22-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Partida casual sem mais nomes duplicados nos times.</b> Reportado: partida gravou "Nelson nos 2 times" em vez de "Rodrigo e Cica × Nelson e Kelly".<br><br>' +
+      '<b>Causa-raiz:</b> <code>_buildPlayers</code> lia os <i>inputs do DOM</i> como source of truth pra todos os 4 slots. Esses inputs podiam ser corrompidos por: (a) sync polling escrevendo nomes errados; (b) touch focus em iOS causando race; (c) DOM duplicado em re-render parcial; (d) o usuário tocando acidentalmente um input que já tinha um logado.<br><br>' +
+      '<b>Fix:</b> <code>_buildPlayers</code> reescrito. Pra cada slot, <i>se</i> <code>_lobbyParticipants[idx]</code> tem <code>uid + displayName</code>, o nome vem DALI (source of truth). Inputs editáveis só pra slots de guest (sem logado). Não há mais possibilidade de DOM corrompido sobrescrever a identidade de um logado.<br><br>' +
+      'Diagnóstico exposto em <code>window._lastBuildPlayers</code> com snapshot completo (currentUser, lobbyParticipants, DOM input values, output). Próxima vez que algo se comportar inesperado é só rodar no DevTools e me mandar.<br><br>' +
+      'Validado via Preview MCP simulando 4 logados (Rodrigo+Cica+Nelson+Kelly): saída correta — slot 0 Rodrigo, slot 1 Cica (T1), slot 2 Nelson, slot 3 Kelly (T2). Cada um com seu uid próprio, sem duplicação.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🛑 v1.6.21-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Câmera do scanner QR libera corretamente no iOS.</b> Reportado: indicador "câmera em uso" no topo do iOS continuava aparecendo mesmo depois de entrar na sala. ' +
       'Causa: no iOS Safari, só chamar <code>track.stop()</code> NÃO basta — o elemento <code>&lt;video&gt;</code> ainda mantém referência ao MediaStream via <code>srcObject</code>, e o iOS mantém o badge da câmera enquanto essa referência existir.<br><br>' +

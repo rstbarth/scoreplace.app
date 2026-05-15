@@ -8596,50 +8596,97 @@ window._openCasualMatch = function(restoreOpts) {
   }
 
   // Build players array from form inputs
+  // v1.6.22-beta: REWRITE. Pra slots de logados, _lobbyParticipants é
+  // source of truth — não os inputs do DOM. Inputs eram corruptíveis por
+  // race conditions (sync polling, touch focus, DOM duplicado em re-render
+  // parcial), causando bugs reportados como "Nelson nos 2 times" onde
+  // todos os slots viraram o mesmo nome.
+  // Inputs editáveis só pra slots SEM logado (guests digitados).
+  // Diagnóstico exposto em window._lastBuildPlayers pra debug.
   function _buildPlayers() {
     var players = [];
     var cu = window.AppStore && window.AppStore.currentUser;
+    var inputIds = ['casual-p1a-name', 'casual-p1b-name', 'casual-p2a-name', 'casual-p2b-name'];
     if (isDoubles) {
-      var a1 = ((document.getElementById('casual-p1a-name') || {}).value || '').trim();
-      var b1 = ((document.getElementById('casual-p1b-name') || {}).value || '').trim();
-      var a2 = ((document.getElementById('casual-p2a-name') || {}).value || '').trim();
-      var b2 = ((document.getElementById('casual-p2b-name') || {}).value || '').trim();
-      // Try to match input names with lobby participants to get their uid+photoURL
-      var _findLobbyMatch = function(name) {
-        if (!name) return { uid: null, photoURL: null };
-        for (var li = 0; li < _lobbyParticipants.length; li++) {
-          var lp = _lobbyParticipants[li];
-          if (lp.displayName && (lp.displayName.split(' ')[0] === name || lp.displayName === name)) return { uid: lp.uid || null, photoURL: lp.photoURL || null };
+      var resolved = [null, null, null, null];
+      for (var slotIdx = 0; slotIdx < 4; slotIdx++) {
+        var lp = _lobbyParticipants[slotIdx];
+        if (lp && lp.uid && lp.displayName) {
+          // Slot com participante logado — _lobbyParticipants é source of
+          // truth. Usa first name pro display (consistente com lobby).
+          resolved[slotIdx] = {
+            name: lp.displayName.split(' ')[0] || lp.displayName,
+            uid: lp.uid,
+            photoURL: lp.photoURL || null,
+            source: 'lobby'
+          };
+        } else {
+          // Slot vazio — lê o input (guest digitado pelo organizador)
+          var inp = document.getElementById(inputIds[slotIdx]);
+          var v = inp ? (inp.value || '').trim() : '';
+          if (!v) v = 'Jogador ' + (slotIdx + 1);
+          resolved[slotIdx] = {
+            name: v,
+            uid: null,
+            photoURL: null,
+            source: 'input'
+          };
         }
-        return { uid: null, photoURL: null };
-      };
-      var _findLobbyPhoto = function(name) { return _findLobbyMatch(name).photoURL; };
-      // Current user match: check first name or full displayName
-      var _cuFirstName = (cu && cu.displayName) ? cu.displayName.split(' ')[0] : '';
-      var _isCuName = function(name) { return cu && name && (name === _cuFirstName || name === cu.displayName); };
-      // Team assignment: use drag-and-drop assignments if available, else default (0,1=T1, 2,3=T2)
-      var names = [a1 || 'Jogador 1', b1 || 'Jogador 2', a2 || 'Jogador 3', b2 || 'Jogador 4'];
+      }
       var hasTeamDnD = _teamAssignments[0] !== undefined;
       for (var pi = 0; pi < 4; pi++) {
-        var nm = names[pi];
-        var tm = hasTeamDnD ? _teamAssignments[pi] : (pi < 2 ? 1 : 2);
-        players.push({ slot: pi, name: nm, team: tm, uid: _isCuName(nm) ? cu.uid : _findLobbyMatch(nm).uid, photoURL: _isCuName(nm) ? cu.photoURL || null : _findLobbyPhoto(nm) });
+        players.push({
+          slot: pi,
+          name: resolved[pi].name,
+          team: hasTeamDnD ? _teamAssignments[pi] : (pi < 2 ? 1 : 2),
+          uid: resolved[pi].uid,
+          photoURL: resolved[pi].photoURL
+        });
       }
     } else {
-      var n1 = ((document.getElementById('casual-p1-name') || {}).value || '').trim() || 'Jogador 1';
-      var n2 = ((document.getElementById('casual-p2-name') || {}).value || '').trim() || 'Jogador 2';
-      var _findLobbyMatch2 = function(name) {
-        if (!name) return { uid: null, photoURL: null };
-        for (var li = 0; li < _lobbyParticipants.length; li++) {
-          var lp = _lobbyParticipants[li];
-          if (lp.displayName && (lp.displayName.split(' ')[0] === name || lp.displayName === name)) return { uid: lp.uid || null, photoURL: lp.photoURL || null };
-        }
-        return { uid: null, photoURL: null };
-      };
-      players.push({ slot: 0, name: n1, displayName: cu ? (cu.displayName || n1) : n1, team: 1, uid: (cu && cu.uid) ? cu.uid : null, photoURL: cu ? cu.photoURL || null : null });
-      var _n2Match = _findLobbyMatch2(n2);
-      players.push({ slot: 1, name: n2, displayName: _n2Match.displayName || n2, team: 2, uid: _n2Match.uid, photoURL: _n2Match.photoURL });
+      // Singles
+      var lp0 = _lobbyParticipants[0];
+      var lp1 = _lobbyParticipants[1];
+      var n1, u1, ph1;
+      var n2, u2, ph2;
+      if (lp0 && lp0.uid && lp0.displayName) {
+        n1 = lp0.displayName.split(' ')[0] || lp0.displayName;
+        u1 = lp0.uid; ph1 = lp0.photoURL || null;
+      } else {
+        var inp1 = document.getElementById('casual-p1-name');
+        n1 = (inp1 && inp1.value ? inp1.value.trim() : '') || 'Jogador 1';
+        u1 = (cu && cu.uid) || null; ph1 = (cu && cu.photoURL) || null;
+      }
+      if (lp1 && lp1.uid && lp1.displayName) {
+        n2 = lp1.displayName.split(' ')[0] || lp1.displayName;
+        u2 = lp1.uid; ph2 = lp1.photoURL || null;
+      } else {
+        var inp2 = document.getElementById('casual-p2-name');
+        n2 = (inp2 && inp2.value ? inp2.value.trim() : '') || 'Jogador 2';
+        u2 = null; ph2 = null;
+      }
+      players.push({ slot: 0, name: n1, displayName: n1, team: 1, uid: u1, photoURL: ph1 });
+      players.push({ slot: 1, name: n2, displayName: n2, team: 2, uid: u2, photoURL: ph2 });
     }
+    // Diagnostic — permite debug remoto sem DevTools no celular
+    try {
+      var domInputValues = inputIds.map(function(id) {
+        var e = document.getElementById(id);
+        return e ? e.value : null;
+      });
+      window._lastBuildPlayers = {
+        at: new Date().toISOString(),
+        cu: cu ? { uid: cu.uid, displayName: cu.displayName } : null,
+        isDoubles: isDoubles,
+        lobbyParticipants: (_lobbyParticipants || []).map(function(p) {
+          return p ? { uid: p.uid, displayName: p.displayName } : null;
+        }),
+        domInputValues: domInputValues,
+        output: players.map(function(p) {
+          return { slot: p.slot, name: p.name, team: p.team, uid: p.uid };
+        })
+      };
+    } catch (_e) {}
     return players;
   }
 
