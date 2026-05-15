@@ -7781,6 +7781,7 @@ window._openCasualMatch = function(restoreOpts) {
     ? _lobbyParticipants[0].displayName
     : (cu && cu.displayName ? cu.displayName : '');
   var _setupRefreshInterval = null;
+  var _sessionReopened = false; // v1.6.62-beta: true quando voltamos ao setup com keepSession
 
   // Async-load gender for any lobby participant we haven't seen yet, then
   // re-render the setup view so the mixed-doubles toggle can appear when
@@ -8761,10 +8762,17 @@ window._openCasualMatch = function(restoreOpts) {
     if (!keepSession) {
       // Reseta sessão: próximo Iniciar cria novo doc no Firestore
       _sessionDocId = null;
+      _sessionReopened = false;
       // v1.6.50-beta: para o polling de refresh — sem isso, o interval continua
       // lendo o Firestore com _sessionRoomCode antigo e sobrescreve os nomes
       // digitados nos slots com "Jogador X, Y, Z" após alguns segundos.
       if (_setupRefreshInterval) { clearInterval(_setupRefreshInterval); _setupRefreshInterval = null; }
+    } else {
+      // v1.6.62-beta: keepSession=true — preserva _sessionDocId para que o
+      // polling continue lendo do doc correto, mas marca que ao Iniciar a
+      // próxima partida deve criar um novo doc (em vez de reactivar o antigo
+      // com result stale, que faria _openLiveScoring pular direto às stats).
+      _sessionReopened = true;
     }
     // Re-appenda overlay (ainda em memória no closure)
     if (!document.getElementById('casual-match-overlay')) {
@@ -9646,6 +9654,15 @@ window._openCasualMatch = function(restoreOpts) {
 
     var cfg = _getConfig();
     var sportLabel = selectedSport;
+
+    // v1.6.62-beta: se voltamos ao setup via Desparear/Jogar Novamente (keepSession),
+    // _sessionDocId ainda aponta pro doc da partida anterior (que tem result preenchido).
+    // Forçamos criação de novo doc para _openLiveScoring não abrir com dados stale
+    // e pular direto à tela de estatísticas com loop infinito de animação.
+    if (_sessionReopened) {
+      _sessionDocId = null;
+      _sessionReopened = false;
+    }
 
     // If not yet saved to Firestore, save now
     if (!_sessionDocId && typeof window.FirestoreDB !== 'undefined' && window.FirestoreDB.db && cu && cu.uid) {
