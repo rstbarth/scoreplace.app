@@ -9,6 +9,12 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">❓ v1.6.27-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Ícone "?" de gênero indefinido agora chamativo.</b> Reportado pelo dono: <i>"quando o perfil não traz o gênero do jogador, isso deve ser selecionável (indicado pelos participantes)"</i>. ' +
+      'A funcionalidade já existia (qualquer participante podia clicar no ícone "?" pra definir gênero do slot, inclusive pra logado sem campo gender no perfil), mas o "?" estava cinza discreto e usuários não percebiam que era clicável.<br><br>' +
+      '<b>UX mais óbvia:</b> agora o "?" tem fundo + borda âmbar + animação pulse + label "Toque pra definir o gênero". Para slots com gênero JÁ definido (♂♀⚥), label mudou pra "[Gênero] — toque pra mudar" deixando claro que sempre pode ser ajustado.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">⚥ v1.6.26-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Gênero do jogador por slot + toggle "Duplas mistas" automático.</b><br><br>' +
       '<b>(1) "Sexo" → "Gênero"</b> no perfil dos usuários. Apenas mudança de label, valores internos (<code>masculino</code>/<code>feminino</code>/<code>outro</code>) preservados.<br><br>' +
