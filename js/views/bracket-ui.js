@@ -8874,6 +8874,16 @@ window._openCasualMatch = function(restoreOpts) {
     clearTimeout(_syncCasualSetupT);
     _syncCasualSetupT = setTimeout(function() {
       try {
+        // v1.6.34-beta: semeia _slotGenders com gêneros de perfil já conhecidos
+        // (incluindo o criador, cujo gender é carregado de cu.gender no init mas
+        // nunca escrito em _slotGenders, então outros clientes sempre viam '?').
+        // Faz isso antes de cada save para garantir consistência.
+        for (var _sgi = 0; _sgi < _lobbyParticipants.length; _sgi++) {
+          var _sgp = _lobbyParticipants[_sgi];
+          if (_sgp && _sgp.uid && !_slotGenders[_sgi] && _participantGenders[_sgp.uid]) {
+            _slotGenders[_sgi] = _participantGenders[_sgp.uid];
+          }
+        }
         // v1.6.26-beta: também sincroniza slotGenders pra que o toggle Misto
         // apareça/desapareça consistentemente entre todos os clientes da sala.
         window.FirestoreDB.updateCasualMatch(_sessionDocId, {
@@ -9441,6 +9451,19 @@ window._openCasualMatch = function(restoreOpts) {
           if (countDecreased) {
             _teamAssignments = {};
             autoShuffle = true;
+            // v1.6.34-beta: limpa DOM inputs e _savedPlayerNames para slots
+            // recém-liberados ANTES de _renderSetup. Sem isso, o loop de
+            // preservação de valores editáveis lê o valor antigo do DOM
+            // (ex: "Nelson Barth" que estava readonly) e re-injeta o nome
+            // de quem saiu no campo agora editável — slot continua "ocupado".
+            var _vacatedIds = ['casual-p1a-name','casual-p1b-name','casual-p2a-name','casual-p2b-name'];
+            for (var _vsi = 0; _vsi < _preserved.length && _vsi < _vacatedIds.length; _vsi++) {
+              if (_preserved[_vsi] === null) {
+                var _vEl = document.getElementById(_vacatedIds[_vsi]);
+                if (_vEl) _vEl.value = '';
+                _savedPlayerNames[_vsi] = '';
+              }
+            }
             if (typeof showNotification === 'function' && _leftNames.length > 0) {
               showNotification(_t('casual.playerLeft'), _t('casual.playerLeftRoom', {name: _leftNames[0]}), 'info');
             }
