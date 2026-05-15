@@ -329,6 +329,25 @@
       }
 
       var payload = { awardedAt: new Date().toISOString(), tier: tier };
+      // v1.6.16-beta: pra troféus de natureza ambígua (perfil_foto, por
+      // exemplo, depende de heurística pra detectar default Google avatar),
+      // grava debugInfo que permite inspeção via Firebase Console quando
+      // user reporta concessão incorreta. Sem isso, era impossível debugar
+      // sem DevTools no celular do user.
+      if (trophyId === 'perfil_foto') {
+        try {
+          var _fbU = window.firebase && window.firebase.auth && window.firebase.auth().currentUser;
+          var _cuT = (window.AppStore && window.AppStore.currentUser) || {};
+          payload._debugInfo = {
+            photoURL_fb: (_fbU && _fbU.photoURL) ? String(_fbU.photoURL).slice(0, 500) : null,
+            photoURL_store: _cuT.photoURL ? String(_cuT.photoURL).slice(0, 500) : null,
+            displayName: _cuT.displayName || (_fbU && _fbU.displayName) || null,
+            email: _cuT.email || (_fbU && _fbU.email) || null,
+            providerId: (_fbU && _fbU.providerData && _fbU.providerData[0]) ? _fbU.providerData[0].providerId : null
+          };
+          console.warn('[trophy perfil_foto AWARDED] photoURL=', payload._debugInfo.photoURL_fb || payload._debugInfo.photoURL_store);
+        } catch (_e) {}
+      }
       return db.collection('users').doc(uid)
         .collection('trophies').doc(trophyId)
         .set(payload)

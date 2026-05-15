@@ -292,6 +292,19 @@ body {
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   min-height: 100vh;
+  /* v1.6.16-beta: trava font scaling do sistema operacional.
+     Sem isto, Android com "Tamanho de fonte" aumentado em
+     Acessibilidade aplicava multiplicador sobre rem/em — fontes
+     ficavam infladas e quebravam layouts calibrados (especialmente
+     live scoring que tinha placar gigante não cabendo na tela em
+     telas com font scaling acima de 100%). iOS Safari já ignora
+     esse setting por default, mas Android Chrome aplicava.
+     "none" trava em 100% (autor-defined sizes); "100%" tem mesmo
+     efeito mas é a forma standard. Apps esportivos com UI
+     calibrada milímetro precisam consistência cross-device. */
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 h1, h2, h3, h4, h5, h6 {

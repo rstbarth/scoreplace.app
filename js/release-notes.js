@@ -9,6 +9,14 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📐 v1.6.16-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
+      '<p><b>(1) Fontes proporcionais em Android — fim das fontes infladas no live scoring.</b> Reportado: no Android da amiga as fontes do placar ao vivo ficaram bem maiores do que no iOS, sem caber na tela. ' +
+      'Causa: Android Chrome respeita o setting de Acessibilidade "Tamanho de fonte" do sistema e multiplica os <code>rem</code>/<code>em</code> do CSS — quando o usuário tem font scaling acima de 100% no Android, todas as fontes inflam, quebrando layouts calibrados com <code>clamp()</code>. iOS Safari ignora esse setting por default. ' +
+      '<b>Fix:</b> regra <code>text-size-adjust: 100%</code> (com prefixos <code>-webkit-</code> e <code>-moz-</code>) adicionada ao <code>body</code> — trava font scaling em 100% no Android Chrome também, restaurando consistência cross-device. UI permanece responsiva via <code>clamp(min, vw, max)</code> que já existia.<br><br>' +
+      '<b>(2) Diagnóstico do troféu "Com Rosto".</b> Nelson reporta que continua ganhando o troféu mesmo sem foto real, a cada login/atualização. Patterns rejeitados na v1.6.13-beta não pegaram o caso dele. Sem URL real, é impossível adicionar pattern certo. ' +
+      'Agora ao conceder o troféu <code>perfil_foto</code>, o doc Firestore recebe <code>_debugInfo</code> com a URL completa avaliada (Firebase Auth + AppStore), <code>displayName</code>, <code>email</code> e <code>providerId</code>. Inspecionável via Firebase Console em <code>users/{uid}/trophies/perfil_foto</code> sem precisar de DevTools no celular do user. Console também loga <code>[trophy perfil_foto AWARDED]</code> com a URL. Próximo report do Nelson permite identificar exatamente qual pattern adicionar.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
       '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">📷 v1.6.15-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(14 de Maio, 2026)</span></div>' +
       '<p><b>Botão "Entrar via QR" na dashboard.</b> Acesso direto ao leitor de QR code (com fallback pra digitar código manualmente) na home — logo abaixo da row "Partida Casual / Novo Torneio / Place", à esquerda de "Pessoas". ' +
       'Usa a câmera do dispositivo (BarcodeDetector nativo em Chrome Android, jsQR carregado via CDN em outros browsers) pra escanear QR code de partida casual e entrar direto na sala via <code>#casual/&lt;roomCode&gt;</code>. ' +
