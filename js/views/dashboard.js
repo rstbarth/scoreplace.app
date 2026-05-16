@@ -496,12 +496,14 @@ function renderDashboard(container) {
                   <span>${cleanSportName(t.sport) || _t('tournament.sport')}</span>
                </div>
                <div style="display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0;">
-                  <div style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; white-space: nowrap;">
+                  <div id="dash-regstatus-${t.id}"
+                       ${isAberto && t.registrationLimit ? `data-regdeadline-tid="${t.id}" data-regdeadline-ts="${new Date(t.registrationLimit).getTime()}"` : ''}
+                       style="color: ${statusColor}; background: ${statusBg}; padding: 4px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: ${statusFontWeight}; white-space: nowrap;">
                     ${statusText}
                   </div>
                </div>
             </div>
-            ${enrollBtnHtml ? `<div style="display: flex; flex-direction: column; align-items: flex-end; margin-top: 6px; gap: 4px;">
+            ${enrollBtnHtml ? `<div id="dash-enrollbtn-${t.id}" style="display: flex; flex-direction: column; align-items: flex-end; margin-top: 6px; gap: 4px;">
                ${enrollBtnHtml}
             </div>` : ''}
 

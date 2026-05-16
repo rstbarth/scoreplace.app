@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🗓️ v1.6.66-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Prazo de inscrições expira automaticamente no card da dashboard — sem precisar recarregar a página.</b><br><br>' +
+      'Quando o prazo de inscrição de um torneio se encerra por decurso de tempo, o badge "Inscrições Abertas" no card da dashboard muda automaticamente para "Inscrições Encerradas" e o botão de inscrição some — em tempo real, sem refresh. ' +
+      'Implementado via varredura no intervalo de 1s já existente para contadores: o badge carrega <code>data-regdeadline-ts</code> com o timestamp do prazo; quando o clock ultrapassa esse valor, o DOM é atualizado inline e o status "closed" é persistido no Firestore.<br><br>' +
+      'Além disso, ao clicar em "Reabrir Inscrições", o prazo de inscrição anterior é apagado automaticamente — abrindo a possibilidade de definir um novo prazo ao editar o torneio.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">📊 v1.6.65-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Últimas partidas no setup casual aparecem corretamente após jogar.</b><br><br>' +
       'Dois bugs impediam que partidas recentes aparecessem na seção "📊 Últimas Partidas": ' +

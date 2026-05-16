@@ -2398,6 +2398,10 @@ window.toggleRegistrationStatus = function (tId) {
         if (typeof showConfirmDialog !== 'function') { console.error('showConfirmDialog not available'); return; }
         showConfirmDialog(_t('draw.reopenEnrollTitle'), _t('draw.reopenEnrollMsg', { name: window._safeHtml(t.name || '') }) + (t.activePollId ? _t('draw.reopenEnrollPollSuffix') : ''), function() {
             t.status = 'open';
+            // v1.6.66-beta: limpa prazo de inscrição ao reabrir — inscrições
+            // ficam abertas indefinidamente e o organizador pode redefinir o
+            // prazo em "Detalhes Avançados" do torneio.
+            t.registrationLimit = null;
             delete t._pollSuspended;
             // Auto-close active poll when reopening inscriptions
             if (t.activePollId && t.polls) {

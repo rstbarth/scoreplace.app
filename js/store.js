@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.6.65-beta';
+window.SCOREPLACE_VERSION = '1.6.66-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -107,6 +107,32 @@ setInterval(function() {
     if (isNaN(since)) return;
     var diff = now - since;
     el.textContent = diff > 0 ? window._formatCountdown(diff) : '0s';
+  });
+  // v1.6.66-beta: auto-expirar prazo de inscrição no card do dashboard sem
+  // precisar de refresh. Quando o prazo chega, atualiza o badge de status,
+  // oculta o botão de inscrição e persiste status:'closed' no Firestore.
+  var els3 = document.querySelectorAll('[data-regdeadline-ts]');
+  els3.forEach(function(el) {
+    var ts = parseInt(el.getAttribute('data-regdeadline-ts'));
+    if (isNaN(ts) || ts > now) return;
+    var tId = el.getAttribute('data-regdeadline-tid');
+    // Atualiza badge de status
+    var closedText = typeof window._t === 'function' ? window._t('status.closed') : 'Inscrições Encerradas';
+    el.textContent = closedText;
+    el.style.color = '#fca5a5';
+    el.style.background = 'rgba(0,0,0,0.3)';
+    el.style.fontWeight = '600';
+    el.removeAttribute('data-regdeadline-ts');
+    el.removeAttribute('data-regdeadline-tid');
+    // Oculta botão de inscrição
+    if (tId) {
+      var enrollEl = document.getElementById('dash-enrollbtn-' + tId);
+      if (enrollEl) enrollEl.style.display = 'none';
+    }
+    // Persiste status:'closed' no Firestore
+    if (tId && window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
+      window.FirestoreDB.saveTournament({ id: tId, status: 'closed' }).catch(function() {});
+    }
   });
 }, 1000);
 
