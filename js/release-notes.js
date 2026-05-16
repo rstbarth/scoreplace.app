@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🔧 v1.6.68-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Recuperação automática de torneios afetados pelo bug v1.6.66.</b><br><br>' +
+      'Ao abrir o app, uma rotina silenciosa verifica todos os torneios do organizador logado onde <code>adminEmails</code> foi apagado pelo bug. ' +
+      'Para cada torneio afetado, recomputa os campos <code>adminEmails</code> e <code>memberEmails</code> a partir dos dados existentes ' +
+      '(creatorEmail, organizerEmail, co-hosts, participantes) e grava de volta no Firestore — sem nenhuma ação do usuário. ' +
+      'A regra Firestore foi estendida com um caminho de recovery que permite exatamente essa operação quando <code>adminEmails</code> está vazio ' +
+      'e o solicitante é o <code>organizerEmail</code> declarado no torneio.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🗓️ v1.6.67-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Fix crítico: "Reabrir Inscrições" voltava em loop e gravação falhava silenciosamente.</b><br><br>' +
       'Ao expirar o prazo de inscrição, o código anterior chamava <code>saveTournament({ id, status })</code> com objeto parcial — ' +

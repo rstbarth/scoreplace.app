@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.6.67-beta';
+window.SCOREPLACE_VERSION = '1.6.68-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -1437,14 +1437,52 @@ window._autoCloseExpiredEnrollments = function() {
     // Check if deadline passed
     if (new Date(t.registrationLimit) < now) {
       t.status = 'closed';
-      // Only the organizer should persist this to avoid permission issues
+      // Só o organizador persiste — salva objeto completo para não limpar
+      // adminEmails/memberEmails (bug v1.6.66 corrigido em v1.6.67).
       var cu = window.AppStore.currentUser;
       if (cu && (t.organizerEmail === cu.email || (Array.isArray(t.coHosts) && t.coHosts.some(function(ch) { return ch.email === cu.email && ch.status === 'active'; })))) {
         if (window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
-          window.FirestoreDB.saveTournament({ id: t.id, status: 'closed' }).catch(function() {});
+          window.FirestoreDB.saveTournament(t).catch(function() {});
         }
       }
     }
+  });
+};
+
+// v1.6.68-beta: recupera torneios com adminEmails/memberEmails apagados pelo
+// bug v1.6.66. Roda silenciosamente uma vez por sessão após o primeiro snapshot.
+// Usa regra Firestore isAdminEmailsRecovery (escrita restrita a esses 2 campos).
+window._recoverWipedAdminEmails = function() {
+  if (!window.AppStore || !window.AppStore.tournaments) return;
+  if (!window.FirestoreDB || !window.FirestoreDB.db) return;
+  var cu = window.AppStore.currentUser;
+  if (!cu || !cu.email) return;
+  var myEmail = cu.email.toLowerCase();
+
+  window.AppStore.tournaments.forEach(function(t) {
+    // Só age quando adminEmails está ausente ou vazio E o usuário é o organizador
+    var adminList = Array.isArray(t.adminEmails) ? t.adminEmails : [];
+    if (adminList.length > 0) return; // já está OK
+    var orgEmail = (t.organizerEmail || t.creatorEmail || '').toLowerCase();
+    if (orgEmail !== myEmail) return; // só o dono recupera
+
+    // Recomputa usando os mesmos helpers de firebase-db.js
+    var newAdminEmails = window.FirestoreDB._computeAdminEmails(t);
+    var newMemberEmails = window.FirestoreDB._computeMemberEmails(t);
+
+    // Escrita cirúrgica — só adminEmails e memberEmails (Firestore rule permite)
+    window.FirestoreDB.db.collection('tournaments').doc(String(t.id))
+      .update({ adminEmails: newAdminEmails, memberEmails: newMemberEmails })
+      .then(function() {
+        // Atualiza AppStore em memória para que a sessão atual funcione
+        t.adminEmails = newAdminEmails;
+        t.memberEmails = newMemberEmails;
+        console.log('[Recovery v1.6.68] restaurado adminEmails para torneio', t.id,
+          '→', newAdminEmails);
+      })
+      .catch(function(e) {
+        console.warn('[Recovery v1.6.68] falhou para torneio', t.id, e);
+      });
   });
 };
 
@@ -1707,6 +1745,8 @@ window.AppStore = {
           }
           // Auto-close tournaments whose registration deadline has passed
           window._autoCloseExpiredEnrollments();
+          // Recupera adminEmails/memberEmails apagados pelo bug v1.6.66
+          setTimeout(function() { window._recoverWipedAdminEmails(); }, 2000);
           return;
         }
 

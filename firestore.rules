@@ -10,6 +10,20 @@ service cloud.firestore {
         ? request.auth.token.email.lower() : '';
     }
 
+    // Recovery path: permite que o organizerEmail declarado restaure apenas
+    // adminEmails e memberEmails quando esses campos foram apagados por bug
+    // (v1.6.66-beta chamava saveTournament com objeto parcial). Só dispara
+    // quando adminEmails está ausente ou vazio — nunca sobrescreve uma lista
+    // válida. Escritas fora desses dois campos são bloqueadas.
+    function isAdminEmailsRecovery(data) {
+      return authEmail() != ''
+        && data.organizerEmail is string
+        && data.organizerEmail.lower() == authEmail()
+        && (!(data.keys().hasAll(['adminEmails'])) || data.adminEmails.size() == 0)
+        && request.resource.data.diff(data).affectedKeys()
+             .hasOnly(['adminEmails', 'memberEmails']);
+    }
+
     // Caller is an admin of the tournament: creator, current organizer, or
     // an active co-host. All are denormalized into `adminEmails[]` by
     // saveTournament so the rule stays O(1).
@@ -89,18 +103,23 @@ service cloud.firestore {
         && request.resource.data.creatorEmail is string
         && request.resource.data.creatorEmail.lower() == authEmail();
 
-      // Update permitido em 3 caminhos:
+      // Update permitido em 4 caminhos:
       //   1. Admin (creator/organizer/co-host) — qualquer mudança
       //   2. Qualquer authed pode fazer enrollment-only diff (entrar/sair)
       //   3. Participante pode atualizar campos do bracket (placar, check-in,
       //      aprovação de resultado, voto em poll, etc.) — lista positiva
       //      em isParticipantBracketDiff. Bloqueia mudanças em nome/datas/
       //      formato/regras/organizador/etc. mesmo pra participantes.
+      //   4. Recovery: quando adminEmails foi apagado por bug (v1.6.66),
+      //      o organizerEmail declarado pode restaurar apenas adminEmails e
+      //      memberEmails. Regra muito restrita: só quando a lista está vazia,
+      //      só quem é o organizerEmail atual, e só esses dois campos.
       allow update: if request.auth != null
         && (
           isTournamentAdmin(resource.data)
           || isEnrollmentOnlyDiff()
           || (isTournamentParticipant(resource.data) && isParticipantBracketDiff())
+          || isAdminEmailsRecovery(resource.data)
         );
 
       // Delete: admins only.
