@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🤝 v1.6.64-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Autocomplete em partida casual não mostra mais "Sugerir vínculo" nas estatísticas finais.</b><br><br>' +
+      'Ao autocompletar o nome de um amigo no setup da partida, o vínculo já fica registrado e a notificação é disparada automaticamente ao fim da partida. ' +
+      'A seção "Vincular jogadores" nas estatísticas finais não exibia mais o botão "🤝 Sugerir vínculo" para slots já autocompletados — era redundante. ' +
+      'Agora esses slots são ignorados: se você usou autocomplete, o vínculo já foi feito.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">👤 v1.6.57-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
       '<p><b>Avatar e foto do amigo aparecem ao autocompletar no modo Técnico.</b><br><br>' +
       'Ao digitar o nome de um amigo no slot e selecionar via autocomplete, o avatar/foto e o gênero passavam a aparecer corretamente apenas fora do modo Técnico. ' +

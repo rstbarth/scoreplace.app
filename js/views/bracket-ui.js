@@ -6119,7 +6119,10 @@ window._openLiveScoring = function(tId, matchId, opts) {
     }
     var suggestions = [];
     _casualPlayers.forEach(function(p, idx) {
-      if (!p || p.uid) return; // já vinculado
+      if (!p || p.uid) return; // já vinculado via lobby/login
+      // Slot autocompletado: vínculo já registrado e notificação disparada pelo
+      // auto-trigger ao fim da partida — não exibir sugestão redundante.
+      if (_slotLinkedUid && _slotLinkedUid[idx]) return;
       var typed = (p.name || p.displayName || '').trim();
       if (!typed) return;
       var matches = window._suggestFriendsForGuestName(typed, loggedUids);
