@@ -5083,6 +5083,52 @@ function setupProfileModal() {
       // nome do usuário.' Trade-off correto: nunca bloquear save de perfil
       // por nome. Organizadores corrigem manualmente nomes ruins via UI.
 
+      // ── 2b. NOME ÚNICO — verifica conflito antes de salvar ──────────────
+      // Só verifica quando o nome realmente mudou.
+      if (finalName && finalName.toLowerCase() !== (_oldDisplayName || '').toLowerCase()) {
+        try {
+          var nameLower = finalName.toLowerCase();
+          var nameConflictSnap = await window.FirestoreDB.db.collection('users')
+            .where('displayName_lower', '==', nameLower)
+            .limit(5)
+            .get();
+          var conflicts = nameConflictSnap.docs.filter(function(d) { return d.id !== uid; });
+          if (conflicts.length > 0) {
+            // Verifica se algum conflito é candidato a mesclagem (mesmo phone ou email)
+            var myPhone = (typeof window._normalizePhoneE164 === 'function' && phoneDigits)
+              ? window._normalizePhoneE164(phoneDigits, phoneCountry || '55')
+              : phoneDigits;
+            var myEmail = (cu.email || '').toLowerCase();
+            var mergeCandidate = null;
+            for (var ci = 0; ci < conflicts.length; ci++) {
+              var cd = conflicts[ci].data() || {};
+              var cdPhone = cd.phone || '';
+              var cdEmail = (cd.email || cd.email_lower || '').toLowerCase();
+              if ((myPhone && cdPhone && myPhone === cdPhone) ||
+                  (myEmail && cdEmail && myEmail === cdEmail)) {
+                mergeCandidate = { uid: conflicts[ci].id, data: cd };
+                break;
+              }
+            }
+            if (mergeCandidate) {
+              // Candidato a mesclagem — acionar fluxo existente de merge
+              if (typeof window._triggerAccountMerge === 'function') {
+                window._triggerAccountMerge(mergeCandidate.uid, mergeCandidate.data);
+              }
+            } else {
+              // Nome em uso por conta distinta — bloquear save
+              if (typeof showNotification === 'function') {
+                showNotification('Perfil', 'Este nome de exibição já está em uso na plataforma. Escolha outro.', 'error');
+              }
+              return;
+            }
+          }
+        } catch (nameCheckErr) {
+          console.warn('[Profile] unique name check failed (non-blocking):', nameCheckErr);
+          // Falha na verificação não bloqueia o save — worst-case: nome duplicado
+        }
+      }
+
       // ── 3. CONSTRUIR PAYLOAD — só inclui campos não-vazios ──────────────
       // Regra: Firestore set({merge:true}) preserva campos omitidos. Então
       // CAMPO VAZIO = CAMPO OMITIDO = VALOR EXISTENTE PRESERVADO.

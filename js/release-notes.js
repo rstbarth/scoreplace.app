@@ -8,6 +8,14 @@
 
 window._RELEASE_NOTES_HTML = (function () {
   var html =
+    '<div style="margin-bottom:1rem;border:2px solid #f59e0b;border-radius:12px;padding:14px 16px;background:rgba(245,158,11,0.07);">' +
+      '<div style="font-weight:800; color:#f59e0b; font-size:1rem; margin-bottom:8px;">🔒 v1.6.82-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Nomes de exibição únicos.</b><br><br>' +
+      'Agora não é possível salvar um nome de exibição já cadastrado por outro usuário na plataforma. Ao tentar salvar um nome em uso:<br><br>' +
+      '<b>Candidato a mesclagem</b> — se o perfil em conflito compartilha o mesmo telefone ou e-mail, o fluxo de mesclagem de contas é acionado automaticamente.<br><br>' +
+      '<b>Nome em uso por conta diferente</b> — alerta <em>"Este nome de exibição já está em uso na plataforma. Escolha outro."</em> e o save é bloqueado.<br><br>' +
+      'A verificação usa o campo <code>displayName_lower</code> já indexado no Firestore, então é eficiente e case-insensitive. Nomes que não mudam ignoram a checagem.</p>' +
+    '</div>' +
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">📖 v1.6.81-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Manual completo: gênero por slot, autocomplete de amigos, árbitro e Jogar Novamente para todos.</b><br><br>' +
