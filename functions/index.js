@@ -1832,3 +1832,396 @@ exports.scheduledTrophyCheck = onSchedule(
     console.log(`[scheduledTrophyCheck] DONE: processed=${processed} trophiesAwarded=${trophiesAwarded} milestonesAwarded=${milestonesAwarded} pushSent=${pushSent} errors=${errors}`);
   }
 );
+
+// ─── mergePhoneAccount ────────────────────────────────────────────────────────
+// Chamada pelo client quando o usuário salva seu telefone no perfil e o sistema
+// detecta uma conta anterior criada via SMS com o mesmo número.
+// Transfere inscrições em torneios, partidas casuais e presença para a conta
+// atual. Marca a conta antiga com mergedInto para desativação.
+//
+// Deploy: firebase deploy --only functions:mergePhoneAccount
+exports.mergePhoneAccount = onCall(
+  { region: "us-central1", memory: "512MiB", timeoutSeconds: 120 },
+  async (request) => {
+    const callerUid = request.auth && request.auth.uid;
+    if (!callerUid) throw new HttpsError("unauthenticated", "Login obrigatório");
+
+    const oldUid = request.data && request.data.oldUid;
+    if (!oldUid || typeof oldUid !== "string") throw new HttpsError("invalid-argument", "oldUid obrigatório");
+    if (oldUid === callerUid) throw new HttpsError("invalid-argument", "oldUid deve ser diferente da conta atual");
+
+    const db = admin.firestore();
+
+    // ── 1. Carrega dados de ambas as contas ──────────────────────────────────
+    const [newSnap, oldSnap] = await Promise.all([
+      db.collection("users").doc(callerUid).get(),
+      db.collection("users").doc(oldUid).get(),
+    ]);
+
+    if (!oldSnap.exists) throw new HttpsError("not-found", "Conta antiga não encontrada");
+    if (newSnap.exists && newSnap.data().mergedInto) throw new HttpsError("failed-precondition", "Conta atual já foi mesclada em outra");
+
+    const newData = newSnap.exists ? newSnap.data() : {};
+    const oldData = oldSnap.data();
+
+    const newName = newData.displayName || newData.name || "";
+    const newEmail = newData.email || "";
+    const oldEmail = oldData.email || oldData.phone || "";
+    const oldName = oldData.displayName || oldData.name || "";
+
+    console.log(`[mergePhoneAccount] Merging oldUid=${oldUid} (${oldName}/${oldEmail}) → newUid=${callerUid} (${newName}/${newEmail})`);
+
+    let tournamentsUpdated = 0;
+    let casualMatchesUpdated = 0;
+
+    // ── 2. Torneios: busca por oldUid OU oldEmail em memberEmails/participants ─
+    const tourSnaps = await db.collection("tournaments").get();
+    const batch1 = db.batch();
+    let batchCount = 0;
+
+    for (const tourDoc of tourSnaps.docs) {
+      const t = tourDoc.data();
+      let changed = false;
+      const update = {};
+
+      // 2a. memberEmails[]
+      const memberEmails = Array.isArray(t.memberEmails) ? [...t.memberEmails] : [];
+      const emailIdx = oldEmail ? memberEmails.indexOf(oldEmail) : -1;
+      if (emailIdx !== -1 && newEmail && !memberEmails.includes(newEmail)) {
+        memberEmails.splice(emailIdx, 1, newEmail);
+        update.memberEmails = memberEmails;
+        changed = true;
+      } else if (emailIdx !== -1 && newEmail && memberEmails.includes(newEmail)) {
+        memberEmails.splice(emailIdx, 1);
+        update.memberEmails = memberEmails;
+        changed = true;
+      }
+
+      // 2b. participants[] — atualiza uid/email/displayName/name
+      const participants = Array.isArray(t.participants) ? t.participants.map(p => {
+        const pUid = p.uid || p.id || "";
+        const pEmail = (p.email || p.displayName || "").toLowerCase();
+        const matches = (pUid && pUid === oldUid) ||
+                        (oldEmail && pEmail === oldEmail.toLowerCase());
+        if (!matches) return p;
+        changed = true;
+        const updated = Object.assign({}, p);
+        if (callerUid) updated.uid = callerUid;
+        if (newEmail) updated.email = newEmail;
+        if (newName) { updated.displayName = newName; updated.name = newName; }
+        // Também atualiza p1/p2 string se for individual (displayName == oldName)
+        return updated;
+      }) : null;
+      if (participants) update.participants = participants;
+
+      // 2c. Strings p1/p2 em matches/rounds/groups que referenciam o nome antigo
+      //     (Liga, Suíço, Eliminatórias — p1/p2 são displayNames)
+      if (oldName && newName && oldName !== newName) {
+        function replaceNameInMatches(matches) {
+          if (!Array.isArray(matches)) return { arr: matches, hit: false };
+          let hit = false;
+          const arr = matches.map(m => {
+            const nm = Object.assign({}, m);
+            if (nm.p1 === oldName) { nm.p1 = newName; hit = true; }
+            if (nm.p2 === oldName) { nm.p2 = newName; hit = true; }
+            if (nm.winner === oldName) { nm.winner = newName; hit = true; }
+            // Teams arrays (Rei/Rainha duplas)
+            if (Array.isArray(nm.team1)) nm.team1 = nm.team1.map(x => x === oldName ? (hit = true, newName) : x);
+            if (Array.isArray(nm.team2)) nm.team2 = nm.team2.map(x => x === oldName ? (hit = true, newName) : x);
+            return nm;
+          });
+          return { arr, hit };
+        }
+
+        if (Array.isArray(t.matches)) {
+          const r = replaceNameInMatches(t.matches);
+          if (r.hit) { update.matches = r.arr; changed = true; }
+        }
+        if (Array.isArray(t.rounds)) {
+          let roundsHit = false;
+          const rounds = t.rounds.map(round => {
+            if (!round || !Array.isArray(round.matches)) return round;
+            const r = replaceNameInMatches(round.matches);
+            if (r.hit) roundsHit = true;
+            return Object.assign({}, round, { matches: r.arr });
+          });
+          if (roundsHit) { update.rounds = rounds; changed = true; }
+        }
+        if (Array.isArray(t.groups)) {
+          let groupsHit = false;
+          const groups = t.groups.map(g => {
+            if (!g || !Array.isArray(g.matches)) return g;
+            const r = replaceNameInMatches(g.matches);
+            if (r.hit) groupsHit = true;
+            return Object.assign({}, g, { matches: r.arr });
+          });
+          if (groupsHit) { update.groups = groups; changed = true; }
+        }
+        if (Array.isArray(t.rodadas)) {
+          let rodadasHit = false;
+          const rodadas = t.rodadas.map(rod => {
+            if (!rod || !Array.isArray(rod.matches)) return rod;
+            const r = replaceNameInMatches(rod.matches);
+            if (r.hit) rodadasHit = true;
+            return Object.assign({}, rod, { matches: r.arr });
+          });
+          if (rodadasHit) { update.rodadas = rodadas; changed = true; }
+        }
+      }
+
+      if (changed) {
+        batch1.update(tourDoc.ref, update);
+        tournamentsUpdated++;
+        batchCount++;
+        if (batchCount >= 400) {
+          await batch1.commit();
+          batchCount = 0;
+        }
+      }
+    }
+    if (batchCount > 0) await batch1.commit();
+
+    // ── 3. Partidas casuais ──────────────────────────────────────────────────
+    const casualSnap = await db.collection("casualMatches")
+      .where("creatorUid", "==", oldUid)
+      .get();
+    if (!casualSnap.empty) {
+      const batch2 = db.batch();
+      casualSnap.docs.forEach(doc => {
+        batch2.update(doc.ref, { creatorUid: callerUid });
+      });
+      await batch2.commit();
+      casualMatchesUpdated += casualSnap.size;
+    }
+
+    // Também busca por matchHistory em users (snapshots de stats de casual)
+    if (oldData.matchHistory && Array.isArray(oldData.matchHistory) && newSnap.exists) {
+      const existingHistory = newData.matchHistory || [];
+      const merged = [...existingHistory];
+      oldData.matchHistory.forEach(entry => {
+        const alreadyExists = merged.some(e => e.matchId === entry.matchId);
+        if (!alreadyExists) merged.push(entry);
+      });
+      await db.collection("users").doc(callerUid).update({ matchHistory: merged });
+    }
+
+    // ── 4. Marca conta antiga como mesclada ──────────────────────────────────
+    await db.collection("users").doc(oldUid).set({
+      mergedInto: callerUid,
+      mergedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    console.log(`[mergePhoneAccount] DONE tournaments=${tournamentsUpdated} casual=${casualMatchesUpdated}`);
+    return { ok: true, tournaments: tournamentsUpdated, casualMatches: casualMatchesUpdated };
+  }
+);
+
+// ─── fixMergedParticipants (one-shot) ─────────────────────────────────────────
+// Repara torneios onde participantes da conta antiga ainda aparecem com identidade
+// antiga. Funciona em dois modos:
+//
+// Modo 1 — UIDs explícitos (para corrigir caso específico como Zilda):
+//   curl '...fixMergedParticipants?secret=...&oldUid=AAA&newUid=BBB'
+//
+// Modo 2 — varredura por mergedInto (pós-merge automático):
+//   curl '...fixMergedParticipants?secret=...'
+//
+// Modo 3 — varredura por pares de phone duplicados (sem mergedInto):
+//   curl '...fixMergedParticipants?secret=...&scanPhone=1'
+exports.fixMergedParticipants = onRequest(
+  { region: "us-central1", timeoutSeconds: 540, memory: "512MiB" },
+  async (req, res) => {
+    const SECRET = "SCOREPLACE_FIX_MERGED_20260516";
+    if (req.query.secret !== SECRET) { res.status(403).json({ error: "forbidden" }); return; }
+
+    const db = admin.firestore();
+
+    // ── Função auxiliar: aplica a substituição em todos os torneios ───────────
+    async function repairTournaments(oldUid, oldEmail, oldName, newUid, newEmail, newName) {
+      const tourSnaps = await db.collection("tournaments").get();
+      let tourFixed = 0;
+
+      function replaceNameInMatches(matches) {
+        if (!Array.isArray(matches)) return { arr: matches, hit: false };
+        let hit = false;
+        const arr = matches.map(m => {
+          const nm = Object.assign({}, m);
+          if (nm.p1 === oldName) { nm.p1 = newName; hit = true; }
+          if (nm.p2 === oldName) { nm.p2 = newName; hit = true; }
+          if (nm.winner === oldName) { nm.winner = newName; hit = true; }
+          if (Array.isArray(nm.team1)) nm.team1 = nm.team1.map(x => x === oldName ? (hit = true, newName) : x);
+          if (Array.isArray(nm.team2)) nm.team2 = nm.team2.map(x => x === oldName ? (hit = true, newName) : x);
+          return nm;
+        });
+        return { arr, hit };
+      }
+
+      for (const tourDoc of tourSnaps.docs) {
+        const t = tourDoc.data();
+        let changed = false;
+        const update = {};
+
+        // memberEmails
+        const memberEmails = Array.isArray(t.memberEmails) ? [...t.memberEmails] : [];
+        const emailIdx = oldEmail ? memberEmails.indexOf(oldEmail) : -1;
+        if (emailIdx !== -1) {
+          if (newEmail && !memberEmails.includes(newEmail)) memberEmails.splice(emailIdx, 1, newEmail);
+          else memberEmails.splice(emailIdx, 1);
+          update.memberEmails = memberEmails;
+          changed = true;
+        }
+
+        // participants[]
+        if (Array.isArray(t.participants)) {
+          const participants = t.participants.map(p => {
+            const pUid = p.uid || p.id || "";
+            const pEmail = (p.email || p.displayName || "").toLowerCase();
+            const matches = (pUid && pUid === oldUid) ||
+                            (oldEmail && pEmail === oldEmail.toLowerCase());
+            if (!matches) return p;
+            changed = true;
+            const updated = Object.assign({}, p);
+            if (newUid) updated.uid = newUid;
+            if (newEmail) updated.email = newEmail;
+            if (newName) { updated.displayName = newName; updated.name = newName; }
+            return updated;
+          });
+          if (changed) update.participants = participants;
+        }
+
+        // p1/p2/winner strings em matches/rounds/groups/rodadas
+        if (oldName && newName && oldName !== newName) {
+          if (Array.isArray(t.matches)) {
+            const r = replaceNameInMatches(t.matches);
+            if (r.hit) { update.matches = r.arr; changed = true; }
+          }
+          if (Array.isArray(t.rounds)) {
+            let hit = false;
+            const rounds = t.rounds.map(rod => {
+              const r = replaceNameInMatches(rod.matches);
+              if (r.hit) hit = true;
+              return Object.assign({}, rod, { matches: r.arr });
+            });
+            if (hit) { update.rounds = rounds; changed = true; }
+          }
+          if (Array.isArray(t.groups)) {
+            let hit = false;
+            const groups = t.groups.map(g => {
+              const r = replaceNameInMatches(g.matches);
+              if (r.hit) hit = true;
+              return Object.assign({}, g, { matches: r.arr });
+            });
+            if (hit) { update.groups = groups; changed = true; }
+          }
+          if (Array.isArray(t.rodadas)) {
+            let hit = false;
+            const rodadas = t.rodadas.map(rod => {
+              const r = replaceNameInMatches(rod.matches);
+              if (r.hit) hit = true;
+              return Object.assign({}, rod, { matches: r.arr });
+            });
+            if (hit) { update.rodadas = rodadas; changed = true; }
+          }
+        }
+
+        if (changed) { await tourDoc.ref.update(update); tourFixed++; }
+      }
+      return tourFixed;
+    }
+
+    // ── Modo 1: UIDs explícitos ───────────────────────────────────────────────
+    if (req.query.oldUid && req.query.newUid) {
+      const oldUid = req.query.oldUid;
+      const newUid = req.query.newUid;
+      const [oldDoc, newDoc] = await Promise.all([
+        db.collection("users").doc(oldUid).get(),
+        db.collection("users").doc(newUid).get(),
+      ]);
+      if (!oldDoc.exists) { res.status(404).json({ error: "oldUid não encontrado" }); return; }
+      if (!newDoc.exists) { res.status(404).json({ error: "newUid não encontrado" }); return; }
+      const oldData = oldDoc.data();
+      const newData = newDoc.data();
+      const oldEmail = oldData.email || oldData.phone || "";
+      const oldName  = oldData.displayName || oldData.name || "";
+      const newEmail = newData.email || "";
+      const newName  = newData.displayName || newData.name || "";
+      console.log(`[fixMergedParticipants] Modo explícito: ${oldUid} (${oldName}) → ${newUid} (${newName})`);
+      const tourFixed = await repairTournaments(oldUid, oldEmail, oldName, newUid, newEmail, newName);
+      // Marca conta antiga como mesclada
+      await db.collection("users").doc(oldUid).set({ mergedInto: newUid, mergedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      res.json({ ok: true, mode: "explicit", oldUid, newUid, oldName, newName, tourFixed });
+      return;
+    }
+
+    // ── Modo 3: varredura por pares de phone duplicados ───────────────────────
+    if (req.query.scanPhone) {
+      const allUsersSnap = await db.collection("users").get();
+      const byPhone = {};
+      allUsersSnap.docs.forEach(doc => {
+        const d = doc.data();
+        if (!d.phone || d.mergedInto) return;
+        const phone = d.phone.replace(/\s+/g, "");
+        if (!byPhone[phone]) byPhone[phone] = [];
+        byPhone[phone].push({ id: doc.id, data: d });
+      });
+      const duplicates = Object.entries(byPhone).filter(([, docs]) => docs.length > 1);
+      if (duplicates.length === 0) {
+        res.json({ ok: true, message: "Nenhum par de phone duplicado encontrado" });
+        return;
+      }
+      const report = [];
+      for (const [phone, docs] of duplicates) {
+        // "novo" = tem displayName real (não é número), ou tem email real
+        const sorted = docs.sort((a, b) => {
+          const aIsPhone = /^\+?[0-9\s\-()]+$/.test(a.data.displayName || "");
+          const bIsPhone = /^\+?[0-9\s\-()]+$/.test(b.data.displayName || "");
+          if (aIsPhone && !bIsPhone) return 1;  // b é novo
+          if (!aIsPhone && bIsPhone) return -1; // a é novo
+          return 0;
+        });
+        const newDoc = sorted[0];
+        const oldDocs = sorted.slice(1);
+        for (const oldDoc of oldDocs) {
+          const oldEmail = oldDoc.data.email || oldDoc.data.phone || "";
+          const oldName  = oldDoc.data.displayName || oldDoc.data.name || "";
+          const newEmail = newDoc.data.email || "";
+          const newName  = newDoc.data.displayName || newDoc.data.name || "";
+          console.log(`[fixMergedParticipants] Phone pair: ${oldDoc.id} (${oldName}) → ${newDoc.id} (${newName})`);
+          const tourFixed = await repairTournaments(oldDoc.id, oldEmail, oldName, newDoc.id, newEmail, newName);
+          await db.collection("users").doc(oldDoc.id).set({ mergedInto: newDoc.id, mergedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+          report.push({ phone, oldUid: oldDoc.id, oldName, newUid: newDoc.id, newName, tourFixed });
+        }
+      }
+      res.json({ ok: true, mode: "scanPhone", report });
+      return;
+    }
+
+    // ── Modo 2: varredura por mergedInto ──────────────────────────────────────
+    const mergedSnap = await db.collection("users").where("mergedInto", "!=", null).get();
+    if (mergedSnap.empty) { res.json({ ok: true, message: "Nenhum usuário mesclado encontrado" }); return; }
+
+    const report = [];
+
+    for (const oldDoc of mergedSnap.docs) {
+      const oldUid = oldDoc.id;
+      const oldData = oldDoc.data();
+      const newUid = oldData.mergedInto;
+      if (!newUid) continue;
+
+      const newDoc = await db.collection("users").doc(newUid).get();
+      if (!newDoc.exists) { report.push({ oldUid, error: "newUid doc not found" }); continue; }
+
+      const newData = newDoc.data();
+      const oldEmail = oldData.email || oldData.phone || "";
+      const oldName = oldData.displayName || oldData.name || "";
+      const newEmail = newData.email || "";
+      const newName = newData.displayName || newData.name || "";
+
+      console.log(`[fixMergedParticipants] Modo mergedInto: ${oldUid} (${oldName}) → ${newUid} (${newName})`);
+      const tourFixed = await repairTournaments(oldUid, oldEmail, oldName, newUid, newEmail, newName);
+      report.push({ oldUid, oldName, newUid, newName, tourFixed });
+    }
+
+    res.json({ ok: true, mode: "mergedInto", report });
+  }
+);
