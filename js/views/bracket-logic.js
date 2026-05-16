@@ -1800,9 +1800,200 @@ function _doCloseRound(t, tId, roundIdx, anchorMatchId) {
   }
 }
 
+// ─── Round-robin ("Todos contra todos") schedule ─────────────────────────────
+
+// Build one turno: enough rounds so every pair of players has been in the same
+// group of 4 at least once. Uses greedy Monte Carlo (try 200 shuffles per round,
+// pick the one that maximises newly-covered pairs).
+function _buildOneTurno(players) {
+  var n = players.length;
+  if (n < 4) return [];
+
+  // Canonicalise pair key (always smaller string first)
+  function pairKey(a, b) { return a < b ? a + '|||' + b : b + '|||' + a; }
+
+  // All pairs that must be covered within this turno
+  var covered = {};
+  var totalPairs = 0;
+  for (var i = 0; i < n; i++) {
+    for (var j = i + 1; j < n; j++) {
+      covered[pairKey(players[i], players[j])] = false;
+      totalPairs++;
+    }
+  }
+
+  var numPlaying = n - (n % 4); // must be multiple of 4
+  var rounds = [];
+  var maxRounds = Math.ceil((n - 1) / 3) + n; // generous safety cap
+
+  for (var r = 0; r < maxRounds; r++) {
+    // Count uncovered pairs
+    var uncovered = 0;
+    for (var k in covered) { if (!covered[k]) uncovered++; }
+    if (uncovered === 0) break;
+
+    // Try 200 shuffles, pick the one covering most uncovered pairs
+    var best = null;
+    var bestNew = -1;
+    for (var a = 0; a < 200; a++) {
+      var shuffled = players.slice();
+      for (var si = shuffled.length - 1; si > 0; si--) {
+        var sj = Math.floor(Math.random() * (si + 1));
+        var stmp = shuffled[si]; shuffled[si] = shuffled[sj]; shuffled[sj] = stmp;
+      }
+      var playing = shuffled.slice(0, numPlaying);
+      var newCount = 0;
+      for (var gi = 0; gi < playing.length; gi += 4) {
+        var grp = playing.slice(gi, gi + 4);
+        for (var gii = 0; gii < grp.length; gii++) {
+          for (var gjj = gii + 1; gjj < grp.length; gjj++) {
+            var pk = pairKey(grp[gii], grp[gjj]);
+            if (!covered[pk]) newCount++;
+          }
+        }
+      }
+      if (newCount > bestNew) { bestNew = newCount; best = playing; }
+    }
+
+    if (!best || bestNew === 0) break; // can't improve further
+
+    // Form groups of 4 and mark pairs covered
+    var roundGroups = [];
+    for (var gi2 = 0; gi2 < best.length; gi2 += 4) {
+      var grp2 = best.slice(gi2, gi2 + 4);
+      roundGroups.push(grp2);
+      for (var gii2 = 0; gii2 < grp2.length; gii2++) {
+        for (var gjj2 = gii2 + 1; gjj2 < grp2.length; gjj2++) {
+          covered[pairKey(grp2[gii2], grp2[gjj2])] = true;
+        }
+      }
+    }
+    rounds.push(roundGroups);
+  }
+
+  return rounds;
+}
+
+// Pre-generate schedule for all turnos: array of {turno, groups[]}
+function _buildRoundRobinSchedule(players, numTurnos) {
+  var schedule = [];
+  for (var turno = 1; turno <= numTurnos; turno++) {
+    // Shuffle player order between turnos for variety
+    var tp = players.slice();
+    for (var i = tp.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = tp[i]; tp[i] = tp[j]; tp[j] = tmp;
+    }
+    var turnoRounds = _buildOneTurno(tp);
+    turnoRounds.forEach(function(groups) {
+      schedule.push({ turno: turno, groups: groups });
+    });
+  }
+  return schedule;
+}
+
+// Pop next round from pre-generated schedule and append to tournament
+window._drawFromRoundRobinSchedule = function(t, category) {
+  if (!t.ligaRRSchedule) t.ligaRRSchedule = {};
+  var catKey = (category || '_default_').replace(/\s+/g, '_');
+
+  // (Re-)generate schedule when empty
+  if (!t.ligaRRSchedule[catKey] || t.ligaRRSchedule[catKey].length === 0) {
+    var standings = _computeStandings(t, category);
+    var activeNames = _getActiveLigaPlayers(t);
+    var players = standings.map(function(s) { return s.name; }).filter(function(n) { return activeNames[n]; });
+    if (players.length < 4) return false;
+    var numTurnos = t.ligaTurnos || 1;
+    t.ligaRRSchedule[catKey] = _buildRoundRobinSchedule(players, numTurnos);
+  }
+
+  if (!t.ligaRRSchedule[catKey] || t.ligaRRSchedule[catKey].length === 0) return false;
+
+  var nextRound = t.ligaRRSchedule[catKey].shift(); // consume next entry
+  var roundNum = (t.rounds || []).length + 1;
+  var ts = Date.now();
+  var catSuffix = category ? '-' + category.replace(/\s+/g, '_') : '';
+  var catLabel = category && window._displayCategoryName
+    ? ' (' + window._displayCategoryName(category) + ')' : (category ? ' (' + category + ')' : '');
+  var turnoLabel = nextRound.turno ? ' [T' + nextRound.turno + ']' : '';
+
+  var allMatches = [];
+  var monarchGroups = [];
+
+  nextRound.groups.forEach(function(grp, gi) {
+    var A = grp[0], B = grp[1], C = grp[2], D = grp[3];
+    var groupName = 'R' + roundNum + ' Grupo ' + String.fromCharCode(65 + gi) + turnoLabel;
+    var pairings = [
+      { t1: [A, B], t2: [C, D] },
+      { t1: [A, C], t2: [B, D] },
+      { t1: [A, D], t2: [B, C] }
+    ];
+    var matches = pairings.map(function(pair, mi) {
+      var mObj = {
+        id: 'match-rr-r' + roundNum + '-g' + gi + '-' + mi + catSuffix + '-' + ts,
+        round: roundNum, roundIndex: (t.rounds || []).length,
+        p1: pair.t1.join(' / '), p2: pair.t2.join(' / '),
+        team1: pair.t1, team2: pair.t2,
+        winner: null, scoreP1: null, scoreP2: null,
+        isMonarch: true, monarchGroup: gi,
+        label: groupName + ' • Jogo ' + (mi + 1) + catLabel
+      };
+      if (category) mObj.category = category;
+      return mObj;
+    });
+    allMatches = allMatches.concat(matches);
+    monarchGroups.push({ name: groupName, players: grp, matches: matches });
+  });
+
+  // Sit-outs for players not in any group this round
+  var allPlaying = [];
+  nextRound.groups.forEach(function(g) { allPlaying = allPlaying.concat(g); });
+  var allActive = Object.keys(_getActiveLigaPlayers(t));
+  allActive.forEach(function(name, si) {
+    if (allPlaying.indexOf(name) === -1) {
+      var avgPts = _computeAvgPointsPerRound(t, name, category);
+      var soObj = {
+        id: 'sitout-rr-r' + roundNum + '-' + si + catSuffix + '-' + ts,
+        round: roundNum, roundIndex: (t.rounds || []).length,
+        p1: name, p2: 'FOLGA', winner: name,
+        isSitOut: true, sitOutPoints: avgPts, sitOutReason: 'remainder',
+        label: 'R' + roundNum + ' • Folga' + catLabel
+      };
+      if (category) soObj.category = category;
+      allMatches.push(soObj);
+      _recordSitOut(t, [name], category);
+    }
+  });
+
+  _recordOpponentHistory(t, monarchGroups, category);
+
+  window._appendCanonicalColumn(t, {
+    phase: 'monarch', round: roundNum, status: 'active',
+    format: 'rei_rainha', matches: allMatches, monarchGroups: monarchGroups,
+    turno: nextRound.turno
+  });
+
+  return true;
+};
+
 // ─── Swiss pairing ────────────────────────────────────────────────────────────
 function _generateNextRound(t) {
-  // Choose round generation strategy based on ligaRoundFormat
+  var isLiga = window._isLigaFormat && window._isLigaFormat(t);
+
+  // "Todos contra todos" mode: pop next round from pre-generated schedule
+  if (isLiga && t.ligaDrawMode === 'round_robin') {
+    var cats = (typeof window._sortCategoriesBySkillOrder === 'function')
+      ? window._sortCategoriesBySkillOrder(t.combinedCategories || [], t.skillCategories)
+      : (t.combinedCategories || []);
+    if (cats.length === 0) {
+      window._drawFromRoundRobinSchedule(t, null);
+    } else {
+      cats.forEach(function(cat) { window._drawFromRoundRobinSchedule(t, cat); });
+    }
+    return;
+  }
+
+  // Standard Liga or Rei/Rainha
   var useReiRainha = t.ligaRoundFormat === 'rei_rainha';
   var genFn = useReiRainha ? _generateReiRainhaRoundForPlayers : _generateNextRoundForPlayers;
 
@@ -1812,9 +2003,7 @@ function _generateNextRound(t) {
   if (categories.length === 0) {
     genFn(t, null);
   } else {
-    categories.forEach(function(cat) {
-      genFn(t, cat);
-    });
+    categories.forEach(function(cat) { genFn(t, cat); });
   }
 }
 
@@ -1867,7 +2056,7 @@ function _chooseSitOutPlayers(t, players, numToSitOut, category) {
   });
   // Players with fewest sit-outs go first (play); ties broken by rank (worse rank sits out)
   indexed.sort(function(a, b) {
-    if (a.sitOuts !== b.sitOuts) return b.sitOuts - a.sitOuts; // most sit-outs = should play now
+    if (a.sitOuts !== b.sitOuts) return a.sitOuts - b.sitOuts; // fewest sit-outs = should play now
     return b.rank - a.rank; // worse rank = more likely to sit out
   });
   var sitOut = indexed.slice(0, numToSitOut).map(function(x) { return x.name; });
@@ -1893,6 +2082,61 @@ function _recordSitOut(t, sitOutPlayers, category) {
   sitOutPlayers.forEach(function(name) {
     t.sitOutHistory[catKey][name] = (t.sitOutHistory[catKey][name] || 0) + 1;
   });
+}
+
+// Helper: record which players were grouped together this round (for anti-repeat pairing)
+function _recordOpponentHistory(t, groups, category) {
+  if (!groups || groups.length === 0) return;
+  if (!t.opponentHistory) t.opponentHistory = {};
+  var catKey = (category || '_default_').replace(/\s+/g, '_');
+  if (!t.opponentHistory[catKey]) t.opponentHistory[catKey] = {};
+  var h = t.opponentHistory[catKey];
+  groups.forEach(function(grp) {
+    var members = Array.isArray(grp) ? grp : (grp.players || []);
+    for (var i = 0; i < members.length; i++) {
+      for (var j = i + 1; j < members.length; j++) {
+        var a = members[i], b = members[j];
+        var key = a < b ? a + '|||' + b : b + '|||' + a;
+        h[key] = (h[key] || 0) + 1;
+      }
+    }
+  });
+}
+
+// Helper: score a player ordering by repeat-opponent count (lower = better)
+// groupSize = number of players per group (4 for doubles)
+function _scoreShuffle(playerOrder, opponentHistory, groupSize) {
+  var score = 0;
+  for (var i = 0; i < playerOrder.length; i += groupSize) {
+    var grp = playerOrder.slice(i, i + groupSize);
+    for (var gi = 0; gi < grp.length; gi++) {
+      for (var gj = gi + 1; gj < grp.length; gj++) {
+        var a = grp[gi], b = grp[gj];
+        var key = a < b ? a + '|||' + b : b + '|||' + a;
+        var c = opponentHistory[key] || 0;
+        score += c * c; // squared: strongly penalise high-repeat pairs
+      }
+    }
+  }
+  return score;
+}
+
+// Helper: try N random shuffles and return the one with fewest repeat opponents
+function _bestShuffle(players, opponentHistory, groupSize, attempts) {
+  attempts = attempts || 150;
+  groupSize = groupSize || 4;
+  var best = players.slice();
+  var bestScore = _scoreShuffle(best, opponentHistory, groupSize);
+  for (var a = 0; a < attempts; a++) {
+    var candidate = players.slice();
+    for (var i = candidate.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = candidate[i]; candidate[i] = candidate[j]; candidate[j] = tmp;
+    }
+    var s = _scoreShuffle(candidate, opponentHistory, groupSize);
+    if (s < bestScore) { bestScore = s; best = candidate; }
+  }
+  return best;
 }
 
 // Helper: compute average points per round for a player (for sit-out compensation)
@@ -1975,13 +2219,12 @@ window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPl
     _recordSitOut(t, sitOutPlayers, category);
   }
 
-  // Liga: shuffle active players so each round draws new groups of 4.
+  // Liga: shuffle active players so each round draws new groups of 4,
+  // preferring pairings of players who haven't faced each other yet.
   // Pure Rei/Rainha (non-Liga): keep standings order (balanced by skill).
   if (isLiga) {
-    for (var sh = playingPlayers.length - 1; sh > 0; sh--) {
-      var shj = Math.floor(Math.random() * (sh + 1));
-      var shtmp = playingPlayers[sh]; playingPlayers[sh] = playingPlayers[shj]; playingPlayers[shj] = shtmp;
-    }
+    var rrOpHist = (t.opponentHistory && t.opponentHistory[(category || '_default_').replace(/\s+/g, '_')]) || {};
+    playingPlayers = _bestShuffle(playingPlayers, rrOpHist, 4, 200);
   }
 
   // Divide playing players into groups of 4
@@ -2016,6 +2259,9 @@ window._generateReiRainhaRoundForPlayers = function _generateReiRainhaRoundForPl
 
     groups.push({ name: groupName, players: gPlayers, matches: matches });
   }
+
+  // Record opponent pairings for anti-repeat logic in future rounds
+  if (isLiga) _recordOpponentHistory(t, groups, category);
 
   // Sit-out matches for Liga: remainder + inactive players receive average points compensation
   var sitOutMatches = [];
@@ -2118,14 +2364,11 @@ function _generateNextRoundForPlayers(t, category) {
     return;
   }
 
-  // ─── Liga: form random doubles and match them (dupla vs dupla) ───────────
+  // ─── Liga: form doubles and match them (dupla vs dupla), anti-repeat ─────
   if (_isLigaFmtHere) {
-    // Shuffle players randomly for fair partner assignment
-    var shuffled = players.slice();
-    for (var si = shuffled.length - 1; si > 0; si--) {
-      var sj = Math.floor(Math.random() * (si + 1));
-      var tmp = shuffled[si]; shuffled[si] = shuffled[sj]; shuffled[sj] = tmp;
-    }
+    // First shuffle to determine sit-outs (using opponent history for fairness)
+    var ligaOpHist = (t.opponentHistory && t.opponentHistory[(category || '_default_').replace(/\s+/g, '_')]) || {};
+    var shuffled = _bestShuffle(players.slice(), ligaOpHist, 4, 200);
 
     // Handle sit-outs: need multiple of 4 for doubles matches
     var remainder = shuffled.length % 4;
@@ -2138,11 +2381,8 @@ function _generateNextRoundForPlayers(t, category) {
       _recordSitOut(t, sitOutPlayers, category);
     }
 
-    // Re-shuffle playing players to randomize partner assignment
-    for (var ri = playingPlayers.length - 1; ri > 0; ri--) {
-      var rj = Math.floor(Math.random() * (ri + 1));
-      var rtmp = playingPlayers[ri]; playingPlayers[ri] = playingPlayers[rj]; playingPlayers[rj] = rtmp;
-    }
+    // Re-shuffle playing players with anti-repeat for partner assignment
+    playingPlayers = _bestShuffle(playingPlayers, ligaOpHist, 4, 200);
 
     // Form doubles: take consecutive pairs of 4 → team1 = [0,1] vs team2 = [2,3]
     var newMatches = [];
@@ -2161,6 +2401,13 @@ function _generateNextRoundForPlayers(t, category) {
       if (category) matchObj.category = category;
       newMatches.push(matchObj);
     }
+
+    // Record groups formed this round for anti-repeat logic
+    var _ligaGroups = [];
+    for (var _gi = 0; _gi < playingPlayers.length; _gi += 4) {
+      _ligaGroups.push(playingPlayers.slice(_gi, _gi + 4));
+    }
+    _recordOpponentHistory(t, _ligaGroups, category);
 
     // Sit-out matches: remainder + inactive players receive average points
     var allSitOuts = sitOutPlayers.concat(inactiveSitOutsSwiss);

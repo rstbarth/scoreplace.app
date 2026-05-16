@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">✨ v1.6.74-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Melhorias no sorteio da Liga: fairness de folgas, anti-repetição de adversários e modo "Todos contra todos".</b><br><br>' +
+      '<b>Fix de folga (sit-out):</b> jogadores com menos folgas acumuladas agora são escolhidos primeiro para descansar — o comportamento anterior era invertido, fazendo o mesmo jogador descansar várias vezes seguidas.<br><br>' +
+      '<b>Anti-repetição de adversários:</b> ao formar grupos de 4 no sorteio, o algoritmo testa 200 embaralhamentos aleatórios e escolhe o que minimiza repetições de confrontos já realizados. Pares que nunca se enfrentaram têm prioridade. O histórico de adversários fica salvo no torneio e evolui rodada a rodada.<br><br>' +
+      '<b>Novo modo "🔄 Todos contra todos":</b> disponível ao criar/editar uma Liga. O organizador configura o número de turnos desejados; o app pré-gera um calendário completo onde, ao fim de cada turno, todos os jogadores da categoria terão se enfrentado pelo menos uma vez. O sorteio consome uma entrada do calendário a cada rodada gerada — sem surpresas.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🔧 v1.6.73-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Fix definitivo: inscrição em torneio com categorias voltou a funcionar.</b><br><br>' +
       'Identificado conflito de nome de função: <code>create-tournament.js</code> definia <code>window._getTournamentCategories</code> sobrescrevendo a função canônica de <code>tournaments-categories.js</code>. ' +

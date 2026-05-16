@@ -145,6 +145,7 @@ function setupCreateTournamentModal() {
                 <div id="draw-mode-buttons" style="display:flex;gap:6px;flex-wrap:wrap;">
                   <button type="button" class="draw-mode-btn draw-mode-active" data-value="sorteio" onclick="window._selectDrawMode(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid #34d399;background:rgba(16,185,129,0.15);color:#34d399;font-weight:600;">🎲 ${_t('create.drawModeSorteio')}</button>
                   <button type="button" class="draw-mode-btn" data-value="rei_rainha" id="btn-draw-mode-monarch" onclick="window._selectDrawMode(this)" style="padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">👑 ${_t('format.monarchShort')}</button>
+                  <button type="button" class="draw-mode-btn" data-value="round_robin" id="btn-draw-mode-rr" onclick="window._selectDrawMode(this)" style="display:none;padding:7px 13px;border-radius:10px;font-size:0.8rem;cursor:pointer;transition:all 0.15s;white-space:nowrap;border:2px solid rgba(255,255,255,0.18);background:rgba(255,255,255,0.06);color:var(--text-main);font-weight:600;">🔄 Todos contra todos</button>
                 </div>
                 <small class="text-muted" style="display:block;margin-top:4px;" id="draw-mode-desc">${_t('create.drawModeSorteioDesc')}</small>
               </div>
@@ -162,6 +163,17 @@ function setupCreateTournamentModal() {
                   <input type="hidden" id="monarch-classified" value="1">
                 </div>
                 <div style="font-size:0.75rem;color:#4ade80;font-weight:600;margin-top:4px;">✓ ${_t('monarch.advanceHelp')}</div>
+              </div>
+
+              <!-- Campos específicos: Todos contra todos -->
+              <div id="round-robin-fields" style="display:none; background: rgba(99,102,241,0.08); border: 1px solid rgba(99,102,241,0.2); border-radius: 12px; padding: 1rem; margin-bottom: 1rem;">
+                <p style="margin: 0 0 0.75rem; font-size: 0.8rem; color: #818cf8; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">🔄 Todos contra todos</p>
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:0.75rem;">A cada turno, todos os jogadores da categoria enfrentam todos os outros (grupos de 4). O sorteio de rodadas é pré-gerado automaticamente.</div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                  <label class="form-label" style="margin:0;font-size:0.8rem;">Número de turnos:</label>
+                  <input type="number" class="form-control" id="liga-turnos" min="1" max="20" value="1" style="width:70px;padding:6px 8px;font-size:0.9rem;text-align:center;">
+                  <span style="font-size:0.75rem;color:var(--text-muted);">Ao fim de cada turno, todos terão se enfrentado.</span>
+                </div>
               </div>
 
               <!-- Campos específicos: Fase de Grupos -->
@@ -921,7 +933,8 @@ function setupCreateTournamentModal() {
   };
   var _drawModeDescs = {
     'sorteio': _t('create.drawModeSorteioDesc'),
-    'rei_rainha': _t('create.drawModeMonarchDesc')
+    'rei_rainha': _t('create.drawModeMonarchDesc'),
+    'round_robin': 'O sorteio é pré-gerado: ao fim de cada turno, todos os jogadores da categoria terão se enfrentado.'
   };
   var _enrollModeDescs = {
     'individual': _t('create.enrollModeIndividualDesc'),
@@ -984,6 +997,9 @@ function setupCreateTournamentModal() {
     var rrFields = document.getElementById('rei-rainha-fields');
     var _fmtVal = document.getElementById('select-formato').value;
     if (rrFields) rrFields.style.display = (value === 'rei_rainha' && _fmtVal !== 'liga') ? 'block' : 'none';
+    // Show/hide "Todos contra todos" config (Liga only)
+    var rrConfig = document.getElementById('round-robin-fields');
+    if (rrConfig) rrConfig.style.display = (value === 'round_robin') ? 'block' : 'none';
     // Re-trigger format change to sync Liga round format toggle etc.
     window._onFormatoChange();
   };
@@ -1589,6 +1605,19 @@ function setupCreateTournamentModal() {
         monarchDrawBtn.style.display = '';
       }
     }
+
+    // "Todos contra todos" only available for Liga
+    var rrDrawBtn = document.getElementById('btn-draw-mode-rr');
+    if (rrDrawBtn) {
+      rrDrawBtn.style.display = isLiga ? '' : 'none';
+      // If Liga de-selected while round_robin was active, revert to sorteio
+      if (!isLiga && drawMode === 'round_robin') {
+        var sorteioBtn2 = document.querySelector('#draw-mode-buttons .draw-mode-btn[data-value="sorteio"]');
+        if (sorteioBtn2) window._selectDrawMode(sorteioBtn2);
+      }
+    }
+    var rrCfg = document.getElementById('round-robin-fields');
+    if (rrCfg) rrCfg.style.display = (isLiga && drawMode === 'round_robin') ? 'block' : 'none';
 
     // Sync Liga internal round format hidden field with global draw mode
     if (isLiga) {
@@ -3040,8 +3069,10 @@ function setupCreateTournamentModal() {
       fmtValue = 'elim_simples'; // Rei/Rainha defaults to single elimination knockout
       drawModeVal = 'rei_rainha';
     }
-    // Liga with ligaRoundFormat rei_rainha
-    if (fmtValue === 'liga' && t.ligaRoundFormat === 'rei_rainha') {
+    // Liga draw mode
+    if (fmtValue === 'liga' && t.ligaDrawMode === 'round_robin') {
+      drawModeVal = 'round_robin';
+    } else if (fmtValue === 'liga' && t.ligaRoundFormat === 'rei_rainha') {
       drawModeVal = 'rei_rainha';
     }
     document.getElementById('select-formato').value = fmtValue;
@@ -3308,6 +3339,13 @@ function setupCreateTournamentModal() {
     if (t.ligaRoundFormat) {
       var _rfEl = document.getElementById('liga-round-format');
       if (_rfEl) _rfEl.value = t.ligaRoundFormat;
+    }
+    // Restore round-robin mode and turno count
+    if (t.ligaDrawMode === 'round_robin') {
+      var _rrBtn = document.getElementById('btn-draw-mode-rr');
+      if (_rrBtn) { _rrBtn.style.display = ''; window._selectDrawMode(_rrBtn); }
+      var _turnosEl = document.getElementById('liga-turnos');
+      if (_turnosEl && t.ligaTurnos) _turnosEl.value = t.ligaTurnos;
     }
 
     // Elim settings
@@ -3593,6 +3631,17 @@ function setupCreateTournamentModal() {
             }
           }
           tourData.ligaRoundFormat = document.getElementById('liga-round-format').value || 'standard';
+          // Todos contra todos (round-robin) mode
+          if (drawModeValue === 'round_robin') {
+            tourData.ligaDrawMode = 'round_robin';
+            tourData.ligaTurnos = parseInt(document.getElementById('liga-turnos').value) || 1;
+            tourData.ligaRoundFormat = 'rei_rainha'; // uses same display/match format
+          } else {
+            tourData.ligaDrawMode = 'standard';
+            tourData.ligaTurnos = null;
+            // Invalidate pre-generated schedule when mode changes
+            tourData.ligaRRSchedule = null;
+          }
           // Limpeza de campos legados do formato Ranking (migrados para liga-*)
           tourData.rankingNewPlayerScore = null;
           tourData.rankingInactivity = null;
@@ -3614,8 +3663,8 @@ function setupCreateTournamentModal() {
           tourData.gruposClassified = parseInt(document.getElementById('grupos-classified').value) || 2;
         }
 
-        if (drawModeValue === 'rei_rainha') {
-          tourData.drawMode = 'rei_rainha';
+        if (drawModeValue === 'rei_rainha' || drawModeValue === 'round_robin') {
+          tourData.drawMode = 'rei_rainha'; // both use Rei/Rainha match format
           // Liga: pontos corridos, sem fase eliminatória — não salvar classificados
           if (formatValue === 'liga') {
             tourData.ligaRoundFormat = 'rei_rainha';
