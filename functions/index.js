@@ -93,6 +93,103 @@ exports.purgePerfilFotoTrophies = onRequest(
   }
 );
 
+// ─── One-shot: recover wiped adminEmails / memberEmails ──────────────────────
+// v1.6.66 partial-object save bug wiped adminEmails[] and memberEmails[] on
+// tournaments that auto-closed. This function scans all tournaments where
+// adminEmails is missing or empty and repopulates from organizerEmail/
+// creatorEmail/coHosts/participants.
+//
+// Chamada: curl 'https://us-central1-scoreplace-app.cloudfunctions.net/recoverAdminEmails?secret=SCOREPLACE_ADMINEMAILS_RECOVERY_20260516'
+// Função one-shot. Pode ser removida no próximo deploy após confirmação.
+exports.recoverAdminEmails = onRequest(
+  { region: "us-central1", timeoutSeconds: 540, memory: "512MiB" },
+  async (req, res) => {
+    const SECRET = "SCOREPLACE_ADMINEMAILS_RECOVERY_20260516";
+    if (req.query.secret !== SECRET) {
+      res.status(403).json({ error: "forbidden" });
+      return;
+    }
+    const db = admin.firestore();
+
+    function computeAdminEmails(data) {
+      const emails = new Set();
+      const add = (e) => { if (e && typeof e === "string" && e.includes("@")) emails.add(e.toLowerCase().trim()); };
+      add(data.creatorEmail);
+      add(data.organizerEmail);
+      if (Array.isArray(data.coHosts)) data.coHosts.forEach(h => add(typeof h === "string" ? h : h && h.email));
+      return Array.from(emails);
+    }
+
+    function computeMemberEmails(data) {
+      const emails = new Set();
+      const add = (e) => { if (e && typeof e === "string" && e.includes("@")) emails.add(e.toLowerCase().trim()); };
+      add(data.creatorEmail);
+      add(data.organizerEmail);
+      if (Array.isArray(data.coHosts)) data.coHosts.forEach(h => add(typeof h === "string" ? h : h && h.email));
+      if (Array.isArray(data.participants)) {
+        data.participants.forEach(p => {
+          if (!p) return;
+          if (typeof p === "string") { add(p); return; }
+          add(p.email);
+          if (typeof p.displayName === "string" && p.displayName.includes("@")) add(p.displayName);
+          if (typeof p.name === "string") {
+            if (p.name.includes("@")) add(p.name);
+            // doubles: "email1/email2"
+            if (p.name.includes("/")) p.name.split("/").forEach(n => add(n.trim()));
+          }
+        });
+      }
+      return Array.from(emails);
+    }
+
+    const snap = await db.collection("tournaments").get();
+    let checked = 0;
+    let repaired = 0;
+    let skipped = 0;
+    const errors = [];
+
+    // Batch writes (max 500 per batch)
+    const BATCH_SIZE = 400;
+    let ops = [];
+
+    snap.docs.forEach(doc => {
+      checked++;
+      const data = doc.data();
+      const adminList = data.adminEmails;
+      const isEmpty = !Array.isArray(adminList) || adminList.length === 0;
+      if (!isEmpty) { skipped++; return; }
+
+      const newAdmin = computeAdminEmails(data);
+      const newMember = computeMemberEmails(data);
+      if (newAdmin.length === 0) { skipped++; return; }
+
+      ops.push({ ref: doc.ref, newAdmin, newMember, name: data.name || doc.id });
+    });
+
+    // Commit in batches
+    for (let i = 0; i < ops.length; i += BATCH_SIZE) {
+      const chunk = ops.slice(i, i + BATCH_SIZE);
+      const batch = db.batch();
+      chunk.forEach(op => batch.update(op.ref, { adminEmails: op.newAdmin, memberEmails: op.newMember }));
+      try {
+        await batch.commit();
+        repaired += chunk.length;
+      } catch (err) {
+        chunk.forEach(op => errors.push({ id: op.ref.id, name: op.name, err: String(err && err.message) }));
+      }
+    }
+
+    res.json({
+      ok: true,
+      checked,
+      repaired,
+      skipped,
+      errors: errors.length > 0 ? errors : undefined,
+      message: `Recovery concluído. ${repaired} torneios reparados de ${checked} verificados.`,
+    });
+  }
+);
+
 // ─── Helper: batched delete of a query, page by page ─────────────────────────
 // Firestore caps batch writes at 500 docs. We pull pages of up to 400 and
 // commit each as a batch until the query returns empty. Keeps memory bounded
