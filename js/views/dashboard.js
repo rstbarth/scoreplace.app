@@ -2372,7 +2372,7 @@ function _hydrateFriendsPresenceWidget() {
       // Empty state diferenciado: sem amigos vs sem movimento.
       var hasFriends = friendsRaw.length > 0;
       var msgTitle = hasFriends
-        ? 'Nenhum movimento nos seus locais hoje'
+        ? 'Nenhum movimento em seus locais agora'
         : '👥 Veja seus amigos jogando';
       var msgSub = hasFriends
         ? 'Quando você ou um amigo marcar "Estou aqui" ou planejar ida, aparece aqui.'
