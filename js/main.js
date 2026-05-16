@@ -351,7 +351,7 @@ function setupHelpModal() {
       content: '<p><b>Acessar</b> — Clique no seu avatar (foto ou iniciais) no canto superior direito.</p>' +
         '<div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Informações Pessoais</div>' +
-          '<p><b>Nome</b> — Exibido em torneios, chaveamentos e classificações.</p>' +
+          '<p><b>Nome de exibição</b> — Exibido em torneios, chaveamentos e classificações. <b>Deve ser único na plataforma:</b> ao salvar, o app verifica se outro usuário já usa o mesmo nome (sem diferença de maiúsculas/minúsculas). Se houver conflito com uma conta que compartilha seu telefone ou e-mail, o fluxo de mesclagem de contas é acionado automaticamente. Caso contrário, um alerta pede que você escolha outro nome.</p>' +
           '<p><b>Gênero</b> — Usado para atribuição automática de categorias (Fem/Masc).</p>' +
           '<p><b>Data de nascimento</b> — Usada para atribuição automática de categorias por faixa etária (40+, 50+, 60+, 70+) nos torneios. Não é exibida publicamente para outros jogadores.</p>' +
           '<p><b>Cidade e localização</b> — Busca automática no mapa. Botão 📍 usa GPS.</p>' +
