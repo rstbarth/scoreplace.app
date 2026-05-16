@@ -4352,7 +4352,18 @@ window._openLiveScoring = function(tId, matchId, opts) {
             at: new Date().toISOString()
           };
         } catch(_e) {}
-        window.FirestoreDB.updateCasualMatch(_casualDocId, _updatePayload);
+        // v1.6.65-beta: captura a promise e dispara _casualLoadLastMatches
+        // quando o write confirma — resolve race condition onde a tela de
+        // setup recarregava 300ms após o match terminar mas o status:'finished'
+        // ainda não tinha chegado ao servidor.
+        var _updatePromise = window.FirestoreDB.updateCasualMatch(_casualDocId, _updatePayload);
+        if (_updatePromise && typeof _updatePromise.then === 'function') {
+          _updatePromise.then(function() {
+            setTimeout(function() {
+              if (typeof window._casualLoadLastMatches === 'function') window._casualLoadLastMatches();
+            }, 150);
+          }).catch(function() {});
+        }
       }
       // Persist detailed stats in each registered player's account so they
       // survive even after the casual match doc is deleted/expired.

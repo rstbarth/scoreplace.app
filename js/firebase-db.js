@@ -925,9 +925,14 @@ window.FirestoreDB = {
     try {
       // Query 1: matches que o user CRIOU.
       // Single-field query (sem composite index) — status filtrado client-side.
+      // v1.6.65-beta: limit 30→200 — sem orderBy server-side, Firestore retorna
+      // docs em ordem ascendente de doc-ID (≈ mais antigos primeiro). Com limit(30)
+      // partidas recentes ficavam além do slice e nunca apareciam no histórico.
+      // 200 cobre qualquer usuário beta confortavelmente; sort client-side por
+      // createdAt desc já existia e continua sendo a fonte da ordenação final.
       var createdSnap = await this.db.collection('casualMatches')
         .where('createdBy', '==', uid)
-        .limit(30).get();
+        .limit(200).get();
       createdSnap.forEach(function(d) {
         var data = d.data();
         if (data.status !== 'finished') return; // filtro client-side
@@ -944,7 +949,7 @@ window.FirestoreDB = {
     try {
       var partSnap = await this.db.collection('casualMatches')
         .where('playerUids', 'array-contains', uid)
-        .limit(30).get();
+        .limit(200).get();
       partSnap.forEach(function(d) {
         if (out[d.id]) return; // dedup
         var data = d.data();

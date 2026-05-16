@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">📊 v1.6.65-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Últimas partidas no setup casual aparecem corretamente após jogar.</b><br><br>' +
+      'Dois bugs impediam que partidas recentes aparecessem na seção "📊 Últimas Partidas": ' +
+      '(1) Race condition — ao terminar uma partida e voltar para o setup, a seção recarregava 300ms depois mas a gravação no Firestore ainda não tinha completado; ' +
+      'a query rodava antes do status da partida ser "finished". Agora o recarregamento é acionado só após a gravação confirmar no servidor. ' +
+      '(2) Limite baixo — a query buscava apenas 30 docs sem ordenação, e o Firestore retorna docs em ordem crescente de ID (≈ mais antigos primeiro); ' +
+      'partidas recentes ficavam fora do slice. Limite aumentado para 200.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🤝 v1.6.64-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Autocomplete em partida casual não mostra mais "Sugerir vínculo" nas estatísticas finais.</b><br><br>' +
       'Ao autocompletar o nome de um amigo no setup da partida, o vínculo já fica registrado e a notificação é disparada automaticamente ao fim da partida. ' +
