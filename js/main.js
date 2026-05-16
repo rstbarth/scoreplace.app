@@ -244,7 +244,12 @@ function setupHelpModal() {
           '<p style="margin:0;"><b>⚽ Fase de Grupos + Eliminatórias</b> — Estilo Copa do Mundo. Participantes divididos em grupos, todos jogam entre si. Os N melhores de cada grupo avançam para mata-mata. Configurável: número de grupos e classificados por grupo. Recomendação automática (ex: 21 inscritos → 1 grupo de 6 + 3 grupos de 5).</p>' +
         '</div>' +
         '<div style="background:rgba(236,72,153,0.06);border:1px solid rgba(236,72,153,0.15);border-radius:10px;padding:12px;margin-bottom:10px;">' +
-          '<p style="margin:0;"><b>📊 Liga</b> — Temporada contínua com classificação por pontos. Duração configurável (3, 6, 12 meses ou custom). Inscrições sempre abertas (opcional). Sorteios automáticos (agendados) ou manuais. Cada jogador tem um toggle "Ativo" no seu card: desativado = folga com 0 pontos; quem fica de fora por número ímpar recebe a média dos seus pontos. Rodadas podem usar formato padrão (1v1) ou Rei/Rainha (grupos de 4 rotativos). Ideal para comunidades regulares.</p>' +
+          '<p style="margin:0;"><b>📊 Liga</b> — Temporada contínua com classificação por pontos. Duração configurável (3, 6, 12 meses ou custom). Inscrições sempre abertas (opcional). Sorteios automáticos (agendados) ou manuais. Cada jogador tem um toggle "Ativo" no seu card: desativado = folga com 0 pontos; quem fica de fora por número ímpar recebe a média dos seus pontos. Rodadas podem usar 3 modos:</p>' +
+          '<ul style="margin:6px 0 0 16px;font-size:0.78rem;">' +
+            '<li><b>Padrão (1v1)</b> — Pairing dinâmico por pontuação a cada rodada.</li>' +
+            '<li><b>Rei/Rainha</b> — Grupos de 4 com parceiros rotativos (AB vs CD, AC vs BD, AD vs BC).</li>' +
+            '<li><b>🔄 Todos contra todos</b> — O organizador define o número de turnos e o app gera o calendário completo antecipadamente (ex: 10 jogadores × 2 turnos = 90 partidas distribuídas em rodadas). Ideal para ligas com confrontos pré-agendados. Cada jogador enfrenta cada adversário uma vez por turno; anti-repetição por Monte Carlo (200 tentativas) evita que o mesmo par jogue em rodadas consecutivas.</li>' +
+          '</ul>' +
         '</div>' +
         '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.15);border-radius:10px;padding:12px;">' +
           '<p style="margin:0;"><b>👑 Rei/Rainha da Praia</b> — Modo de sorteio especial: grupos de 4 jogadores com parceiros rotativos (AB vs CD, AC vs BD, AD vs BC). Pontuação individual. Top 1 ou 2 de cada grupo avançam para eliminatória até coroar o Rei/Rainha. Pode ser usado na Liga também (toggle "Formato da rodada").</p>' +
@@ -359,7 +364,7 @@ function setupHelpModal() {
             '&nbsp;&nbsp;• <b>Sugestões de torneios e parceiros</b> — base para notificações de torneios próximos da sua modalidade.</p>' +
           '<p><b>Locais de preferência</b> — Busca <b>dinâmica</b> conforme você digita (2+ caracteres, debounce de 150ms). Dropdown de sugestões do Google Places aparece automaticamente. Botão 📍 ao lado usa GPS. Adicione múltiplos locais no mapa — eles aparecem no widget "🏟️ Meus locais" da dashboard pra check-in rápido.</p>' +
           '<p><b>Categoria/nível</b> — Seu nível de jogo (A, B, C, etc.).</p>' +
-          '<p><b>Telefone</b> — Com código do país para notificações por WhatsApp.</p>' +
+          '<p><b>Telefone</b> — Com código do país para notificações por WhatsApp. <b>Mesclagem automática de contas:</b> ao salvar seu telefone ou e-mail, o app verifica se já existe outra conta com o mesmo valor — se existir, as duas contas são mescladas automaticamente: histórico de partidas transferido, torneios atualizados, conta duplicada desativada. Isso resolve situações comuns como "criei conta pelo Google e outra pelo celular".</p>' +
           '<p><b>Avatar</b> — Círculo com as iniciais do seu nome (índigo). Se você fez login com Google e tem foto de perfil, ela é usada automaticamente no lugar das iniciais.</p>' +
         '</div>' +
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
@@ -403,7 +408,8 @@ function setupHelpModal() {
         '<p><b>Conhecidos</b> — Jogadores de torneios que você participou mas que ainda não são amigos. Envie convite de amizade com 1 toque.</p>' +
         '<p><b>Outros usuários</b> — Grid 2–4 colunas com todos os usuários cadastrados. Nomes abreviados no primeiro token. Envie pedido de amizade diretamente.</p>' +
         '<p><b>Busca</b> — Encontre jogadores por nome, cidade ou esporte. Envie convites diretamente.</p>' +
-        '<p><b>Cancelar pedido</b> — Cancele um pedido de amizade enviado que ainda está pendente.</p>'
+        '<p><b>Cancelar pedido</b> — Cancele um pedido de amizade enviado que ainda está pendente.</p>' +
+        '<p><b>Perfil rico do jogador</b> — Toque em qualquer card de usuário para abrir o perfil completo: aniversário, confrontos diretos (H2H), parcerias em duplas (quantas vezes jogaram juntos e aproveitamento), torneios em comum com comparação de desempenho por barras coloridas. Badges 🏆 (torneios) e ⚡ (casuais) identificam o tipo de partida nos confrontos.</p>'
     },
     {
       id: 'organizador',
@@ -421,6 +427,7 @@ function setupHelpModal() {
           '<p><b>Salvar Template</b> — Salve configurações para reusar em futuros torneios.</p>' +
           '<p><b>QR Code</b> — Gere QR para projetar no evento.</p>' +
           '<p><b>Modo TV</b> — Projete placar ao vivo em telão (fullscreen, auto-refresh 30s).</p>' +
+          '<p><b>Apagar Torneio</b> — Remove permanentemente o torneio e todos os dados. Disponível apenas para o criador original (co-organizadores não têm acesso). Requer confirmação dupla — a operação não tem desfazer.</p>' +
         '</div>' +
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;margin-bottom:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Fluxo do Organizador</div>' +

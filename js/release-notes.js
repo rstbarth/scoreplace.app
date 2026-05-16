@@ -9,6 +9,15 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">📖 v1.6.79-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Manual atualizado com todas as novidades recentes.</b><br><br>' +
+      'O manual de ajuda (ícone ?) foi revisado para cobrir as mudanças das últimas versões:<br><br>' +
+      '<b>Liga — modo "Todos contra todos":</b> a seção Formatos agora descreve o novo modo de calendário pré-gerado, anti-repetição e configuração de turnos.<br><br>' +
+      '<b>Ferramentas do organizador:</b> o botão "Apagar Torneio" (exclusivo do criador, com confirmação dupla) estava ausente na lista — adicionado.<br><br>' +
+      '<b>Perfil — mesclagem automática:</b> a entrada Telefone agora explica que salvar celular ou e-mail dispara verificação automática de contas duplicadas.<br><br>' +
+      '<b>Explorar — perfil rico:</b> a seção Pessoas agora menciona que tocar em qualquer card de usuário abre o perfil completo com H2H, parcerias e torneios em comum.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🔧 v1.6.78-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Mesclagem automática de contas duplicadas por telefone e por e-mail.</b><br><br>' +
       'O sistema agora detecta e resolve automaticamente contas duplicadas em dois momentos:<br><br>' +
