@@ -322,7 +322,7 @@ window._updateCategoryPreview = function(genderState) {
 // Get combined tournament categories (cross-product of genders and skills)
 window._getTournamentCategories = function(t) {
     if (!t) return [];
-    if (Array.isArray(t.combinedCategories)) return t.combinedCategories;
+    if (Array.isArray(t.combinedCategories) && t.combinedCategories.length > 0) return t.combinedCategories;
     // Backward compat: compute from gender/skill arrays if they exist
     var combined = [];
     var genders = t.genderCategories || [];

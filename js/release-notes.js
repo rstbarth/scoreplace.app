@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🔧 v1.6.71-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Fix regressão: inscrição voltou a funcionar em torneios sem categorias combinadas.</b><br><br>' +
+      'A v1.6.70 introduziu uma regressão onde <code>_getTournamentCategories</code> retornava array vazio quando <code>combinedCategories</code> estava presente mas vazio (<code>[]</code>), ' +
+      'impedindo a inscrição de qualquer pessoa — incluindo o organizador. ' +
+      'Corrigido: o fallback para <code>genderCategories</code>/<code>skillCategories</code> agora é ativado também quando <code>combinedCategories</code> existe mas está vazio.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">✨ v1.6.70-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Inscrição em categoria automática por habilidade e faixa etária.</b><br><br>' +
       'Ao se inscrever num torneio com categorias, o app agora usa os dados do perfil para determinar a categoria corretamente sem pedir confirmação:<br><br>' +
