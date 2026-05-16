@@ -9,6 +9,35 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">📖 v1.6.81-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Manual completo: gênero por slot, autocomplete de amigos, árbitro e Jogar Novamente para todos.</b><br><br>' +
+      'Quatro funcionalidades que já existiam no app mas não estavam documentadas no manual de ajuda:<br><br>' +
+      '<b>⚥ Gênero por slot + Duplas Mistas:</b> cada card de jogador exibe ♂/♀/⚥/? clicável; quando há 2M+2F o toggle "Duplas Mistas" aparece automaticamente e força 1M+1F por dupla no sorteio. Ícones sincronizados via Firestore para todos da sala.<br><br>' +
+      '<b>🔗 Autocomplete de amigos nos slots:</b> ao digitar o nome de um jogador, dropdown mostra amigos do scoreplace; selecionar preenche avatar e gênero do perfil, vincula o uid e propaga para todos os dispositivos em tempo real.<br><br>' +
+      '<b>Jogar Novamente leva todos:</b> ao clicar "Jogar Novamente", TODOS os jogadores conectados são redirecionados de volta ao lobby com os mesmos slots — não é preciso compartilhar o código novamente.<br><br>' +
+      '<b>🧑‍⚖️ Toggle Arbitrar no perfil:</b> ao lado do nível de cada modalidade; quando ativo, você aparece na lista de árbitros disponíveis para organizadores de torneios daquela modalidade.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">🔧 v1.6.58–v1.6.63-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Estabilidade da segunda partida — 6 correções em sequência.</b><br><br>' +
+      'Após adicionar autocomplete de amigos e gênero por slot, a série de partidas seguida (sem fechar o app) apresentou regressões que foram corrigidas versão a versão:<br><br>' +
+      '<b>v1.6.58 — Autocomplete propaga avatar e gênero corretamente:</b> ao selecionar amigo via autocomplete, avatar e gênero do perfil passaram a aparecer em todos os clientes da sala (não só no dispositivo que fez a seleção).<br><br>' +
+      '<b>v1.6.59 — "Voltar ao setup" reutiliza a mesma sala:</b> clicar "Jogar Novamente" ou voltar ao setup após encerrar a partida passava a reutilizar o mesmo room code em vez de gerar um novo — todos os participantes são redirecionados automaticamente.<br><br>' +
+      '<b>v1.6.60 — Gêneros e duplas mistas propagam após voltar ao setup:</b> ao voltar ao setup via "Jogar Novamente", os gêneros dos slots e o toggle de duplas mistas passaram a sincronizar corretamente para todos os clientes.<br><br>' +
+      '<b>v1.6.61 — Gênero não regride quando não-iniciador grava null:</b> participantes não-criadores que ainda não tinham o campo <code>slotGenders</code> local escreviam <code>null</code> no Firestore ao fazer polling, sobrescrevendo os gêneros definidos. Corrigido: só o criador persiste o estado de gêneros.<br><br>' +
+      '<b>v1.6.62 — "Desparear" não pula para stats da partida anterior:</b> ao clicar 🔗 para desfazer as duplas e abrir uma nova partida, o resultado antigo não era mais exibido no lugar da tela de setup.<br><br>' +
+      '<b>v1.6.63 — Segunda partida estável + QR funciona na primeira leitura:</b> consolidação final — partidas sequenciais sem reiniciar o app funcionam sem regressões; o scanner QR voltou a decodificar na primeira tentativa após o fix de reinicialização da câmera.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #34d399;border-radius:12px;padding:14px 16px;background:rgba(52,211,153,0.07);">' +
+      '<div style="font-weight:800; color:#34d399; font-size:1rem; margin-bottom:8px;">✨ v1.6.30–v1.6.50-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(15 de Maio, 2026)</span></div>' +
+      '<p><b>Gênero por slot, Jogar Novamente para todos e modo Técnico — 21 versões de desenvolvimento.</b><br><br>' +
+      '<b>v1.6.30 — Clipboard + filtro Sentry:</b> fix de clipboard sem catch no Safari; erros de permissão-negada deixaram de ser enviados ao Sentry (eram falso-positivos esperados).<br><br>' +
+      '<b>v1.6.31–v1.6.39 — Gênero por slot (feature completa):</b> ícone ♂/♀/⚥/? em cada card de jogador; propagação via Firestore (<code>slotGenders</code>) para todos os clientes; picker clicável para convidados e usuários sem gênero no perfil; "?" com animação pulse para indicar que é clicável (v1.6.27); toggle "Duplas Mistas" automático com 2M+2F; edição de gênero disponível também no modo singles (v1.6.38); fix de toque no mobile que não abria o picker (v1.6.39).<br><br>' +
+      '<b>v1.6.37 e v1.6.41 — Jogar Novamente para todos:</b> v1.6.37 fez o placar ao vivo propagar para todos ao iniciar "Jogar Novamente"; v1.6.41 completou o fluxo levando TODOS os jogadores conectados de volta ao lobby com os mesmos slots — sem precisar compartilhar o código novamente.<br><br>' +
+      '<b>v1.6.40 — Loop de animação nas stats:</b> corrigido loop infinito de animação na tela de resultado que travava o app após a primeira partida.<br><br>' +
+      '<b>v1.6.42–v1.6.50 — Modo Técnico (coach) — desenvolvimento completo:</b> v1.6.42 introduziu o toggle 🎽 Técnico que impede o usuário de ocupar slot e remove seus resultados do histórico pessoal; versões seguintes adicionaram handles ⠿ em todos os slots para arrastar jogadores (v1.6.44/47), edição de nomes e gêneros em todos os slots (v1.6.45/46), correção do avatar do técnico que aparecia nos cards de jogador (v1.6.49), e fix de polling que continuava rodando com o room code antigo após reabrir via 🔗 (v1.6.50).</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">📖 v1.6.80-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Manual: modo Técnico documentado na seção Partida Casual.</b><br><br>' +
       'O toggle "🎽 Técnico" já existia no app mas não estava coberto no manual. Agora a seção Partida Casual explica o que muda ao ativar: slots começam em branco (sem preencher seu nome automaticamente), handles ⠿ para arrastar jogadores aparecem em todos os cards, e o resultado não é salvo no histórico pessoal do técnico. Inclui exemplos de quando usar: professor, pai acompanhando, organizador gerenciando várias partidas.</p>' +

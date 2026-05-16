@@ -373,6 +373,7 @@ function setupHelpModal() {
           '<p><b>Tema</b> — Noturno (escuro), Claro, Pôr do Sol, Oceano. 4 opções visuais.</p>' +
           '<p><b>Notificações</b> — Todas (padrão), Só Importantes ou Só Fundamentais. Canais: Plataforma, E-mail, WhatsApp.</p>' +
           '<p><b>Dicas visuais</b> — Ative/desative as dicas que aparecem quando você fica parado.</p>' +
+          '<p><b>Arbitrar</b> — Toggle por modalidade na seção de esportes preferidos. Quando ativado em uma modalidade, seu nome aparece na lista de "🧑‍⚖️ Árbitros disponíveis" para organizadores de torneios daquela modalidade próximos à sua localização. O organizador convida via página <b>Árbitros</b> nas ferramentas do torneio.</p>' +
         '</div>' +
         '<div style="background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.15);border-radius:10px;padding:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">Estatísticas e Conta</div>' +
@@ -542,7 +543,7 @@ function setupHelpModal() {
           '<p><b>Gráfico Momentum</b> — Duas linhas cumulativas animadas: azul para o Time 1, vermelha para o Time 2. Linhas desenham da esquerda para a direita em ~3s com marcadores de ponto final e divisores de set (S1, S2...). Botão ↻ Replay reexecuta a animação.</p>' +
           '<p><b>Comparação dos Times</b> — Barras lado a lado: Sets, Games, Pontos, % Pontos no Saque, % Pontos na Recepção, Games Mantidos, Quebras de Saque, Killer Points (40-40), Maior Sequência e Maior Vantagem.</p>' +
           '<p><b>Cards de jogador clicáveis</b> — Toque em qualquer jogador para ver suas estatísticas individuais: games servidos/mantidos, aproveitamento, maior sequência, e também pts servidos/ganhos/% no saque.</p>' +
-          '<p><b>Jogar Novamente + 📤 Compartilhar + Re-sortear duplas</b> — Botões fixos no rodapé da tela de resultado (não somem ao rolar). <b>Jogar Novamente</b> recomeça a partida com placar zerado. <b>📤 Compartilhar</b> dispara Web Share API (WhatsApp, Instagram DM, SMS) com placar set-a-set, vencedor e link do app; clipboard como fallback em desktop. Toggle <b>Re-sortear</b> (só em duplas) redistribui os jogadores aleatoriamente entre os times antes de reiniciar.</p>' +
+          '<p><b>Jogar Novamente + 📤 Compartilhar + Re-sortear duplas</b> — Botões fixos no rodapé da tela de resultado (não somem ao rolar). <b>Jogar Novamente</b> recomeça a partida com placar zerado — todos os jogadores conectados são levados automaticamente de volta ao lobby com os mesmos nomes/slots (sem precisar compartilhar o código novamente). <b>📤 Compartilhar</b> dispara Web Share API (WhatsApp, Instagram DM, SMS) com placar set-a-set, vencedor e link do app; clipboard como fallback em desktop. Toggle <b>Re-sortear</b> (só em duplas) redistribui os jogadores aleatoriamente entre os times antes de reiniciar.</p>' +
           '<p><b>Botões não cortam</b> — O rodapé usa 100dvh + safe-area-inset para não ficar escondido pelo URL bar do navegador ou pelo home-indicator.</p>' +
         '</div>' +
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.15);border-radius:10px;padding:12px;">' +
@@ -554,6 +555,24 @@ function setupHelpModal() {
           '<p><b>Sair libera a vaga</b> — Clicar em Sair (ou Voltar ao Dashboard) remove seu uid do slot e te redireciona para o dashboard — outro jogador pode ocupar a vaga imediatamente.</p>' +
           '<p><b>Fechar partida</b> — O botão ✕ Fechar durante a partida pede confirmação; ao confirmar o abandono, sua vaga é liberada e você volta para o dashboard.</p>' +
           '<p><b>Resultado</b> — Ao finalizar, confirme o resultado. Estatísticas detalhadas salvas no seu perfil (persistentes).</p>' +
+        '</div>' +
+        '<div style="background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.20);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">⚥ Gênero por Slot + Duplas Mistas</div>' +
+          '<p>Cada jogador exibe um ícone de gênero no seu card durante a configuração: ♂ (azul), ♀ (rosa), ⚥ (roxo) ou ? (âmbar — não definido).</p>' +
+          '<p><b>Origem do gênero</b> — Jogadores logados com gênero preenchido no perfil ficam com o ícone automático. Para convidados (sem conta) ou usuários sem gênero no perfil, o "?" fica com animação pulse para indicar que é clicável. Qualquer participante da sala pode tocar nele para definir o gênero daquele slot — a escolha é local à partida e não altera o perfil.</p>' +
+          '<p><b>Toggle "Duplas Mistas"</b> — Aparece automaticamente abaixo de "Sortear Duplas" quando há exatamente 2M + 2F entre os 4 slots. Ao ativar, o sorteio garante 1M + 1F por dupla. Quando as duplas já estão formadas manualmente, o toggle reorganiza os times para satisfazer a regra mista.</p>' +
+          '<p><b>Sincronização</b> — Os ícones de gênero são salvos no Firestore (<code>slotGenders</code>) e propagados para todos os dispositivos da sala em até 3s, garantindo que todos vejam a mesma configuração.</p>' +
+        '</div>' +
+        '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.20);border-radius:10px;padding:12px;margin-bottom:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">🔗 Amigos nos Slots (Autocomplete)</div>' +
+          '<p>No setup da partida, ao digitar o nome de um jogador num slot editável, um dropdown de sugestões aparece automaticamente com amigos do scoreplace cujo nome bata com o digitado.</p>' +
+          '<ul style="margin:4px 0 8px 18px;font-size:0.78rem;">' +
+            '<li>Selecionar preenche o nome, avatar e gênero do perfil do amigo — sem digitar tudo manualmente.</li>' +
+            '<li>O slot vinculado exibe a foto/iniciais do amigo com ✕ para desvincular a qualquer momento.</li>' +
+            '<li>O vínculo é propagado para todos os dispositivos da sala em tempo real.</li>' +
+            '<li>Ao encerrar a partida, o amigo recebe notificação de confirmação e pode aceitar ou recusar — se aceitar, as stats são salvas no perfil dele; se recusar, o vínculo é removido.</li>' +
+          '</ul>' +
+          '<p><b>No modo Técnico</b> — O autocomplete funciona normalmente em todos os slots. Slots vinculados mostram avatar com ✕; slots sem vínculo mostram o handle ⠿ para arrastar.</p>' +
         '</div>' +
         '<div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:10px;padding:12px;">' +
           '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">🎽 Modo Técnico</div>' +
