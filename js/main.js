@@ -554,6 +554,18 @@ function setupHelpModal() {
           '<p><b>Sair libera a vaga</b> — Clicar em Sair (ou Voltar ao Dashboard) remove seu uid do slot e te redireciona para o dashboard — outro jogador pode ocupar a vaga imediatamente.</p>' +
           '<p><b>Fechar partida</b> — O botão ✕ Fechar durante a partida pede confirmação; ao confirmar o abandono, sua vaga é liberada e você volta para o dashboard.</p>' +
           '<p><b>Resultado</b> — Ao finalizar, confirme o resultado. Estatísticas detalhadas salvas no seu perfil (persistentes).</p>' +
+        '</div>' +
+        '<div style="background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:10px;padding:12px;">' +
+          '<div style="font-weight:700;font-size:0.85rem;color:var(--text-bright);margin-bottom:8px;">🎽 Modo Técnico</div>' +
+          '<p>Toggle "🎽 Técnico" na tela de configuração (visível apenas para usuários logados). Ative quando você não vai jogar — apenas gerenciar a partida de fora da quadra.</p>' +
+          '<p><b>O que muda com o modo técnico ativo:</b></p>' +
+          '<ul style="margin:4px 0 8px 18px;font-size:0.78rem;">' +
+            '<li>Seu nome e avatar deixam de preencher automaticamente o slot do Jogador 1 — todos os slots começam em branco para o técnico preencher.</li>' +
+            '<li>Botões de arrastar (⠿) aparecem em todos os cards de jogador para reorganizar times com facilidade.</li>' +
+            '<li>O app não te identifica como participante da partida, então os resultados não são salvos no seu histórico pessoal.</li>' +
+            '<li>Ao desativar o modo técnico, os vínculos de slots são limpos para evitar atribuição incorreta de UIDs.</li>' +
+          '</ul>' +
+          '<p><b>Quando usar</b> — Professor dando aula, pai acompanhando o filho, organizador gerenciando várias partidas ao mesmo tempo, ou qualquer pessoa que apenas quer marcar pontos sem participar.</p>' +
         '</div>'
     },
     {

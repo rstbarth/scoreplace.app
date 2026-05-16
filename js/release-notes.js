@@ -9,6 +9,11 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">📖 v1.6.80-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Manual: modo Técnico documentado na seção Partida Casual.</b><br><br>' +
+      'O toggle "🎽 Técnico" já existia no app mas não estava coberto no manual. Agora a seção Partida Casual explica o que muda ao ativar: slots começam em branco (sem preencher seu nome automaticamente), handles ⠿ para arrastar jogadores aparecem em todos os cards, e o resultado não é salvo no histórico pessoal do técnico. Inclui exemplos de quando usar: professor, pai acompanhando, organizador gerenciando várias partidas.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">📖 v1.6.79-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Manual atualizado com todas as novidades recentes.</b><br><br>' +
       'O manual de ajuda (ícone ?) foi revisado para cobrir as mudanças das últimas versões:<br><br>' +
