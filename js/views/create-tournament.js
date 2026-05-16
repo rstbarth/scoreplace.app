@@ -1933,7 +1933,7 @@ function setupCreateTournamentModal() {
     preview.style.display = '';
   };
 
-  window._getTournamentCategories = function() {
+  window._getCreateFormCategoryData = function() {
     var genderVals = (document.getElementById('tourn-gender-categories').value || '').split(',').filter(Boolean);
     var skillText = (document.getElementById('tourn-skill-categories').value || '').trim();
     var skillCats = skillText ? skillText.split(',').map(function(s) { return s.trim(); }).filter(Boolean) : [];
@@ -3660,7 +3660,7 @@ function setupCreateTournamentModal() {
         }
 
         // Categorias (gênero + habilidade) — todos os formatos
-        var catData = window._getTournamentCategories ? window._getTournamentCategories() : {};
+        var catData = window._getCreateFormCategoryData ? window._getCreateFormCategoryData() : {};
         tourData.genderCategories = catData.genderCategories || [];
         tourData.skillCategories = catData.skillCategories || [];
         tourData.ageCategories = catData.ageCategories || []; // v1.2.0

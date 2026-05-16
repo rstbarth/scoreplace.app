@@ -9,6 +9,13 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🔧 v1.6.73-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Fix definitivo: inscrição em torneio com categorias voltou a funcionar.</b><br><br>' +
+      'Identificado conflito de nome de função: <code>create-tournament.js</code> definia <code>window._getTournamentCategories</code> sobrescrevendo a função canônica de <code>tournaments-categories.js</code>. ' +
+      'A versão do create-tournament lê elementos do DOM do formulário de criação (que não existem durante a inscrição), retornava um objeto em vez de array, e causava erro silencioso (<code>.slice is not a function</code>) dentro de <code>_resolveEnrollmentCategory</code>. ' +
+      'Corrigido: a função interna do create-tournament foi renomeada para <code>_getCreateFormCategoryData</code>.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">✨ v1.6.72-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Mesclagem automática de conta celular com conta de e-mail.</b><br><br>' +
       'Quando você salva seu número de celular no perfil, o app verifica automaticamente se existe uma conta anterior criada via SMS com o mesmo número. ' +
