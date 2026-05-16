@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🔧 v1.6.69-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Fix definitivo: regra Firestore aceita organizerEmail como admin quando adminEmails está vazio.</b><br><br>' +
+      'A correção anterior (v1.6.68) tentava restaurar <code>adminEmails</code> em background antes de permitir o "Reabrir" — ' +
+      'mas havia uma janela de corrida: o usuário clicava "Reabrir" antes dos 2s da recovery, e o save falhava da mesma forma. ' +
+      'Fix definitivo: a função <code>isTournamentAdmin</code> nas regras do Firestore agora inclui um caminho de fallback — ' +
+      'quando <code>adminEmails</code> está vazio ou ausente (bug v1.6.66), o <code>organizerEmail</code> declarado no documento ' +
+      'serve como prova de identidade do organizador, permitindo qualquer escrita administrativa. ' +
+      'A recovery em background continua rodando para repopular <code>adminEmails</code> e restaurar o caminho normal nas próximas sessões.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🔧 v1.6.68-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Recuperação automática de torneios afetados pelo bug v1.6.66.</b><br><br>' +
       'Ao abrir o app, uma rotina silenciosa verifica todos os torneios do organizador logado onde <code>adminEmails</code> foi apagado pelo bug. ' +
