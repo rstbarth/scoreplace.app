@@ -25,12 +25,270 @@
 
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const admin = require("firebase-admin");
 const fetch = require("node-fetch");
 
 admin.initializeApp();
+
+// ═══════════════════════════════════════════════════════════════════════════
+// MODULE-LEVEL HELPERS — account deduplication (phone + email)
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Replace name references inside a match array. Returns {arr, hit}. */
+function _replaceNameInMatches(matches, oldName, newName) {
+  if (!Array.isArray(matches)) return { arr: matches, hit: false };
+  let hit = false;
+  const arr = matches.map(m => {
+    const nm = Object.assign({}, m);
+    if (nm.p1 === oldName)    { nm.p1    = newName; hit = true; }
+    if (nm.p2 === oldName)    { nm.p2    = newName; hit = true; }
+    if (nm.winner === oldName){ nm.winner = newName; hit = true; }
+    if (Array.isArray(nm.team1)) nm.team1 = nm.team1.map(x => x === oldName ? (hit = true, newName) : x);
+    if (Array.isArray(nm.team2)) nm.team2 = nm.team2.map(x => x === oldName ? (hit = true, newName) : x);
+    return nm;
+  });
+  return { arr, hit };
+}
+
+/**
+ * Repair all tournaments: replace every reference to the dropped account
+ * (by uid, email, or display name) with the keeper's identity. Batched.
+ */
+async function _repairTournaments(db, dropUid, dropEmail, dropName, keepUid, keepEmail, keepName) {
+  const tourSnaps = await db.collection("tournaments").get();
+  let tourFixed = 0;
+  let batch = db.batch();
+  let batchCount = 0;
+
+  for (const tourDoc of tourSnaps.docs) {
+    const t = tourDoc.data();
+    let changed = false;
+    const update = {};
+
+    // memberEmails[]
+    const memberEmails = Array.isArray(t.memberEmails) ? [...t.memberEmails] : [];
+    const emailIdx = dropEmail ? memberEmails.indexOf(dropEmail) : -1;
+    if (emailIdx !== -1) {
+      if (keepEmail && !memberEmails.includes(keepEmail)) memberEmails.splice(emailIdx, 1, keepEmail);
+      else memberEmails.splice(emailIdx, 1);
+      update.memberEmails = memberEmails;
+      changed = true;
+    }
+
+    // participants[]
+    if (Array.isArray(t.participants)) {
+      const parts = t.participants.map(p => {
+        const pUid   = p.uid || p.id || "";
+        const pEmail = (p.email || p.displayName || "").toLowerCase();
+        const hit = (pUid && pUid === dropUid) ||
+                    (dropEmail && pEmail === dropEmail.toLowerCase());
+        if (!hit) return p;
+        changed = true;
+        const updated = Object.assign({}, p);
+        if (keepUid)   updated.uid = keepUid;
+        if (keepEmail) updated.email = keepEmail;
+        if (keepName)  { updated.displayName = keepName; updated.name = keepName; }
+        return updated;
+      });
+      if (changed) update.participants = parts;
+    }
+
+    // p1/p2/winner strings across all match structures
+    if (dropName && keepName && dropName !== keepName) {
+      const structs = [
+        { key: "matches", plain: true  },
+        { key: "rounds",  plain: false },
+        { key: "groups",  plain: false },
+        { key: "rodadas", plain: false },
+      ];
+      for (const { key, plain } of structs) {
+        if (!Array.isArray(t[key])) continue;
+        if (plain) {
+          const r = _replaceNameInMatches(t[key], dropName, keepName);
+          if (r.hit) { update[key] = r.arr; changed = true; }
+        } else {
+          let hit = false;
+          const updated = t[key].map(item => {
+            if (!item || !Array.isArray(item.matches)) return item;
+            const r = _replaceNameInMatches(item.matches, dropName, keepName);
+            if (r.hit) hit = true;
+            return Object.assign({}, item, { matches: r.arr });
+          });
+          if (hit) { update[key] = updated; changed = true; }
+        }
+      }
+    }
+
+    if (changed) {
+      batch.update(tourDoc.ref, update);
+      tourFixed++;
+      batchCount++;
+      if (batchCount >= 400) {
+        await batch.commit();
+        batch = db.batch();
+        batchCount = 0;
+      }
+    }
+  }
+  if (batchCount > 0) await batch.commit();
+  return tourFixed;
+}
+
+/**
+ * Score how "complete" a user profile is. Higher = more complete = keep this one.
+ * Rules: real name > phone-as-name, real email, city, birthdate, gender, sports.
+ */
+function _profileScore(data) {
+  let s = 0;
+  const name = data.displayName || data.name || "";
+  if (name && !/^\+?[0-9\s\-()]{7,}$/.test(name)) s += 10; // real name, not a phone number
+  if (data.email && !data.email.includes("privaterelay"))   s += 5;
+  if (data.city)                                             s += 2;
+  if (data.birthDate)                                        s += 2;
+  if (data.gender)                                           s += 1;
+  if (Array.isArray(data.preferredSports) && data.preferredSports.length) s += 1;
+  if (data.photoURL && data.photoURL.startsWith("https://firebasestorage")) s += 1;
+  return s;
+}
+
+/**
+ * Choose which of two Firestore DocumentSnapshot objects to keep.
+ * Higher profile score wins; tie → newer createdAt wins.
+ * Returns { keepDoc, dropDoc }.
+ */
+function _determineMergeWinner(docA, docB) {
+  const aScore = _profileScore(docA.data());
+  const bScore = _profileScore(docB.data());
+  if (aScore !== bScore) {
+    return aScore > bScore
+      ? { keepDoc: docA, dropDoc: docB }
+      : { keepDoc: docB, dropDoc: docA };
+  }
+  // Tie: prefer newer account
+  const ts = doc => {
+    const c = doc.data().createdAt;
+    return c ? (c.toMillis ? c.toMillis() : Number(c)) : 0;
+  };
+  return ts(docB) >= ts(docA)
+    ? { keepDoc: docB, dropDoc: docA }
+    : { keepDoc: docA, dropDoc: docB };
+}
+
+/** Normalise a field value to a dedup key (strips spaces/dashes from phones). */
+function _dedupKey(field, value) {
+  if (!value || typeof value !== "string") return null;
+  if (field === "phone") return value.replace(/[\s\-()]/g, "");
+  return value.trim().toLowerCase();
+}
+
+/**
+ * Execute a full merge:
+ *   1. Repair all tournaments (replace dropDoc identity with keepDoc identity)
+ *   2. Transfer matchHistory (dedup by matchId)
+ *   3. Transfer casualMatches ownership
+ *   4. Mark dropDoc as mergedInto keepDoc
+ *
+ * keepDoc and dropDoc are Firestore DocumentSnapshot instances.
+ * Returns { tourFixed, casualFixed }.
+ */
+async function _executeMerge(db, keepDoc, dropDoc) {
+  const keepData  = keepDoc.data();
+  const dropData  = dropDoc.data();
+  const keepUid   = keepDoc.id;
+  const dropUid   = dropDoc.id;
+  const keepEmail = keepData.email || "";
+  const keepName  = keepData.displayName || keepData.name || "";
+  const dropEmail = dropData.email || dropData.phone || "";
+  const dropName  = dropData.displayName || dropData.name || "";
+
+  console.log(`[_executeMerge] keep=${keepUid}(${keepName}) ← drop=${dropUid}(${dropName})`);
+
+  const tourFixed = await _repairTournaments(
+    db, dropUid, dropEmail, dropName, keepUid, keepEmail, keepName
+  );
+
+  // Merge matchHistory (no duplicate matchIds)
+  if (Array.isArray(dropData.matchHistory) && dropData.matchHistory.length > 0) {
+    const existing = Array.isArray(keepData.matchHistory) ? keepData.matchHistory : [];
+    const merged   = [...existing];
+    dropData.matchHistory.forEach(entry => {
+      if (!merged.some(e => e.matchId === entry.matchId)) merged.push(entry);
+    });
+    await db.collection("users").doc(keepUid).update({ matchHistory: merged });
+  }
+
+  // Transfer casualMatches ownership
+  const casualSnap = await db.collection("casualMatches")
+    .where("creatorUid", "==", dropUid).get();
+  let casualFixed = 0;
+  if (!casualSnap.empty) {
+    let b = db.batch(); let bc = 0;
+    casualSnap.docs.forEach(doc => { b.update(doc.ref, { creatorUid: keepUid }); bc++; });
+    await b.commit();
+    casualFixed = casualSnap.size;
+  }
+
+  // Mark old doc as merged
+  await db.collection("users").doc(dropUid).set(
+    { mergedInto: keepUid, mergedAt: admin.firestore.FieldValue.serverTimestamp() },
+    { merge: true }
+  );
+
+  console.log(`[_executeMerge] Done: tourFixed=${tourFixed} casualFixed=${casualFixed}`);
+  return { tourFixed, casualFixed };
+}
+
+/**
+ * Scan all users for duplicate values of `field` ("phone" or "email").
+ * For each duplicate group, merge every less-complete account into the
+ * most-complete one.  Returns an array of merge result objects.
+ */
+async function _scanAndMergeByField(db, field) {
+  const allSnap = await db.collection("users").get();
+  const byKey = {};
+
+  allSnap.docs.forEach(doc => {
+    const d = doc.data();
+    if (d.mergedInto) return; // already merged — skip
+    const key = _dedupKey(field, d[field]);
+    if (!key || key.length < 5) return;
+    if (!byKey[key]) byKey[key] = [];
+    byKey[key].push(doc);
+  });
+
+  const results = [];
+
+  for (const [key, docs] of Object.entries(byKey)) {
+    if (docs.length < 2) continue;
+
+    // Find the best keeper across all docs in this group
+    let keepDoc = docs[0];
+    for (let i = 1; i < docs.length; i++) {
+      keepDoc = _determineMergeWinner(keepDoc, docs[i]).keepDoc;
+    }
+
+    // Merge all non-keepers sequentially (re-fetch each time for freshness)
+    for (const dropDoc of docs) {
+      if (dropDoc.id === keepDoc.id) continue;
+      const [freshKeep, freshDrop] = await Promise.all([
+        db.collection("users").doc(keepDoc.id).get(),
+        db.collection("users").doc(dropDoc.id).get(),
+      ]);
+      if (!freshDrop.exists || freshDrop.data().mergedInto) continue;
+      try {
+        const r = await _executeMerge(db, freshKeep, freshDrop);
+        results.push({ field, key, keepUid: keepDoc.id, dropUid: dropDoc.id, ...r });
+      } catch (err) {
+        results.push({ field, key, keepUid: keepDoc.id, dropUid: dropDoc.id,
+                       error: String(err.message) });
+      }
+    }
+  }
+
+  return results;
+}
 
 // ─── One-shot: purge ALL perfil_foto trophies ─────────────────────────────
 // v1.6.28-beta: o trofeu perfil_foto foi concedido incorretamente a usuários
@@ -2196,6 +2454,17 @@ exports.fixMergedParticipants = onRequest(
       return;
     }
 
+    // ── Modo 4: varredura por email duplicados ────────────────────────────────
+    if (req.query.scanEmail) {
+      const results = await _scanAndMergeByField(db, "email");
+      if (results.length === 0) {
+        res.json({ ok: true, message: "Nenhum par de email duplicado encontrado" });
+        return;
+      }
+      res.json({ ok: true, mode: "scanEmail", results });
+      return;
+    }
+
     // ── Modo 2: varredura por mergedInto ──────────────────────────────────────
     const mergedSnap = await db.collection("users").where("mergedInto", "!=", null).get();
     if (mergedSnap.empty) { res.json({ ok: true, message: "Nenhum usuário mesclado encontrado" }); return; }
@@ -2223,5 +2492,116 @@ exports.fixMergedParticipants = onRequest(
     }
 
     res.json({ ok: true, mode: "mergedInto", report });
+  }
+);
+
+// ─── autoMergeOnProfileUpdate (Firestore trigger) ─────────────────────────
+// Dispara sempre que um doc users/{uid} é criado ou atualizado.
+// Se phone ou email mudou, varre o banco por outros usuários com o mesmo
+// valor e mescla automaticamente (conta mais completa ganha; empate → mais nova).
+//
+// Proteção anti-loop:
+//   • Docs com mergedInto ignorados (já mesclados).
+//   • _executeMerge só altera matchHistory e mergedInto — phone/email não mudam,
+//     então o trigger não dispara novamente para os docs atualizados.
+exports.autoMergeOnProfileUpdate = onDocumentWritten(
+  { document: "users/{uid}", region: "us-central1", memory: "256MiB", timeoutSeconds: 120 },
+  async (event) => {
+    const after  = event.data.after;
+    const before = event.data.before;
+
+    if (!after.exists) return; // doc deletado — nada a fazer
+
+    const afterData  = after.data();
+    const beforeData = before.exists ? (before.data() || {}) : {};
+
+    if (afterData.mergedInto) return; // conta já mesclada — ignorar
+
+    const phoneChanged = afterData.phone && afterData.phone !== beforeData.phone;
+    const emailChanged = afterData.email && afterData.email !== beforeData.email;
+    if (!phoneChanged && !emailChanged) return; // mudança irrelevante
+
+    const db  = admin.firestore();
+    const uid = event.params.uid;
+    console.log(`[autoMergeOnProfileUpdate] uid=${uid} phoneChanged=${phoneChanged} emailChanged=${emailChanged}`);
+
+    const checkFields = [];
+    if (phoneChanged) checkFields.push({ field: "phone", value: afterData.phone });
+    if (emailChanged) checkFields.push({ field: "email", value: afterData.email });
+
+    for (const { field, value } of checkFields) {
+      const key = _dedupKey(field, value);
+      if (!key || key.length < 5) continue;
+
+      // Busca outros usuários com o mesmo valor no campo
+      const snap = await db.collection("users").where(field, "==", value).get();
+      const others = snap.docs.filter(d => d.id !== uid && !d.data().mergedInto);
+
+      // Para phone: tenta também a versão normalizada (sem espaços/traços)
+      if (field === "phone") {
+        const normalized = value.replace(/[\s\-()]/g, "");
+        if (normalized !== value) {
+          const snap2 = await db.collection("users").where(field, "==", normalized).get();
+          snap2.docs.forEach(d => {
+            if (d.id !== uid && !d.data().mergedInto && !others.find(o => o.id === d.id)) {
+              others.push(d);
+            }
+          });
+        }
+      }
+
+      if (others.length === 0) continue;
+
+      // Re-fetch conta atual (pode ter sido atualizada desde que o trigger disparou)
+      const currentDoc = await db.collection("users").doc(uid).get();
+      if (!currentDoc.exists || currentDoc.data().mergedInto) continue;
+
+      for (const other of others) {
+        const freshOther = await db.collection("users").doc(other.id).get();
+        if (!freshOther.exists || freshOther.data().mergedInto) continue;
+
+        const { keepDoc, dropDoc } = _determineMergeWinner(currentDoc, freshOther);
+        try {
+          const r = await _executeMerge(db, keepDoc, dropDoc);
+          console.log(`[autoMergeOnProfileUpdate] Merged by ${field}: drop=${dropDoc.id} → keep=${keepDoc.id}`, r);
+        } catch (err) {
+          console.error(`[autoMergeOnProfileUpdate] Merge error for uid=${uid}:`, err);
+        }
+      }
+    }
+  }
+);
+
+// ─── scheduledAutoMergeCleanup (diário 04:45 BRT) ─────────────────────────
+// Varre toda a coleção users em busca de phones E emails duplicados e mescla
+// automaticamente os pares encontrados. Garante que duplicatas que existiam
+// antes do trigger ser deployado (e qualquer caso que escapou do trigger)
+// sejam resolvidas.
+exports.scheduledAutoMergeCleanup = onSchedule(
+  {
+    schedule:  "45 7 * * *",       // 04:45 BRT = 07:45 UTC
+    timeZone:  "America/Sao_Paulo",
+    region:    "us-central1",
+    memory:    "512MiB",
+    timeoutSeconds: 540,
+  },
+  async () => {
+    const db = admin.firestore();
+    console.log("[scheduledAutoMergeCleanup] Iniciando varredura diária de duplicatas");
+
+    const [phoneResults, emailResults] = await Promise.all([
+      _scanAndMergeByField(db, "phone"),
+      _scanAndMergeByField(db, "email"),
+    ]);
+
+    const total = phoneResults.length + emailResults.length;
+    console.log(
+      `[scheduledAutoMergeCleanup] Concluído: phone_merges=${phoneResults.length} ` +
+      `email_merges=${emailResults.length}`
+    );
+    if (total > 0) {
+      console.log("[scheduledAutoMergeCleanup] phone:", JSON.stringify(phoneResults));
+      console.log("[scheduledAutoMergeCleanup] email:", JSON.stringify(emailResults));
+    }
   }
 );
