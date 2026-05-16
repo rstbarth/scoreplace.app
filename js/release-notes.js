@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">✨ v1.6.70-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Inscrição em categoria automática por habilidade e faixa etária.</b><br><br>' +
+      'Ao se inscrever num torneio com categorias, o app agora usa os dados do perfil para determinar a categoria corretamente sem pedir confirmação:<br><br>' +
+      '• <b>Gênero</b> — filtra para as categorias compatíveis (Fem, Masc, Misto).<br>' +
+      '• <b>Faixa etária</b> — usa a data de nascimento do perfil para encontrar o bucket correto (40+, 50+, 60+, 70+). O bucket é exclusivo: 52 anos → 50+, não 40+ e 50+.<br>' +
+      '• <b>Habilidade</b> — usa o nível da modalidade do torneio (<code>skillBySport</code>) ou o nível geral do perfil para filtrar por letra de categoria (A, B, C, D, FUN).<br><br>' +
+      'Se após os três filtros restar apenas uma categoria, a inscrição ocorre diretamente. Se ainda houver ambiguidade (ex: perfil sem habilidade preenchida), o seletor é exibido apenas com as opções elegíveis. ' +
+      'Também corrigido: categorias não apareciam quando o torneio tinha <code>genderCategories</code> preenchido mas <code>combinedCategories</code> ausente — agora o app recomputa automaticamente.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🔧 v1.6.69-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Fix definitivo: regra Firestore aceita organizerEmail como admin quando adminEmails está vazio.</b><br><br>' +
       'A correção anterior (v1.6.68) tentava restaurar <code>adminEmails</code> em background antes de permitir o "Reabrir" — ' +

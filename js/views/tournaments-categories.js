@@ -148,46 +148,106 @@ window._groupEligibleCategories = function(eligibleCats) {
 // Shows a modal if multiple eligible categories. Auto-picks if only one.
 window._resolveEnrollmentCategory = function(tId, callback) {
     var t = window.AppStore.tournaments.find(function(tour) { return tour.id.toString() === tId.toString(); });
-    if (!t || !t.combinedCategories || t.combinedCategories.length === 0) {
+    if (!t) { if (callback) callback(null); return; }
+    // Use _getTournamentCategories so genderCategories/skillCategories work as
+    // fallback when combinedCategories is missing (e.g. older tournament saves).
+    var allCats = window._getTournamentCategories(t);
+    if (allCats.length === 0) {
         if (callback) callback(null); // No categories
         return;
     }
-    var user = window.AppStore.currentUser;
-    var eligible = [];
-    if (t.combinedCategories.length === 1) {
-        // Only one option — auto-pick
-        if (callback) callback(t.combinedCategories[0]);
+    if (allCats.length === 1) {
+        if (callback) callback(allCats[0]);
         return;
     }
-    // Filter by user gender (if available)
+
+    var user = window.AppStore.currentUser;
+    var eligible = allCats.slice();
+
+    // ── 1. Filtrar por gênero ──────────────────────────────────────────────
     if (user && user.gender) {
-        var validCodes = window._userGenderToCatCodes(user.gender);
-        for (var i = 0; i < t.combinedCategories.length; i++) {
-            var cat = t.combinedCategories[i];
-            var prefix = cat.split(' ')[0];
-            var match = false;
-            for (var j = 0; j < validCodes.length; j++) {
-                if (prefix.toLowerCase() === validCodes[j].replace(/_/g, ' ')) {
-                    match = true;
-                    break;
+        var validGenderCodes = window._userGenderToCatCodes(user.gender);
+        // prefixos de gênero reconhecidos nas categorias combinadas
+        var genderPrefixMap = { fem: 'fem', masc: 'masc', misto_aleatorio: 'misto aleat.', misto_obrigatorio: 'misto obrig.' };
+        var allGenderPrefixes = ['fem', 'masc', 'misto aleat.', 'misto obrig.'];
+        var filtered = eligible.filter(function(cat) {
+            var prefix = cat.split(' ')[0].toLowerCase();
+            var firstTwo = (cat.split(' ').slice(0, 2).join(' ')).toLowerCase();
+            // Categoria sem prefixo de gênero (ex: "A", "B", "40+") — sem filtro
+            var hasGenderPrefix = allGenderPrefixes.some(function(gp) {
+                return cat.toLowerCase().startsWith(gp);
+            });
+            if (!hasGenderPrefix) return true;
+            return validGenderCodes.some(function(code) {
+                var label = genderPrefixMap[code] || code;
+                return cat.toLowerCase().startsWith(label);
+            });
+        });
+        if (filtered.length > 0) eligible = filtered;
+    }
+    if (eligible.length === 1) { if (callback) callback(eligible[0]); return; }
+
+    // ── 2. Filtrar por faixa etária (birthDate do perfil) ─────────────────
+    var birthDate = user && user.birthDate;
+    if (birthDate) {
+        var bd = new Date(birthDate);
+        if (!isNaN(bd.getTime())) {
+            var now = new Date();
+            var age = now.getFullYear() - bd.getFullYear();
+            if (now.getMonth() < bd.getMonth() || (now.getMonth() === bd.getMonth() && now.getDate() < bd.getDate())) age--;
+            // Quais faixas etárias existem nas categorias elegíveis?
+            var ageBuckets = [];
+            eligible.forEach(function(cat) {
+                var m = cat.match(/(\d+)\+/);
+                if (m) { var v = parseInt(m[1]); if (ageBuckets.indexOf(v) === -1) ageBuckets.push(v); }
+            });
+            if (ageBuckets.length > 0) {
+                // Seleciona o maior threshold que o usuário atingiu (bucket exclusivo)
+                ageBuckets.sort(function(a, b) { return b - a; });
+                var myBucket = null;
+                for (var bi = 0; bi < ageBuckets.length; bi++) {
+                    if (age >= ageBuckets[bi]) { myBucket = ageBuckets[bi]; break; }
+                }
+                if (myBucket !== null) {
+                    var byAge = eligible.filter(function(cat) { return cat.indexOf(myBucket + '+') !== -1; });
+                    if (byAge.length > 0) eligible = byAge;
+                } else {
+                    // Usuário mais jovem que todos os buckets — remove categorias de idade
+                    var noAge = eligible.filter(function(cat) { return !cat.match(/\d+\+/); });
+                    if (noAge.length > 0) eligible = noAge;
                 }
             }
-            if (match) eligible.push(cat);
         }
     }
-    if (eligible.length === 0) eligible = t.combinedCategories;
-    if (eligible.length === 1) {
-        if (callback) callback(eligible[0]);
-        return;
+    if (eligible.length === 1) { if (callback) callback(eligible[0]); return; }
+
+    // ── 3. Filtrar por habilidade (skillBySport ou defaultCategory) ────────
+    var profileSkill = null;
+    if (user && user.skillBySport && typeof user.skillBySport === 'object') {
+        var tSport = t.sport ? String(t.sport).trim() : null;
+        if (tSport && user.skillBySport[tSport]) profileSkill = String(user.skillBySport[tSport]).trim().toUpperCase();
     }
-    // Multiple options — show modal
+    if (!profileSkill && user && user.defaultCategory) {
+        profileSkill = String(user.defaultCategory).trim().toUpperCase();
+    }
+    if (profileSkill) {
+        // Tokens de cada categoria que são habilidade (não são prefixo de gênero nem faixa etária)
+        var skillFiltered = eligible.filter(function(cat) {
+            var tokens = cat.split(' ');
+            return tokens.some(function(tok) { return tok.toUpperCase() === profileSkill; });
+        });
+        if (skillFiltered.length > 0) eligible = skillFiltered;
+    }
+    if (eligible.length === 1) { if (callback) callback(eligible[0]); return; }
+
+    // ── 4. Ainda ambíguo — mostrar picker com opções já filtradas ──────────
     var modalId = 'modal-category-enroll-' + tId;
     var mod = document.getElementById(modalId);
     if (mod) mod.remove();
     var html = '<div class="modal" id="' + modalId + '" style="display:flex;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center;">' +
-        '<div class="modal-content" style="background:white;border-radius:15px;padding:25px;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
-        '<h2>Selecionar Categoria</h2>' +
-        '<p>Escolha a categoria em que deseja se inscrever:</p>';
+        '<div class="modal-content" style="background:var(--bg-card,#1a2235);color:var(--text-main,#fff);border-radius:15px;padding:25px;max-width:400px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
+        '<h2 style="margin:0 0 8px;font-size:1.1rem;">Selecionar Categoria</h2>' +
+        '<p style="margin:0 0 16px;opacity:0.75;font-size:0.9rem;">Escolha a categoria em que deseja se inscrever:</p>';
     for (var k = 0; k < eligible.length; k++) {
         var cat = eligible[k];
         var escapedCat = cat.replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/</g, '\\x3c').replace(/>/g, '\\x3e');
