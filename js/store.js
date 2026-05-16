@@ -1,4 +1,4 @@
-window.SCOREPLACE_VERSION = '1.6.66-beta';
+window.SCOREPLACE_VERSION = '1.6.67-beta';
 
 // ─── One-time beta cleanup ─────────────────────────────────────────────────
 // v1.0.0-beta: Firestore foi zerado na transição alpha→beta. MAS caches
@@ -129,9 +129,23 @@ setInterval(function() {
       var enrollEl = document.getElementById('dash-enrollbtn-' + tId);
       if (enrollEl) enrollEl.style.display = 'none';
     }
-    // Persiste status:'closed' no Firestore
-    if (tId && window.FirestoreDB && typeof window.FirestoreDB.saveTournament === 'function') {
-      window.FirestoreDB.saveTournament({ id: tId, status: 'closed' }).catch(function() {});
+    // Persiste status:'closed' no Firestore usando o objeto completo do
+    // AppStore — salvar objeto parcial limparia memberEmails/adminEmails e
+    // bloquearia futuras gravações via regras de segurança do Firestore.
+    if (tId && window.AppStore && window.FirestoreDB) {
+      var _appT = window.AppStore.tournaments && window.AppStore.tournaments.find(function(x) {
+        return String(x.id) === String(tId);
+      });
+      if (_appT) {
+        _appT.status = 'closed';
+        if (typeof window.FirestoreDB.saveTournament === 'function') {
+          window.FirestoreDB.saveTournament(_appT).catch(function() {});
+        }
+      } else if (window.FirestoreDB.db) {
+        // Fallback: update cirúrgico — não toca em memberEmails/adminEmails
+        window.FirestoreDB.db.collection('tournaments').doc(String(tId))
+          .update({ status: 'closed' }).catch(function() {});
+      }
     }
   });
 }, 1000);

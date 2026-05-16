@@ -9,6 +9,16 @@
 window._RELEASE_NOTES_HTML = (function () {
   var html =
     '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
+      '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🗓️ v1.6.67-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
+      '<p><b>Fix crítico: "Reabrir Inscrições" voltava em loop e gravação falhava silenciosamente.</b><br><br>' +
+      'Ao expirar o prazo de inscrição, o código anterior chamava <code>saveTournament({ id, status })</code> com objeto parcial — ' +
+      'isso fazia <code>_computeMemberEmails([]) = []</code> e apagava os campos <code>memberEmails</code> e <code>adminEmails</code> no Firestore. ' +
+      'Sem esses campos, as regras de segurança do Firestore bloqueavam qualquer escrita posterior do organizador, ' +
+      'gerando o toast "salvo localmente" e impedindo o "Reabrir Inscrições" de persistir. ' +
+      'Fix: o intervalo agora localiza o objeto completo do torneio no AppStore, atualiza <code>status</code> em memória e salva o documento completo — ' +
+      'preservando todos os campos de segurança. Fallback cirúrgico via <code>.update({ status })</code> quando o torneio não está em cache local.</p>' +
+    '</div>' +
+    '<div style="margin-bottom:1rem;border:2px solid #6366f1;border-radius:12px;padding:14px 16px;background:rgba(99,102,241,0.07);">' +
       '<div style="font-weight:800; color:#818cf8; font-size:1rem; margin-bottom:8px;">🗓️ v1.6.66-beta <span style="color:var(--text-muted); font-weight:400; font-size:0.78rem;">(16 de Maio, 2026)</span></div>' +
       '<p><b>Prazo de inscrições expira automaticamente no card da dashboard — sem precisar recarregar a página.</b><br><br>' +
       'Quando o prazo de inscrição de um torneio se encerra por decurso de tempo, o badge "Inscrições Abertas" no card da dashboard muda automaticamente para "Inscrições Encerradas" e o botão de inscrição some — em tempo real, sem refresh. ' +
