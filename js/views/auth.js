@@ -4835,6 +4835,80 @@ function setupProfileModal() {
 
     // v0.16.9: reescrita do save de perfil, do zero.
     //
+    // ── Helper: detecta e mescla conta antiga de celular ──────────────────
+    // Quando o usuário salva um phone no perfil, verifica no Firestore se
+    // existe outro doc de usuário com o mesmo phone (conta phone-auth anterior).
+    // Se encontrar, oferece mesclagem via Cloud Function mergePhoneAccount.
+    window._checkPhoneAccountMerge = function(phone, currentUid) {
+      if (!phone || !currentUid) return;
+      if (!window.FirestoreDB || !window.FirestoreDB.db) return;
+      var db = window.FirestoreDB.db;
+      db.collection('users')
+        .where('phone', '==', phone)
+        .limit(5)
+        .get()
+        .then(function(snap) {
+          var oldDoc = null;
+          snap.forEach(function(doc) {
+            if (doc.id !== currentUid && !doc.data().mergedInto) {
+              oldDoc = doc;
+            }
+          });
+          if (!oldDoc) return;
+          var oldData = oldDoc.data();
+          var oldName = oldData.displayName || oldData.name || '';
+          var label = oldName ? ' (nome: ' + oldName + ')' : '';
+          var confirmMsg = 'Encontramos uma conta anterior vinculada a este celular' + label + '.\n\nDeseja mesclar? As inscrições em torneios e o histórico de partidas daquela conta serão transferidos para a sua conta atual.';
+          if (typeof showConfirmDialog === 'function') {
+            showConfirmDialog(
+              '📱 Conta anterior encontrada',
+              confirmMsg,
+              function() { window._executePhoneAccountMerge(oldDoc.id); },
+              function() {},
+              'Mesclar contas',
+              'Não, ignorar'
+            );
+          } else if (confirm(confirmMsg)) {
+            window._executePhoneAccountMerge(oldDoc.id);
+          }
+        })
+        .catch(function(e) {
+          console.warn('[PhoneMerge] query error:', e);
+        });
+    };
+
+    window._executePhoneAccountMerge = function(oldUid) {
+      if (!oldUid) return;
+      if (typeof showNotification !== 'undefined') {
+        showNotification('Mesclando contas...', 'Aguarde um momento.', 'info');
+      }
+      try {
+        var mergeFunc = firebase.functions().httpsCallable('mergePhoneAccount');
+        mergeFunc({ oldUid: oldUid })
+          .then(function(result) {
+            var r = result.data || {};
+            var msg = 'Contas mescladas com sucesso!';
+            if (r.tournaments > 0) msg += ' ' + r.tournaments + ' torneio(s) transferido(s).';
+            if (r.casualMatches > 0) msg += ' ' + r.casualMatches + ' partida(s) casual transferida(s).';
+            if (typeof showNotification !== 'undefined') {
+              showNotification('✅ Contas mescladas', msg, 'success');
+            }
+            if (typeof window.AppStore !== 'undefined' && typeof window.AppStore.loadFromFirestore === 'function') {
+              window.AppStore.loadFromFirestore();
+            }
+          })
+          .catch(function(err) {
+            var msg = (err && err.message) || 'Erro desconhecido';
+            if (typeof showNotification !== 'undefined') {
+              showNotification('Erro ao mesclar contas', msg, 'error');
+            }
+            console.error('[PhoneMerge] merge error:', err);
+          });
+      } catch(e) {
+        console.error('[PhoneMerge] httpsCallable error:', e);
+      }
+    };
+
     // Porque reescrever: a cadeia anterior (auth.js → currentUser → store.js
     // saveUserProfileToFirestore → firebase-db.js saveUserProfile → Firestore
     // set merge) tinha 4 camadas, 3 conversões, 2 "clobber guards"
@@ -5257,6 +5331,17 @@ function setupProfileModal() {
         var nameSpan = btnLogin.querySelector('span[style*="font-weight"]');
         if (avatarImg) avatarImg.src = photoUrl;
         if (nameSpan) nameSpan.textContent = firstName;
+      }
+
+      // ── 9. PHONE MERGE — detectar conta anterior com mesmo celular ──────
+      // Roda em background (não bloqueia o fechamento do perfil).
+      // Só dispara quando o save foi bem-sucedido e o usuário preencheu phone.
+      if (!saveError && payload.phone) {
+        setTimeout(function() {
+          if (typeof window._checkPhoneAccountMerge === 'function') {
+            window._checkPhoneAccountMerge(payload.phone, uid);
+          }
+        }, 800);
       }
 
       // v1.3.5-beta: usar helper centralizado que trata tanto rota #profile
